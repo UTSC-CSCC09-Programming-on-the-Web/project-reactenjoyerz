@@ -8,13 +8,11 @@ reactenjoyerz
  * Yann Gbaguidi <yann.gbaguidi@mail.utoronto.ca>
 
 ## Brief Description Of The Web Application
-A multiplayer game where players control tanks and the goal is to defeat the other players by hitting them with a bullet or blowing them up with a mine **ie. A Wii Tanks remake with multiplayer and voice chat**
+A multiplayer game where players control tanks and the goal is to defeat the other players by hitting them with a bullet **ie. A Wii Tanks remake with multiplayer and voice chat**
 
 Features
  * Walls which block bullets and players
- * Bullets which bounce off walls and kills players
- * Proximity mines that blow up and kill players
- * Log in + Payment details processing (postgres)
+ * Log in + Payment details processing
  * Simple Match queuing
  * Voice Chat
  * Proximity Chat
