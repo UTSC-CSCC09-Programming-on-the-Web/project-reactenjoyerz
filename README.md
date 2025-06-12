@@ -18,6 +18,7 @@ Features
  * Simple Match queuing
  * Voice Chat
  * Proximity Chat
+ * Voice controls
 
 ## Modern Frontend Framework Of Choice
 Angular
