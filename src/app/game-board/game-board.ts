@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
+import { DynamicSprite } from './dynamic-sprite/dynamic-sprite';
 
 @Component({
-  selector: 'app-game-board',
-  imports: [],
+  selector: 'game-board',
+  imports: [DynamicSprite],
   templateUrl: './game-board.html',
   styleUrl: './game-board.css',
 })
