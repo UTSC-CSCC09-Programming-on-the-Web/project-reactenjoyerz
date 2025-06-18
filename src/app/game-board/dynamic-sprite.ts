@@ -75,4 +75,11 @@ export class DynamicSprite extends Sprite {
     super.setPosition(newX, newY);
     if (flag === 2) this.move = false;
   }
+
+  stopMoving(): void { this.move = false; }
+  setDirection(dx: number, dy: number): void { 
+    this.slopeX = dx
+    this.slopeY = dy;
+  }
+  getDirection(): Array<number> { return this.move ? [this.slopeX, this.slopeY] : [0, 0]; }
 }
