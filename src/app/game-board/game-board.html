@@ -1,5 +1,6 @@
 <div class="background" (click)="onClick($event)"></div>
 <img
+  class="tank"
   style.left="{{ playerTank.getPosition()[0] }}px"
   style.top="{{ playerTank.getPosition()[1] }}px"
   style.transform="rotate({{ playerTank.getRotation() }}rad)"
@@ -9,9 +10,13 @@
 />
 
 @for (bullet of bullets; track bullet.id) {
-<div
+<img
+  class="bullet"
   style.left="{{bullet.getPosition()[0]}}px"
   style.top="{{ bullet.getPosition()[1] }}px"
-  class="bullet"
-></div>
+  style.transform="rotate({{ bullet.getRotation() }}rad)"
+  [src]="bullet.getSprite()"
+  [width]="bullet.getWidth()"
+  [height]="bullet.getHeight()"
+/>
 }

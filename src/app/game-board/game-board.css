@@ -9,11 +9,10 @@
 
 .bullet {
   position: fixed;
-  width: 10px;
-  height: 10px;
-  background-color: white;
+  z-index: 1;
 }
 
-img {
-  position: absolute;
+.tank {
+  position: fixed;
+  z-index: 2;
 }
