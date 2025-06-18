@@ -1,2 +1,9 @@
-<div></div>
-<dynamic-sprite sprite="greenTank.png" [width]="64" [height]="64" />
+<div (click)="onClick($event)"></div>
+<img
+  style.left="{{ playerTank.getPosition()[0] }}px"
+  style.top="{{ playerTank.getPosition()[1] }}px"
+  style.transform="rotate({{ playerTank.getRotation() }}deg)"
+  [src]="playerTank.getSprite()"
+  [width]="playerTank.getWidth()"
+  [height]="playerTank.getHeight()"
+/>

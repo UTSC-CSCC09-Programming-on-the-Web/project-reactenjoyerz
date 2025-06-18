@@ -1,10 +1,28 @@
-import { Component } from '@angular/core';
-import { DynamicSprite } from './dynamic-sprite/dynamic-sprite';
+import { Component, inject } from '@angular/core';
+import { PlayerTank } from './tank/player-tank';
+import { DynamicSprite } from './dynamic-sprite';
 
 @Component({
   selector: 'game-board',
-  imports: [DynamicSprite],
+  imports: [],
   templateUrl: './game-board.html',
   styleUrl: './game-board.css',
 })
-export class GameBoard {}
+export class GameBoard {
+  playerTank: PlayerTank;
+  lastTime: number;
+  constructor() {
+    this.playerTank = new PlayerTank(0);
+    this.lastTime = Date.now();
+
+    setInterval(() => {
+      const now: number = Date.now();
+      this.playerTank.moveSprite(now - this.lastTime);
+      this.lastTime = now;
+    }, 5);
+  }
+
+  onClick(event: MouseEvent): void {
+    this.playerTank.moveSpriteTo(event.x, event.y);
+  }
+}
