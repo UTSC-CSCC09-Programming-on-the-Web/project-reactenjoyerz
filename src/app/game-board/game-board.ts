@@ -23,6 +23,9 @@ export class GameBoard {
   }
 
   onClick(event: MouseEvent): void {
-    this.playerTank.moveSpriteTo(event.x, event.y);
+    if (event.altKey)
+      this.playerTank.shootBullet(event.x, event.y);
+    else
+      this.playerTank.moveSpriteTo(event.x, event.y);
   }
 }
