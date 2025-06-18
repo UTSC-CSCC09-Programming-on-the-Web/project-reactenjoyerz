@@ -5,6 +5,7 @@ export class Sprite {
   private height: number;
   private xPos: number;
   private yPos: number;
+  private id: number;
 
   constructor(
     sprite: string,
@@ -12,22 +13,33 @@ export class Sprite {
     height: number,
     x: number,
     y: number,
+    id: number
   ) {
     this.sprite = sprite;
     this.width = width;
     this.height = height;
     this.xPos = x - width / 2;
     this.yPos = y - height / 2;
+    this.id = id;
   }
 
   collidesWith(other: Sprite): boolean {
     // not implemented yet
-    return false;
+    const otherWidth = other.getWidth();
+    const otherHeight = other.getHeight();
+    const [otherX, otherY] = other.getPosition();
+
+    return (this.xPos < otherX + otherWidth && otherX < this.xPos + this.width) &&
+           (this.yPos < otherY + otherHeight && otherY < this.yPos + this.height)
   }
+
+  getId() : number { return this.id; }
 
   getSprite(): string {
     return this.sprite;
   }
+  setWidth(width: number): void { this.width = width; }
+  setHeight(height: number): void { this.height = height; }
   getWidth(): number {
     return this.width;
   }

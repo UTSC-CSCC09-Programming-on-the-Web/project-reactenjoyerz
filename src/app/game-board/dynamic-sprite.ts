@@ -19,8 +19,9 @@ export class DynamicSprite extends Sprite {
     width: number,
     height: number,
     animationSpeed: number,
+    id: number,
   ) {
-    super(sprite, width, height, x, y);
+    super(sprite, width, height, x, y, id);
     this.animationSpeed = animationSpeed;
   }
 
@@ -31,10 +32,10 @@ export class DynamicSprite extends Sprite {
   setRotation(deg: number): void {
     this.rotation = deg;
   }
+
   getRotation(): number {
     return this.rotation;
   }
-
   moveSpriteTo(newX: number, newY: number): void {
     this.newX = newX - super.getWidth() / 2;
     this.newY = newY - super.getHeight() / 2;

@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { PlayerTank } from './tank/player-tank';
 import { Bullet } from './bullet/bullet';
+import { Wall } from './wall/wall';
 
 @Component({
   selector: 'game-board',
@@ -13,10 +14,13 @@ export class GameBoard {
   lastTime: number;
   bullets: Array<Bullet> = [];
   nextBulletId = 0;
+  walls: Array<Wall> = [];
 
   constructor() {
     this.playerTank = new PlayerTank(0);
     this.lastTime = Date.now();
+    this.walls.push(new Wall(1000, 500, 10, 2, 48, 0));
+    this.walls.push(new Wall(50, 50, 3, 15, 48, 1));
 
     setInterval(() => {
       const now: number = Date.now();

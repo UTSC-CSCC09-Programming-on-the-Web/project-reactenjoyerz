@@ -9,7 +9,7 @@
   [height]="playerTank.getHeight()"
 />
 
-@for (bullet of bullets; track bullet.id) {
+@for (bullet of bullets; track bullet.getId()) {
 <img
   class="bullet"
   style.left="{{bullet.getPosition()[0]}}px"
@@ -19,4 +19,16 @@
   [width]="bullet.getWidth()"
   [height]="bullet.getHeight()"
 />
+}
+
+@for (wall of walls; track wall.getId()) {
+  <div
+    class="wall"
+    style.left="{{ wall.getPosition()[0] }}px"
+    style.top="{{ wall.getPosition()[1] }}px"
+    style.background="url({{ wall.getSprite() }})"
+    style.background-size="{{ wall.getTileSize() }}px"
+    style.width="{{ wall.getWidth() }}px"
+    style.height="{{ wall.getHeight() }}px"
+  ></div>
 }

@@ -16,3 +16,11 @@
   position: fixed;
   z-index: 2;
 }
+
+.wall {
+  position: fixed;
+  z-index: 3;
+  object-fit: scale-down;
+  padding: 0;
+  margin: 0;
+}
