@@ -1,4 +1,4 @@
-<div (click)="onClick($event)"></div>
+<div class="background" (click)="onClick($event)"></div>
 <img
   style.left="{{ playerTank.getPosition()[0] }}px"
   style.top="{{ playerTank.getPosition()[1] }}px"
@@ -7,3 +7,11 @@
   [width]="playerTank.getWidth()"
   [height]="playerTank.getHeight()"
 />
+
+@for (bullet of bullets; track bullet.id) {
+<div
+  style.left="{{bullet.getPosition()[0]}}px"
+  style.top="{{ bullet.getPosition()[1] }}px"
+  class="bullet"
+></div>
+}

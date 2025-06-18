@@ -24,6 +24,10 @@ export class DynamicSprite extends Sprite {
     this.animationSpeed = animationSpeed;
   }
 
+  isMoving(): boolean {
+    return this.move;
+  }
+
   setRotation(deg: number): void {
     this.rotation = deg;
   }
