@@ -1,7 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { PlayerTank } from './tank/player-tank';
 import { Bullet } from './bullet/bullet';
 import { Wall } from './wall/wall';
+import { EnemyTank } from './tank/enemy-tank';
 
 @Component({
   selector: 'game-board',
@@ -10,15 +11,25 @@ import { Wall } from './wall/wall';
   styleUrl: './game-board.css',
 })
 export class GameBoard {
-  playerTank: PlayerTank;
   lastTime: number;
   bullets: Array<Bullet> = [];
   nextBulletId = 0;
   walls: Array<Wall> = [];
+  playerTank: PlayerTank;
+  enemyTanks: Array<EnemyTank> = [];
 
   constructor() {
     this.playerTank = new PlayerTank(0);
+    this.enemyTanks.push(new EnemyTank(1));
+
     this.lastTime = Date.now();
+    // push border walls in the first 4 indices of the array
+    // so they aren't rendered
+    this.walls.push(new Wall(0, 0, 1920, 1, 10, -1));
+    this.walls.push(new Wall(0, 1080, 1920, 10, 1, -1));
+    this.walls.push(new Wall(0, 0, 1, 1080, 10, -1));
+    this.walls.push(new Wall(1920, 0, 1, 1080, 10, -1));
+
     this.walls.push(new Wall(1000, 500, 10, 2, 48, 0));
     this.walls.push(new Wall(500, 50, 3, 15, 48, 1));
 
@@ -26,17 +37,39 @@ export class GameBoard {
       const now: number = Date.now();
       const delta = now - this.lastTime;
 
-      this.walls.forEach((wall) => {
-        this.playerTank.testCollision(wall);
-      })
-
-      this.playerTank.moveSprite(delta);
-
       for (let i = this.bullets.length - 1; i >= 0; i--) {
         this.bullets[i].moveSprite(delta);
         for (const wall of this.walls)
-          if (this.bullets[i].testCollision(wall))
+          if (this.bullets[i].testCollisionWall(wall)) {
             this.bullets.splice(i, 1);
+            break;
+          }
+      }
+
+      this.walls.forEach((wall) => {
+        this.playerTank.testCollisionWall(wall);
+        this.enemyTanks.forEach((tank) => {
+          tank.testCollisionWall(wall)
+        });
+      })
+
+      this.playerTank.moveSprite(delta);
+      this.bullets.forEach((bullet) => {
+        this.playerTank.testCollisionBullet(bullet);
+      });
+
+      for (let i = this.enemyTanks.length - 1; i >= 0; i--) {
+        const tank = this.enemyTanks[i];
+        tank.moveSprite(delta);
+
+        for (let j = this.bullets.length - 1; j >= 0; j--) {
+          const bullet = this.bullets[j];
+          if (tank.testCollisionBullet(bullet)) {
+            this.bullets.splice(j, 1);
+            this.enemyTanks.splice(i, 1);
+            break;
+          }
+        }
       }
 
       this.lastTime = now;

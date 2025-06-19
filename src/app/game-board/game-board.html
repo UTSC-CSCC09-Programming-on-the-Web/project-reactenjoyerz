@@ -1,4 +1,5 @@
 <div class="background" (click)="onClick($event)"></div>
+@if (playerTank.render) {
 <img
   class="tank"
   style.left="{{ playerTank.getPosition()[0] }}px"
@@ -8,6 +9,19 @@
   [width]="playerTank.getWidth()"
   [height]="playerTank.getHeight()"
 />
+}
+
+@for (tank of enemyTanks; track tank.getId()){
+<img
+  class="tank"
+  style.left="{{ tank.getPosition()[0] }}px"
+  style.top="{{ tank.getPosition()[1] }}px"
+  style.transform="rotate({{ tank.getRotation() }}rad)"
+  [src]="tank.getSprite()"
+  [width]="tank.getWidth()"
+  [height]="tank.getHeight()"
+/>
+}
 
 @for (bullet of bullets; track bullet.getId()) {
 <img
@@ -21,7 +35,7 @@
 />
 }
 
-@for (wall of walls; track wall.getId()) {
+@for (wall of walls.slice(4); track wall.getId()) {
   <div
     class="wall"
     style.left="{{ wall.getPosition()[0] }}px"

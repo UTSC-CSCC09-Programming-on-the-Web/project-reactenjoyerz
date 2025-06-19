@@ -1,14 +1,16 @@
+import { Bullet } from '../bullet/bullet';
 import { DynamicSprite } from '../dynamic-sprite';
 import { Wall } from '../wall/wall';
 
 export abstract class Tank extends DynamicSprite {
   constructor(sprite: string, id: number) {
-    super(0, 0, sprite, 40, 64, 0.5, id);
+    super(960, 540, sprite, 40, 64, 0.5, id);
   }
 
-  testCollision(wall: Wall) {
+  // no overloading :(
+  testCollisionWall(wall: Wall) : boolean {
     const [dx, dy] = super.getDirection();
-    if (!super.collidesWith(wall) || (dx === 0 && dy === 0)) return;
+    if (!super.collidesWith(wall) || (dx === 0 && dy === 0)) return false;
 
     let [x, y] = super.getPosition();
     const [wallX, wallY] = wall.getPosition();
@@ -45,5 +47,10 @@ export abstract class Tank extends DynamicSprite {
     }
 
     super.stopMoving();
+    return false;
+  }
+
+  testCollisionBullet(bullet: Bullet) {
+    return super.collidesWith(bullet);
   }
 }
