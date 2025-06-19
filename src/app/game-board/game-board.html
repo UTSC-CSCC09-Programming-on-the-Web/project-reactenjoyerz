@@ -1,5 +1,4 @@
 <div class="background" (click)="onClick($event)"></div>
-@if (playerTank.render) {
 <img
   class="tank"
   style.left="{{ playerTank.getPosition()[0] }}px"
@@ -9,7 +8,6 @@
   [width]="playerTank.getWidth()"
   [height]="playerTank.getHeight()"
 />
-}
 
 @for (tank of enemyTanks; track tank.getId()){
 <img

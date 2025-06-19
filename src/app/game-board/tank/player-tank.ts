@@ -23,8 +23,8 @@ export class PlayerTank extends Tank {
     const height = super.getHeight();
 
     // compute end of muzzle accounting for rotation of sprite
-    const muzX = -Math.sin(Math.PI + angle) * height / 2;
-    const muzY = Math.cos(Math.PI + angle) * height / 2;
+    const muzX = -Math.sin(Math.PI + angle) * (height / 2 + 5);
+    const muzY = Math.cos(Math.PI + angle) * (height / 2 + 5);
     return new Bullet(px + width/2 + muzX, py + height/2 + muzY, x, y, angle, id);
   }
 

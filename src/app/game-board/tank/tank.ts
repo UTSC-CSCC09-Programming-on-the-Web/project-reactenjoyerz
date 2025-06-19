@@ -22,12 +22,12 @@ export abstract class Tank extends DynamicSprite {
 
     // if it collides it either hits the top or bottom or the left or right sides
     
-    if (wallY < y && y + height < wallY + wallHeight) { // tank hits top or bottom of wall
+    if (wallY < y && y + height < wallY + wallHeight) { // tank hits side of wall
       if (x < wallX) super.setPosition(wallX - width, y);
       else super.setPosition(wallWidth + wallX, y);
       super.setDirection(0, dy);
 
-    } else if (wallX < x && x + width < wallX + wallWidth) { // tank hits side of wall
+    } else if (wallX < x && x + width < wallX + wallWidth) { // tank hits top or bottom of wall
       if (y < wallY) super.setPosition(x, wallY - height);
       else super.setPosition(x, wallHeight + wallY)
       super.setDirection(dx, 0);
