@@ -1,8 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 import bodyParser from "body-parser";
-import { usersRouter } from './routers/users_router.js';
+import { usersRouter } from "./routers/users_router.js";
+import { paymentsRouter } from "./routers/payments_router.js";
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use(express.json());
 app.use("/api/users", usersRouter);
+app.use("/api/payments", paymentsRouter);
 
 app.listen(PORT, (err) => {
   if (err) console.log(err);
