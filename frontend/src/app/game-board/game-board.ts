@@ -25,6 +25,7 @@ export class GameBoard {
     this.lastTime = Date.now();
     // push border walls in the first 4 indices of the array
     // so they aren't rendered
+
     this.walls.push(new Wall(0, 0, 192, 1, 10, -1));
     this.walls.push(new Wall(0, 950, 192, 1, 10, -1));
     this.walls.push(new Wall(0, 0, 1, 108, 10, -1));
@@ -82,7 +83,7 @@ export class GameBoard {
 
   onClick(event: MouseEvent): void {
     if (!this.playerTank.render) return;
-
+    
     if (event.altKey)
       this.bullets.push(
         this.playerTank.shootBullet(event.x, event.y, this.nextBulletId++),
