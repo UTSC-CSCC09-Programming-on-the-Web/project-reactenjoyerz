@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { RouterModule, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-home',
@@ -7,11 +8,20 @@ import { RouterModule } from '@angular/router';
   templateUrl: './home.html',
   styleUrl: './home.css'
 })
-export class Home {
+export class Home implements OnInit {
+
+  constructor(private authService: AuthService, private router: Router) {}
   login() {
     
   }
   register() {
 
+  }
+  ngOnInit() {
+    this.authService.me().subscribe({
+      next: (res) => {
+        this.router.navigate(['/game']);
+      }
+    });
   }
 }

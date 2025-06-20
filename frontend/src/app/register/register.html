@@ -1,13 +1,15 @@
 <h1>Register</h1>
-<form>
+<form (ngSubmit)="register()">
     <label for="username"> Username </label>
-    <input type="text" name="username" placeholder="TankKiller56" >
+    <input  [(ngModel)]="username" type="text" name="username" placeholder="TankKiller56" >
     
     <label for="email"> Email </label>
-    <input type="text" name="email" placeholder="example@email.com" >
+    <input [(ngModel)]="email" type="email" name="email" placeholder="example@email.com" >
     
     <label for="password"> Password </label>
-    <input type="password" name="password" placeholder="********" >
+    <input [(ngModel)]="password" type="password" name="password" placeholder="********" >
     <a href="/login">Already Have Account?</a>
     <button type="submit">Register</button>
 </form>
+<p>{{ message }}</p>
+<p>If you log in an register, cannot go back to home page (havent done logout yet), but can go to /login </p>
