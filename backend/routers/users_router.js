@@ -19,11 +19,12 @@ usersRouter.post("/register", async (req, res) => {
 
         const salt = bcrypt.genSaltSync(10);
         const hashedPassword = bcrypt.hashSync(password, salt);
-        await pool.query('INSERT INTO "User" (email, username, password) VALUES ($1, $2, $3)',
+        const user = await pool.query('INSERT INTO "User" (email, username, password) VALUES ($1, $2, $3) RETURNING id, email, username',
             [email, username, hashedPassword]
         );
-
-        return res.status(200).json();
+        
+        req.session.userId = user.rows[0].id;
+        return res.status(200).json({ email: user.rows[0].email, username: user.rows[0].username});
     } catch (error) {
         console.error(error);
         return res.status(500);
@@ -44,9 +45,24 @@ usersRouter.post("/login", async (req, res) => {
             return res.status(400).json({ error: "wrong password" });
         };
 
+        req.session.userId = user.rows[0].id;
         return res.status(200).json({ id: user.rows[0].id, email: user.rows[0].email });
     } catch (error) {
         console.error(error);
         return res.status(500);
     }
+});
+
+usersRouter.get("/logout", function (req, res, next) {
+  req.session.destroy();
+  return res.json({ message: "Signed out." });
+});
+
+usersRouter.get("/me", async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ errors: "Not Authenticaed" });
+  }
+  return res.json({
+    userId: req.session.userId,
+  });
 });
