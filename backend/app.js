@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import bodyParser from "body-parser";
+import session from "express-session";
 import { usersRouter } from './routers/users_router.js';
 
 dotenv.config();
@@ -11,8 +12,21 @@ const app = express();
 
 app.use(bodyParser.json());
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:4200',
+  credentials: true
+}));
 app.use(express.json());
+
+
+app.use(
+  session({
+    secret: process.env.SECRET_KEY || "test",
+    resave: false,
+    saveUninitialized: true,
+  }),
+);
+
 app.use("/api/users", usersRouter);
 
 app.listen(PORT, (err) => {
