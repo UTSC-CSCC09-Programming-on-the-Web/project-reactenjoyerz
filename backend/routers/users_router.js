@@ -9,7 +9,7 @@ usersRouter.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
   try {
     const emailExists = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
+      'SELECT * FROM "User" WHERE email = $1',
       [email]
     );
     if (emailExists.rows.length != 0) {
@@ -17,7 +17,7 @@ usersRouter.post("/register", async (req, res) => {
     }
 
     const usernameExists = await pool.query(
-      "SELECT * FROM users WHERE username = $1",
+      'SELECT * FROM "User" WHERE username = $1',
       [username]
     );
     if (usernameExists.rows.length != 0) {
@@ -36,24 +36,27 @@ usersRouter.post("/register", async (req, res) => {
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(password, salt);
 
-    console.log("Customer_ID IS ", customer.id);
-
-    await pool.query(
-      "INSERT INTO users (email, username, password, stripe_customer_id) VALUES ($1, $2, $3, $4)",
+    const user = await pool.query(
+      'INSERT INTO "User" (email, username, password, stripe_customer_id) VALUES ($1, $2, $3, $4) RETURNING id, email, username',
       [email, username, hashedPassword, customer.id]
     );
 
-    return res.status(200).json();
+    req.session.userId = user.rows[0].id;
+    return res.status(200).json({
+      id: user.rows[0].id,
+      email: user.rows[0].email,
+      username: user.rows[0].username,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
 usersRouter.post("/login", async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await pool.query("SELECT * FROM users WHERE email = $1", [
+    const user = await pool.query('SELECT * FROM "User" WHERE email = $1', [
       email,
     ]);
     if (user.rows.length === 0) {
@@ -66,6 +69,7 @@ usersRouter.post("/login", async (req, res) => {
       return res.status(400).json({ error: "wrong password" });
     }
 
+    // Check for active subscription
     const subQ = await pool.query(
       `SELECT 1
        FROM subscriptions
@@ -81,11 +85,25 @@ usersRouter.post("/login", async (req, res) => {
       });
     }
 
-    return res
-      .status(200)
-      .json({ id: user.rows[0].id, email: user.rows[0].email });
+    req.session.userId = user.rows[0].id;
+    return res.status(200).json({
+      id: user.rows[0].id,
+      email: user.rows[0].email,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
+});
+
+usersRouter.get("/logout", (req, res) => {
+  req.session.destroy();
+  return res.json({ message: "Signed out." });
+});
+
+usersRouter.get("/me", (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ errors: "Not authenticated" });
+  }
+  return res.json({ userId: req.session.userId });
 });

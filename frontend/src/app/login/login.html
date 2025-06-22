@@ -1,0 +1,12 @@
+<h1>Login</h1>
+<form>
+    <label for="email"> Email </label>
+    <input [(ngModel)]="email" type="email" name="email" placeholder="example@email.com" >
+    <label for="password"> Password </label>
+    <input [(ngModel)]="password" type="password" name="password" placeholder="********" >
+    <a href="/register">Don't Have Account?</a>
+    <button type="submit">Login</button>
+    
+</form>
+<p>{{ message }}</p>
+<p>If you log in an register, cannot go back to home page (havent done logout yet), but can go to /login </p>
