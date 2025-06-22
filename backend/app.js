@@ -1,7 +1,8 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 import bodyParser from "body-parser";
+import { paymentsRouter } from "./routers/payments_router.js";
 import http from "http";
 import session from "express-session";
 
@@ -38,6 +39,7 @@ app.use(
 );
 
 app.use("/api/users", usersRouter);
+app.use("/api/payments", paymentsRouter);
 
 bindWSHandlers(io);
 
