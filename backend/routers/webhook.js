@@ -5,6 +5,10 @@ import pool from "../database/index.js";
 
 const router = Router();
 
+app.use(express.json());
+
+app.use("/webhook", express.raw({ type: "application/json" }), webhookRouter);
+
 /**
  * Stripe webhook handler
  * Listens for invoice.payment_succeeded (and logs other events)
@@ -80,6 +84,28 @@ router.post("/", async (req, res) => {
         return res.status(500).send();
       }
 
+      break;
+    }
+    case "customer.subscription.deleted":
+    case "customer.subscription.updated": {
+      const subscription = event.data.object;
+
+      try {
+        await pool.query(
+          `UPDATE subscriptions
+       SET status = $1,
+           current_period_end = to_timestamp($2)
+       WHERE stripe_sub_id = $3`,
+          [
+            subscription.status,
+            subscription.current_period_end,
+            subscription.id,
+          ]
+        );
+      } catch (err) {
+        console.error("Failed to update subscription status", err);
+        return res.status(500).send();
+      }
       break;
     }
     default:

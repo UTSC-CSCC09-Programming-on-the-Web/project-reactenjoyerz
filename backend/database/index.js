@@ -1,6 +1,12 @@
 import dotenv from "dotenv";
 import { Pool } from "pg";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Documentation: https://node-postgres.com/apis/pool , https://node-postgres.com/apis/client
 const pool = new Pool({

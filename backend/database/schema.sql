@@ -1,9 +1,17 @@
 -- database/schema.sql
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  stripe_customer_id TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE IF NOT EXISTS subscriptions (
   id                  SERIAL PRIMARY KEY,
   user_id             INTEGER NOT NULL
-                        REFERENCES "User"(id) ON DELETE CASCADE,
+                        REFERENCES users(id) ON DELETE CASCADE,
   stripe_sub_id       TEXT    UNIQUE NOT NULL,
   status              TEXT    NOT NULL,
   current_period_end  TIMESTAMPTZ NOT NULL,
