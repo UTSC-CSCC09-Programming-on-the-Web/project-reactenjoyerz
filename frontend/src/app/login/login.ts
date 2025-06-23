@@ -22,12 +22,21 @@ export class Login {
   login() {
     this.authService.login(this.email, this.password).subscribe({
       next: (res) => {
-        this.message = '';
-        this.router.navigate(['/game']);
+        if (res.hasSubscription) {
+          this.router.navigate(['/game']);
+        } else {
+          this.router.navigate(['/subscribe']);
+        }
       },
-      error: (error) => {
-        this.message = error.error?.error || 'Login failed';
+      error: (err) => {
+        if (err.status === 402) {
+          this.message = err.error?.error || 'Subscription required. Redirecting to subscribe...';
+          setTimeout(() => this.router.navigate(['/subscribe']), 1500);
+        } else {
+          this.message = err.error?.error || 'Login failed';
+        }
       }
     });
   }
+  
 }

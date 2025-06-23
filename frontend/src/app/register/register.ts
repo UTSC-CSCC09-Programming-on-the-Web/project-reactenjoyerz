@@ -22,7 +22,7 @@ export class Register {
       next: (res) => {
         console.log('Registration successful:', res);
         this.message = 'Success!';
-        this.router.navigate(['/game']);
+        this.router.navigate(['/login']);
       },
       error: (err) => {
         this.message = err.error?.error || 'Registration failed';
