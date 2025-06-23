@@ -11,7 +11,8 @@ import { Router } from '@angular/router';
 })
 export class MatchQueue {
   wss = inject(WebSocketService);
-  dots = ""
+  dots = "";
+  message = '';
 
   constructor (private router: Router) {
     this.wss.bindHandler("match.join", ({ matchId }) => {

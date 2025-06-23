@@ -5,7 +5,9 @@ import pool from "../database/index.js";
 export const paymentsRouter = Router();
 
 paymentsRouter.post("/create-subscription", async (req, res) => {
-  const { userId } = req.body;
+  console.log("SESSION:", req.session);
+  console.log("userId is ", req.session.userId);
+  const userId = req.session.userId;
 
   if (!userId) return res.status(400).json({ error: "Missing userId" });
 

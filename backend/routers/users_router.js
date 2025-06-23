@@ -9,7 +9,7 @@ usersRouter.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
   try {
     const emailExists = await pool.query(
-      'SELECT * FROM "User" WHERE email = $1',
+      "SELECT * FROM users WHERE email = $1",
       [email]
     );
     if (emailExists.rows.length != 0) {
@@ -17,7 +17,7 @@ usersRouter.post("/register", async (req, res) => {
     }
 
     const usernameExists = await pool.query(
-      'SELECT * FROM "User" WHERE username = $1',
+      "SELECT * FROM users WHERE username = $1",
       [username]
     );
     if (usernameExists.rows.length != 0) {
@@ -37,7 +37,7 @@ usersRouter.post("/register", async (req, res) => {
     const hashedPassword = bcrypt.hashSync(password, salt);
 
     const user = await pool.query(
-      'INSERT INTO "User" (email, username, password, stripe_customer_id) VALUES ($1, $2, $3, $4) RETURNING id, email, username',
+      "INSERT INTO users (email, username, password, stripe_customer_id) VALUES ($1, $2, $3, $4) RETURNING id, email, username",
       [email, username, hashedPassword, customer.id]
     );
 
@@ -56,7 +56,7 @@ usersRouter.post("/register", async (req, res) => {
 usersRouter.post("/login", async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await pool.query('SELECT * FROM "User" WHERE email = $1', [
+    const user = await pool.query("SELECT * FROM users WHERE email = $1", [
       email,
     ]);
     if (user.rows.length === 0) {
@@ -89,6 +89,7 @@ usersRouter.post("/login", async (req, res) => {
     return res.status(200).json({
       id: user.rows[0].id,
       email: user.rows[0].email,
+      has_subscription: true,
     });
   } catch (error) {
     console.error(error);
@@ -101,9 +102,32 @@ usersRouter.get("/logout", (req, res) => {
   return res.json({ message: "Signed out." });
 });
 
-usersRouter.get("/me", (req, res) => {
+usersRouter.get("/me", async (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ errors: "Not authenticated" });
   }
-  return res.json({ userId: req.session.userId });
+  const userId = req.session.userId;
+
+  const userQ = await pool.query("SELECT id, email FROM users WHERE id = $1", [
+    userId,
+  ]);
+
+  if (!userQ.rows.length) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  const subQ = await pool.query(
+    `SELECT 1
+     FROM subscriptions
+     WHERE user_id = $1
+       AND status = 'active'
+       AND current_period_end > now()`,
+    [userId]
+  );
+
+  return res.json({
+    id: userQ.rows[0].id,
+    email: userQ.rows[0].email,
+    hasSubscription: subQ.rows.length > 0,
+  });
 });
