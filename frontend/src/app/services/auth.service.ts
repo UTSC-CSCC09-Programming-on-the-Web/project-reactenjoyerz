@@ -34,6 +34,16 @@ export class AuthService {
       );
   }
 
+  googleLogin(idToken: string): Observable<any> {
+  return this.http
+    .post<User>(`${this.apiUrl}/google-login`, { idToken }, { withCredentials: true })
+    .pipe(
+      tap((user) => {
+        this._user = user;
+      })
+    );
+  }
+
   register(username: string, email: string, password: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/register`, { username, email, password }, { withCredentials: true });
   }

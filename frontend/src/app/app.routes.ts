@@ -6,6 +6,7 @@ import { Login } from './login/login'
 import { Register } from './register/register'
 import { Subscribe } from './subscribe/subscribe';
 import { AuthGuard } from './services/auth.guard';
+import { GoogleLogin } from './google-login/google-login';
 
 export const routes: Routes = [
     { path: ':id/game', component: GameBoard, canActivate: [AuthGuard] },
@@ -13,6 +14,7 @@ export const routes: Routes = [
     { path: 'home', component: Home },
     { path: 'login', component: Login },
     { path: 'register', component: Register },
+    { path: 'google-login', component: GoogleLogin },
     { path: 'subscribe', component: Subscribe },
     { path: '**', redirectTo:'home' }
 ];
