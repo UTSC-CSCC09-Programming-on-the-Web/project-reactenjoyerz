@@ -4,7 +4,7 @@ import { AuthConfig, OAuthService } from 'angular-oauth2-oidc';
 const oAuthConfig: AuthConfig = {
   issuer: 'https://accounts.google.com',
   strictDiscoveryDocumentValidation: false,
-  redirectUri: window.location.origin,
+  redirectUri: window.location.origin + '/google-login',
   clientId: '796814869937-0qjv66bls0u5nkgstqdjhvl4tojf42hg.apps.googleusercontent.com',
   scope: 'openid profile email'
 }
@@ -26,4 +26,9 @@ export class GoogleApiService {
       }
     });
   }
+
+  getIdToken() {
+    return this.oAuthService.getIdToken();
+  }
+  
 }
