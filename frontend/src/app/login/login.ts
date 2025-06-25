@@ -22,7 +22,7 @@ export class Login {
   login() {
     this.authService.login(this.email, this.password).subscribe({
       next: (res) => {
-        if (res.hasSubscription) {
+        if (res.has_subscription) {
           this.router.navigate(['/game']);
         } else {
           this.router.navigate(['/subscribe']);

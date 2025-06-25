@@ -9,11 +9,15 @@ import session from "express-session";
 import { usersRouter } from "./routers/users_router.js";
 import { Server } from "socket.io";
 import { bindWSHandlers } from "./socket.js";
+import { webhookRouter } from "./routers/webhook.js";
 
 dotenv.config();
 
 const PORT = 8000;
 const app = express();
+
+app.use(bodyParser.json());
+
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -21,7 +25,7 @@ const io = new Server(httpServer, {
   },
 });
 
-app.use(bodyParser.json());
+app.use("/webhook", webhookRouter);
 
 app.use(
   cors({

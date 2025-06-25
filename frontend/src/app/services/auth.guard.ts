@@ -17,7 +17,7 @@ export class AuthGuard implements CanActivate {
   canActivate(): Observable<boolean | UrlTree> {
     return this.http.get<any>('http://localhost:8000/api/users/me', { withCredentials: true }).pipe(
       map((res) => {
-        if (res.hasSubscription) {
+        if (res.has_subscription) {
           return true;
         } else {
           return this.router.parseUrl('/subscribe');
