@@ -1,19 +1,10 @@
-// routers/webhook.js
-import { Router } from "express";
+import { Router, raw } from "express";
 import stripe from "../stripe/index.js";
 import pool from "../database/index.js";
 
-const router = Router();
+export const webhookRouter = Router();
 
-app.use(express.json());
-
-app.use("/webhook", express.raw({ type: "application/json" }), webhookRouter);
-
-/**
- * Stripe webhook handler
- * Listens for invoice.payment_succeeded (and logs other events)
- */
-router.post("/", async (req, res) => {
+webhookRouter.post("/", raw({ type: "application/json" }), async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
 
@@ -24,7 +15,7 @@ router.post("/", async (req, res) => {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.error("Webhook signature verification failed.", err.message);
+    console.error("Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -35,7 +26,6 @@ router.post("/", async (req, res) => {
       const subscriptionId = invoice.subscription;
       const customerId = invoice.customer;
 
-      // Retrieve the Stripe customer to get your userId metadata
       let userId;
       try {
         const customer = await stripe.customers.retrieve(customerId);
@@ -46,16 +36,15 @@ router.post("/", async (req, res) => {
       }
 
       try {
-        // Upsert (insert or update) subscription record
         const { rows } = await pool.query(
           `INSERT INTO subscriptions
-             (user_id, stripe_sub_id, status, current_period_end)
-           VALUES ($1, $2, $3, to_timestamp($4))
-           ON CONFLICT (stripe_sub_id)
-           DO UPDATE SET
-             status = EXCLUDED.status,
-             current_period_end = EXCLUDED.current_period_end
-           RETURNING id`,
+              (user_id, stripe_sub_id, status, current_period_end)
+             VALUES ($1, $2, $3, to_timestamp($4))
+             ON CONFLICT (stripe_sub_id)
+             DO UPDATE SET
+               status = EXCLUDED.status,
+               current_period_end = EXCLUDED.current_period_end
+             RETURNING id`,
           [
             userId,
             subscriptionId,
@@ -63,14 +52,14 @@ router.post("/", async (req, res) => {
             invoice.lines.data[0].period.end,
           ]
         );
+
         const subscriptionDbId = rows[0].id;
 
-        // Log the payment
         await pool.query(
           `INSERT INTO payments
-             (subscription_id, stripe_invoice_id, amount_paid, currency, paid_at)
-           VALUES ($1, $2, $3, $4, to_timestamp($5))
-           ON CONFLICT (stripe_invoice_id) DO NOTHING`,
+              (subscription_id, stripe_invoice_id, amount_paid, currency, paid_at)
+             VALUES ($1, $2, $3, $4, to_timestamp($5))
+             ON CONFLICT (stripe_invoice_id) DO NOTHING`,
           [
             subscriptionDbId,
             invoice.id,
@@ -80,22 +69,22 @@ router.post("/", async (req, res) => {
           ]
         );
       } catch (err) {
-        console.error("Database error logging payment/subscription", err);
+        console.error("Database error:", err);
         return res.status(500).send();
       }
 
       break;
     }
+
     case "customer.subscription.deleted":
     case "customer.subscription.updated": {
       const subscription = event.data.object;
-
       try {
         await pool.query(
           `UPDATE subscriptions
-       SET status = $1,
-           current_period_end = to_timestamp($2)
-       WHERE stripe_sub_id = $3`,
+             SET status = $1,
+                 current_period_end = to_timestamp($2)
+             WHERE stripe_sub_id = $3`,
           [
             subscription.status,
             subscription.current_period_end,
@@ -103,16 +92,15 @@ router.post("/", async (req, res) => {
           ]
         );
       } catch (err) {
-        console.error("Failed to update subscription status", err);
+        console.error("Subscription status update failed", err);
         return res.status(500).send();
       }
       break;
     }
+
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      console.log(`Unhandled event type: ${event.type}`);
   }
 
   res.json({ received: true });
 });
-
-export default router;

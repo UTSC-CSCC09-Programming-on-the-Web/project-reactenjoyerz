@@ -20,7 +20,9 @@ export class Home implements OnInit {
   ngOnInit() {
     this.authService.me().subscribe({
       next: (res) => {
-        this.router.navigate(['/game']);
+        if (res?.id) {
+          this.router.navigate(['/game']);
+        }
       }
     });
   }
