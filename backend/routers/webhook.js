@@ -21,10 +21,15 @@ webhookRouter.post("/", raw({ type: "application/json" }), async (req, res) => {
 
   // Handle the event
   switch (event.type) {
-    case "invoice.payment_succeeded": {
-      const invoice = event.data.object;
-      const subscriptionId = invoice.subscription;
-      const customerId = invoice.customer;
+    case "checkout.session.completed": {
+      const session = event.data.object;
+      const subscriptionId = session.subscription;
+      const customerId = session.customer;
+
+      if (!subscriptionId) {
+        console.error("Missing subscription ID in checkout.session.completed");
+        return res.status(400).send();
+      }
 
       let userId;
       try {
@@ -36,40 +41,37 @@ webhookRouter.post("/", raw({ type: "application/json" }), async (req, res) => {
       }
 
       try {
+        const sub = await stripe.subscriptions.retrieve(subscriptionId);
+
         const { rows } = await pool.query(
           `INSERT INTO subscriptions
-              (user_id, stripe_sub_id, status, current_period_end)
-             VALUES ($1, $2, $3, to_timestamp($4))
-             ON CONFLICT (stripe_sub_id)
-             DO UPDATE SET
-               status = EXCLUDED.status,
-               current_period_end = EXCLUDED.current_period_end
-             RETURNING id`,
-          [
-            userId,
-            subscriptionId,
-            invoice.status,
-            invoice.lines.data[0].period.end,
-          ]
+         (user_id, stripe_sub_id, status, current_period_end)
+       VALUES ($1, $2, $3, to_timestamp($4))
+       ON CONFLICT (stripe_sub_id)
+       DO UPDATE SET
+         status = EXCLUDED.status,
+         current_period_end = EXCLUDED.current_period_end
+       RETURNING id`,
+          [userId, subscriptionId, sub.status, sub.current_period_end]
         );
 
         const subscriptionDbId = rows[0].id;
 
         await pool.query(
           `INSERT INTO payments
-              (subscription_id, stripe_invoice_id, amount_paid, currency, paid_at)
-             VALUES ($1, $2, $3, $4, to_timestamp($5))
-             ON CONFLICT (stripe_invoice_id) DO NOTHING`,
+         (subscription_id, stripe_invoice_id, amount_paid, currency, paid_at)
+       VALUES ($1, $2, $3, $4, to_timestamp($5))
+       ON CONFLICT (stripe_invoice_id) DO NOTHING`,
           [
             subscriptionDbId,
-            invoice.id,
-            invoice.amount_paid,
-            invoice.currency,
-            invoice.status_transitions.paid_at,
+            session.invoice, // if available
+            sub.latest_invoice?.amount_paid || 0,
+            sub.latest_invoice?.currency || "usd",
+            Math.floor(Date.now() / 1000),
           ]
         );
       } catch (err) {
-        console.error("Database error:", err);
+        console.error("Database insert failed:", err);
         return res.status(500).send();
       }
 

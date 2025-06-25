@@ -16,6 +16,8 @@ dotenv.config();
 const PORT = 8000;
 const app = express();
 
+app.use("/webhook", webhookRouter);
+
 app.use(bodyParser.json());
 
 const httpServer = http.createServer(app);
@@ -24,8 +26,6 @@ const io = new Server(httpServer, {
     origin: "*",
   },
 });
-
-app.use("/webhook", webhookRouter);
 
 app.use(
   cors({

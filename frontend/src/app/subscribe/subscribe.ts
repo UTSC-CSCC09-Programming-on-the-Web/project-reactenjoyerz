@@ -1,15 +1,31 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router'
 
 @Component({
   selector: 'app-subscribe',
   standalone: true,
   templateUrl: './subscribe.html',
 })
-export class Subscribe {
+export class Subscribe implements OnInit {
   message = '';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private router: Router) {}
+
+  ngOnInit() {
+    this.http
+      .get<any>('http://localhost:8000/api/users/me', { withCredentials: true })
+      .subscribe({
+        next: (res) => {
+          if (res.hasSubscription) {
+            this.router.navigate(['/game']);
+          }
+        },
+        error: () => {
+          // Optionally handle error, e.g. not logged in
+        },
+      });
+  }
 
   subscribe() {
     this.http
@@ -19,7 +35,7 @@ export class Subscribe {
         { withCredentials: true }
       )
       .subscribe({
-        next: (res: any) => {
+        next: (res) => {
           if (res.url) {
             window.location.href = res.url;
           }
