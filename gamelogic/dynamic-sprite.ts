@@ -1,4 +1,4 @@
-import { Sprite } from './sprite';
+import { Sprite } from './sprite.ts';
 
 export class DynamicSprite extends Sprite {
   private rotation = 0;
@@ -77,7 +77,7 @@ export class DynamicSprite extends Sprite {
   }
 
   stopMoving(): void { this.move = false; }
-  setDirection(dx: number, dy: number): void { 
+  setDirection(dx: number, dy: number): void {
     this.slopeX = dx
     this.slopeY = dy;
   }

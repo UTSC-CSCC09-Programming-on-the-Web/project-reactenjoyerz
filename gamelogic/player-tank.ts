@@ -1,9 +1,9 @@
-import { Tank } from './tank';
-import { Bullet } from '../bullet/bullet';
+import { Tank } from './tank.ts';
+import { Bullet } from './bullet.ts';
 
 export class PlayerTank extends Tank {
   render: boolean = true;
-  
+
   constructor(id: number) {
     super('blueTank.png', id);
   }

@@ -1,4 +1,4 @@
-import { Tank } from "./tank";
+import { Tank } from "./tank.ts";
 
 export class EnemyTank extends Tank {
   constructor(id: number) {

@@ -1,6 +1,6 @@
-import { Bullet } from '../bullet/bullet';
-import { DynamicSprite } from '../dynamic-sprite';
-import { Wall } from '../wall/wall';
+import { Bullet } from './bullet.ts';
+import { DynamicSprite } from './dynamic-sprite.ts';
+import { Wall } from './wall.ts';
 
 export abstract class Tank extends DynamicSprite {
   constructor(sprite: string, id: number) {
@@ -21,7 +21,7 @@ export abstract class Tank extends DynamicSprite {
     const wallHeight = wall.getHeight();
 
     // if it collides it either hits the top or bottom or the left or right sides
-    
+
     if (wallY < y && y + height < wallY + wallHeight) { // tank hits side of wall
       if (x < wallX) super.setPosition(wallX - width, y);
       else super.setPosition(wallWidth + wallX, y);

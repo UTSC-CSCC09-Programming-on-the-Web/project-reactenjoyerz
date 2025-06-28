@@ -1,5 +1,5 @@
-import { DynamicSprite } from '../dynamic-sprite';
-import { Wall } from '../wall/wall';
+import { DynamicSprite } from './dynamic-sprite.ts';
+import { Wall } from './wall.ts';
 
 export class Bullet extends DynamicSprite {
   nBounces: number = 0;
