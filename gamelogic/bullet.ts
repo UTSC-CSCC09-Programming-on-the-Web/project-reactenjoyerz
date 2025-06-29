@@ -1,14 +1,16 @@
-import { DynamicSprite } from './dynamic-sprite.ts';
+import { DynamicSprite, ClonedDSprite } from './dynamic-sprite.ts';
 import { Wall } from './wall.ts';
 
 export class Bullet extends DynamicSprite {
   nBounces: number = 0;
   flag: boolean = false;
 
-  constructor(x: number, y: number, xTo: number, yTo: number, rotation: number, id: number) {
-    super(x, y, 'bullet.png', 17, 32, 0.7, id);
-    super.moveSpriteTo(xTo, yTo);
-    super.setRotation(rotation);
+  constructor(x: number, y: number, xTo: number, yTo: number, rotation: number, id: number, clone?: ClonedDSprite) {
+    super(x, y, 'bullet.png', 17, 32, 0.7, id, clone);
+    if (!clone) {
+      super.moveSpriteTo(xTo, yTo);
+      super.setRotation(rotation);
+    }
   }
 
   testCollisionWall(wall: Wall) : boolean {
@@ -57,5 +59,12 @@ export class Bullet extends DynamicSprite {
       x + dx * delta,
       y + dy * delta
     );
+  }
+
+  override load(clone: ClonedDSprite) {
+    super.load(clone);
+    super.setWidth(17);
+    super.setHeight(32);
+    super.setAnimationSpeed(0.7);
   }
 }

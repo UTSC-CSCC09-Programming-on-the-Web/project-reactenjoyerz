@@ -1,3 +1,5 @@
+import { DSpriteDump } from "./dynamic-sprite.ts";
+
 // Defines a sprite that does not move ex. a wall
 export class Sprite {
   private sprite: string;
@@ -13,14 +15,21 @@ export class Sprite {
     height: number,
     x: number,
     y: number,
-    id: number
+    id: number,
+    clone?: DSpriteDump
   ) {
     this.sprite = sprite;
     this.width = width;
     this.height = height;
-    this.xPos = x - width / 2;
-    this.yPos = y - height / 2;
     this.id = id;
+
+    if (!clone) {
+      this.xPos = x - width / 2;
+      this.yPos = y - height / 2;
+    } else {
+      this.xPos = clone.x;
+      this.yPos = clone.y;
+    }
   }
 
   collidesWith(other: Sprite): boolean {

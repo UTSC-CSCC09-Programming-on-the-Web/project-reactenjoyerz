@@ -1,11 +1,12 @@
 import { Tank } from './tank.ts';
 import { Bullet } from './bullet.ts';
+import { DSpriteDump } from "./dynamic-sprite.ts";
 
 export class PlayerTank extends Tank {
   render: boolean = true;
 
-  constructor(id: number) {
-    super('blueTank.png', id);
+  constructor(id: number, clone?: DSpriteDump) {
+    super('blueTank.png', id, clone);
   }
 
   shootBullet(x: number, y: number, id: number): Bullet {

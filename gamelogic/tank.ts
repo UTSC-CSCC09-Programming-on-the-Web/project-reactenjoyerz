@@ -1,10 +1,10 @@
 import { Bullet } from './bullet.ts';
-import { DynamicSprite } from './dynamic-sprite.ts';
+import { DSpriteDump, DynamicSprite } from './dynamic-sprite.ts';
 import { Wall } from './wall.ts';
 
 export abstract class Tank extends DynamicSprite {
-  constructor(sprite: string, id: number) {
-    super(960, 540, sprite, 40, 64, 0.5, id);
+  constructor(sprite: string, id: number, clone?: DSpriteDump) {
+    super(960, 540, sprite, 40, 64, 0.5, id, clone);
   }
 
   // no overloading :(

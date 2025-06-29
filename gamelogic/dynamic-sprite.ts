@@ -1,5 +1,15 @@
 import { Sprite } from './sprite.ts';
 
+export type DSpriteDump = {
+  newX: number,
+  newY: number,
+  dx: number,
+  dy: number,
+  x: number,
+  y: number,
+  rotation: number,
+}
+
 export class DynamicSprite extends Sprite {
   private rotation = 0;
 
@@ -20,8 +30,17 @@ export class DynamicSprite extends Sprite {
     height: number,
     animationSpeed: number,
     id: number,
+    clone?: DSpriteDump
   ) {
-    super(sprite, width, height, x, y, id);
+    super(sprite, width, height, x, y, id, clone);
+    if (clone) {
+      this.rotation = clone.rotation;
+      this.newX = clone.newX;
+      this.newY = clone.newY;
+      this.slopeX = clone.dx;
+      this.slopeY = clone.dy;
+    }
+
     this.animationSpeed = animationSpeed;
   }
 
@@ -45,12 +64,11 @@ export class DynamicSprite extends Sprite {
     );
     this.slopeX = (this.newX - oldX) / norm;
     this.slopeY = (this.newY - oldY) / norm;
-    this.move = true;
   }
 
   // COPILOT USED: autocomplete
   moveSprite(delta: number): void {
-    if (!this.move) return;
+    if (this.slopeX === 0 && this.slopeY === 0) return;
 
     let [oldX, oldY] = super.getPosition();
     const distance = this.animationSpeed * delta;
@@ -73,13 +91,33 @@ export class DynamicSprite extends Sprite {
     }
 
     super.setPosition(newX, newY);
-    if (flag === 2) this.move = false;
+    if (flag === 2) {
+      this.slopeX = 0;
+      this.slopeY = 0;
+    }
   }
 
-  stopMoving(): void { this.move = false; }
+  stopMoving(): void {
+    this.slopeX = 0;
+    this.slopeY = 0;
+  }
   setDirection(dx: number, dy: number): void {
     this.slopeX = dx
     this.slopeY = dy;
   }
   getDirection(): Array<number> { return this.move ? [this.slopeX, this.slopeY] : [0, 0]; }
+  setAnimationSpeed(speed: number): void { this.animationSpeed = speed; }
+
+  dump(): ClonedDSprite {
+    const [x, y] = this.getPosition();
+    return {
+      x,
+      y,
+      dx: this.slopeX,
+      dy: this.slopeY,
+      newX: this.newX,
+      newY: this.slopeY,
+      rotation: this.rotation,
+    }
+  }
 }

@@ -2,6 +2,14 @@ import { PlayerTank } from './player-tank.ts';
 import { Bullet } from './bullet.ts';
 import { Wall } from './wall.ts';
 import { EnemyTank } from './enemy-tank.ts';
+import { DSpriteDump } from "./dynamic-sprite.ts";
+
+export type GameState = {
+  timestamp: number,
+  tanks: Array<DSpriteDump>,
+  bullets: Array<DSpriteDump>,
+  player: DSpriteDump,
+};
 
 export class GameBoard {
   bullets: Array<Bullet> = [];
@@ -24,6 +32,30 @@ export class GameBoard {
 
     this.walls.push(new Wall(1000, 500, 10, 2, 48, 0));
     this.walls.push(new Wall(500, 50, 3, 15, 48, 1));
+  }
+
+  dump(timestamp: number) {
+    return {
+      timestamp,
+      tanks: this.enemyTanks.map((tank) => tank.dump()),
+      bullets: this.bullets.map((bullet) => bullet.dump()),
+      player: this.playerTank.dump(),
+    }
+  }
+
+  load(state: GameState) {
+    this.bullets = [];
+    this.enemyTanks = [];
+
+    this.playerTank = new PlayerTank(0, state.player);
+
+    state.bullets.forEach((bullet_clone, id) => {
+      this.bullets.push(new Bullet(0, 0, 0, 0, 0, id, bullet_clone));
+    });
+
+    state.tanks.forEach((tank_clone, id) => {
+      this.enemyTanks.push(new EnemyTank(id, tank_clone));
+    })
   }
 
   step(delta: number): void {

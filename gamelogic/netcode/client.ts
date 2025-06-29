@@ -1,6 +1,10 @@
 import { WebSocketService } from "./web-socket-service.ts";
+import { GameBoard } from "../game_state.ts";
+import { Bullet } from "../bullet.ts";
 
 const wss = new WebSocketService();
+const game = new GameBoard();
+
 let g_user = ""
 
 type MatchInfo = {

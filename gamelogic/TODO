@@ -1,0 +1,7 @@
+ - [ ] Client side prediction
+ - [ ] Server reconciliation
+ - [ ] Entity interpolation
+ - [ ] Lag compensation
+ - [ ] Frontend/backend integration
+ - [ ] Server rollback?
+ - [ ] Improved match queueing
