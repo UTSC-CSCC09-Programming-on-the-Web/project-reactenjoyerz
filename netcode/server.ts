@@ -15,3 +15,5 @@ io.on("connection", (socket) => {
     console.log(`${user.user} joined room-`);;
   });
 });
+
+console.log("Server initialized ...");

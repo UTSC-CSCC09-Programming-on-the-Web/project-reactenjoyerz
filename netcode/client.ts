@@ -9,11 +9,11 @@ type MatchInfo = {
 
 wss.bindHandler("match.join", (match: MatchInfo) => {
   wss.unbindHandlers("match.join");
-  console.log(`${g_user} joining room ${match.id} ...`);
+  console.error(`${g_user} joining room ${match.id} ...`);
 })
 
 export function join (user: string): void {
-  console.log(`${user} joining ...`);
+  console.error(`${user} joining ...`);
   g_user = user;
   wss.emit("match.joinRequest", { user });
 }
