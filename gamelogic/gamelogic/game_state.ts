@@ -55,16 +55,21 @@ export function step(state: GameState, delta: number): GameState {
 
 // shoot a bullet and catch it up to timestamp
 export function shoot(state: GameState, tankIdx: number, x: number, y: number, timestamp: number) {
-  const delta = timestamp - state.timestamp;
+  const delta = state.timestamp - timestamp;
   const b = tank.shootBullet(state.tanks[tankIdx], x, y);
 
   // catch bullet up to timestamp
   bullet.step(b, delta);
   walls.some((wall) => !bullet.testCollisionWall(b, wall));
+
+  // check if bullet should not be added
+  const nAdd = state.tanks.some((t) => !tank.testCollisionBullet(t, b));
+  if (!nAdd)
+    state.bullets.push(b);
 }
 
 export function move(state: GameState, tankIdx: number, x: number, y: number, timestamp: number) {
-  const delta = timestamp - state.timestamp;
+  const delta = state.timestamp - timestamp;
   const t = state.tanks[tankIdx];
   tank.moveTo(t, x, y);
 
@@ -73,4 +78,9 @@ export function move(state: GameState, tankIdx: number, x: number, y: number, ti
   walls.forEach((wall) => {
     tank.testCollisionWall(t, wall);
   })
+
+  for (let i = 0; i < state.bullets.length; i++) {
+    if (tank.testCollisionBullet(t, state.bullets[i]))
+      state.bullets.splice(i, 1);
+  }
 }
