@@ -14,5 +14,17 @@ app.listen(3000, () => {
 
 app.post("/join", (req, res) => {
   client.join(req.body.username);
-  res.send("");
+  res.send("^B");
+});
+
+app.post("/shoot", (req, res) => {
+  const { x, y } = req.body;
+  client.shoot(x, y);
+  res.send("^B");
+});
+
+app.post("/move", (req, res) => {
+  const { x, y } = req.body;
+  client.moveTo(x, y);
+  res.send("^B");
 });
