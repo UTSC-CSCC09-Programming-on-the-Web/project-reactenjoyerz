@@ -55,7 +55,7 @@ export function step(state: GameState, delta: number): GameState {
 
 // shoot a bullet and catch it up to timestamp
 export function shoot(state: GameState, tankIdx: number, x: number, y: number, timestamp: number) {
-  const delta = state.timestamp - timestamp;
+  const delta = Math.abs(state.timestamp - timestamp);
   const b = tank.shootBullet(state.tanks[tankIdx], x, y);
 
   // catch bullet up to timestamp
@@ -69,7 +69,7 @@ export function shoot(state: GameState, tankIdx: number, x: number, y: number, t
 }
 
 export function move(state: GameState, tankIdx: number, x: number, y: number, timestamp: number) {
-  const delta = state.timestamp - timestamp;
+  const delta = Math.abs(state.timestamp - timestamp);
   const t = state.tanks[tankIdx];
   tank.moveTo(t, x, y);
 
@@ -83,4 +83,35 @@ export function move(state: GameState, tankIdx: number, x: number, y: number, ti
     if (tank.testCollisionBullet(t, state.bullets[i]))
       state.bullets.splice(i, 1);
   }
+}
+
+export function logState(state: GameState) {
+  console.log(`TIME: ${state.timestamp}
+  Tanks:`)
+  state.tanks.forEach((t: tank.Tank) => {
+    console.log(`    x: ${t.sprite.x} ---> ${t.newX}
+    y: ${t.sprite.y} ---> ${t.newY}
+    dx: ${t.dy}
+    dx: ${t.dx}
+    rot: ${t.rotation}
+    `)
+  })
+
+  console.log(`
+  Bullets:`)
+  state.bullets.forEach((b) => {
+    const t = b.dSprite;
+    console.log(`    x: ${t.sprite.x} ---> ${t.newX}
+    y: ${t.sprite.y} ---> ${t.newY}
+    dx: ${t.dy}
+    dx: ${t.dx}
+    rot: ${t.rotation}
+    nBounces: ${b.nBounces};
+    `)
+  })
+
+  console.log(`
+  Leaderboard:
+    TBD
+  `);
 }

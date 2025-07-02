@@ -1,7 +1,9 @@
 import { WebSocketService } from "./web-socket-service.ts";
-import * as game from "../gamelogic/game_state.ts";
+import * as Game from "../gamelogic/game-state.ts";
 
 const wss = new WebSocketService();
+const game = Game.initialize();
+Game.logState(game);
 
 let g_user = ""
 
