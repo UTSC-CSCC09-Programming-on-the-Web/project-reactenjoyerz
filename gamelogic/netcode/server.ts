@@ -7,7 +7,6 @@ import assert from "node:assert";
 // Most of this (auth) shouldn't be handled here and should be put in the express
 // session
 type MatchJoinRequest = {
-  user: string,
   userId: number,
 }
 
@@ -51,13 +50,18 @@ io.on("connection", (socket) => {
 
     game.players.push(user.userId);
     socket.join(`game-${nextGameId}`);
-    console.log(`${user.user} joined game-${nextGameId}.`);;
+    console.log(`${user.userId} joined game-${nextGameId}.`);;
 
     if (game.players.length === 2) {
       console.log(`Starting game-${nextGameId}`);
-      nextGameId++;
       game.started = true;
       game.currentState = initialize();
+
+      io.to(`game-${nextGameId}`).emit({
+        initialState: game.currentState,
+      });
+
+      nextGameId++;
     }
   });
 
@@ -109,14 +113,13 @@ setInterval(() => {
     let headTime = game.currentState.timestamp;
     const targetTime = Date.now();
 
-    while (targetTime === headTime) {
+    while (targetTime !== headTime) {
       let delta = 0;
 
       const input = game.inputs[0];
       assert(!input || ((headTime < input.timestamp && input.timestamp < targetTime)));
 
-      delta = Math.min(maxStepSize, targetTime - headTime);
-
+      delta = targetTime - headTime;
       if (input && input.timestamp - headTime < delta) {
         delta = input.timestamp - delta;
         game.inputs.shift();
@@ -134,8 +137,18 @@ setInterval(() => {
         }
       }
 
-      step(game.currentState, delta);
-      newStates.push(structuredClone(game.currentState));
+      assert(delta > 0);
+
+      // only ship new state if step isn't a normal one
+      if (delta <= maxStepSize) {
+        step(game.currentState, delta);
+        newStates.push(structuredClone(game.currentState));
+
+      } else {
+        delta = maxStepSize;
+        step(game.currentState, delta);
+      }
+
       headTime += delta;
     }
 

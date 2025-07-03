@@ -22,7 +22,7 @@ app.post("/join", (req, res) => {
 
 app.post("/shoot", (req, res) => {
   const { x, y } = req.body;
-  client.shoot(x, y);
+  client.shootBullet(x, y);
   res.send("^B");
 });
 
