@@ -1,5 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
+import process from "node:process";
 
 import * as client from "./client.ts";
 
@@ -8,8 +9,10 @@ import * as client from "./client.ts";
 const app = express();
 app.use(bodyParser.json());
 
-app.listen(3000, () => {
-  console.log("server started ...")
+const PORT = Number.parseInt(process.argv[2]);
+
+app.listen(PORT, () => {
+  console.log(`client started on port ${PORT}...`)
 });
 
 app.post("/join", (req, res) => {

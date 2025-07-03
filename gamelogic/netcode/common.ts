@@ -1,8 +1,13 @@
 import { GameState } from "../gamelogic/game-state.ts";
 
+export const maxStepSize = 20; // ms
+export const serverStepSize = 100;
+
 export type InputRequest = {
   x: number,
   y: number,
+  gameId: number,
+  clientIdx: number,
 };
 
 export type InputFrame = {
@@ -10,10 +15,3 @@ export type InputFrame = {
   timestamp: number,
   action: string,
 }
-
-export type Game = {
-  states: GameState[],
-  inputs: InputFrame[],
-  name: string,
-}
-

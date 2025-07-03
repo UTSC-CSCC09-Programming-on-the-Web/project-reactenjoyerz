@@ -32,57 +32,35 @@ export function initialize(): GameState {
   }
 }
 
-export function step(state: GameState, delta: number): GameState {
-  const newState = structuredClone(state);
-  newState.bullets = newState.bullets.filter((b) => {
+export function step(state: GameState, delta: number) {
+  if (delta === 0) return;
+
+  state.bullets = state.bullets.filter((b) => {
     bullet.step(b, delta);
     return walls.some((wall) => !bullet.testCollisionWall(b, wall));
   });
 
   walls.forEach((wall) => {
-    newState.tanks.forEach((t) => {
+    state.tanks.forEach((t) => {
       tank.testCollisionWall(t, wall);
     });
   });
 
-  newState.tanks.forEach((t) => tank.step(t, delta));
-  newState.bullets.filter((b) => {
-    return newState.tanks.some((t) => !tank.testCollisionBullet(t, b));
+  state.tanks.forEach((t) => tank.step(t, delta));
+  state.bullets.filter((b) => {
+    return state.tanks.some((t) => !tank.testCollisionBullet(t, b));
   });
-
-  return newState;
 }
 
 // shoot a bullet and catch it up to timestamp
-export function shoot(state: GameState, tankIdx: number, x: number, y: number, timestamp: number) {
-  const delta = Math.abs(state.timestamp - timestamp);
+export function shoot(state: GameState, tankIdx: number, x: number, y: number) {
   const b = tank.shootBullet(state.tanks[tankIdx], x, y);
-
-  // catch bullet up to timestamp
-  bullet.step(b, delta);
-  walls.some((wall) => !bullet.testCollisionWall(b, wall));
-
-  // check if bullet should not be added
-  const nAdd = state.tanks.some((t) => !tank.testCollisionBullet(t, b));
-  if (!nAdd)
-    state.bullets.push(b);
+  state.bullets.push(b);
 }
 
-export function move(state: GameState, tankIdx: number, x: number, y: number, timestamp: number) {
-  const delta = Math.abs(state.timestamp - timestamp);
+export function move(state: GameState, tankIdx: number, x: number, y: number) {
   const t = state.tanks[tankIdx];
   tank.moveTo(t, x, y);
-
-  // catch tank pos up to timestamp
-  tank.step(t, delta);
-  walls.forEach((wall) => {
-    tank.testCollisionWall(t, wall);
-  })
-
-  for (let i = 0; i < state.bullets.length; i++) {
-    if (tank.testCollisionBullet(t, state.bullets[i]))
-      state.bullets.splice(i, 1);
-  }
 }
 
 export function logState(state: GameState) {
