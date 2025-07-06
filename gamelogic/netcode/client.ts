@@ -31,16 +31,6 @@ let currentState: GameState;
 let serverStates: GameState[];
 let unprocessedInputs: UnprocessedInput[];
 
-wss.bindHandler("match.join", (match: MatchInfo) => {
-  wss.unbindHandlers("match.join");
-  currentState = match.initialState;
-  serverStates = [];
-  unprocessedInputs = [];
-
-  wss.bindHandler("match.stateUpdate", (res: NewMatchStates) => {
-    serverStates = res.newStates.concat(serverStates).sort((a, b) => a.timestamp - b.timestamp);
-  })
-})
 
 export function moveTo (x: number, y: number): void {
   if (clientInfo) {
@@ -68,9 +58,21 @@ export function shootBullet (x: number, y: number): void {
 
 export function join (cb: () => void): void {
   wss.emit("match.joinRequest", { }, (c: ClientInfo) => {
-    cb();
     clientInfo = c;
   });
+
+  wss.bindHandler("match.join", (match: MatchInfo) => {
+    cb();
+
+    wss.unbindHandlers("match.join");
+    currentState = match.initialState;
+    serverStates = [];
+    unprocessedInputs = [];
+
+    wss.bindHandler("match.stateUpdate", (res: NewMatchStates) => {
+      serverStates = res.newStates.concat(serverStates).sort((a, b) => a.timestamp - b.timestamp);
+    })
+  })
 }
 
 export function fetchFrame () : GameState | undefined {
@@ -145,5 +147,6 @@ export function getDistance(idx1: number, idx2: number) : number | undefined{
 }
 
 export function getClientIdx(): number {
+  if (!clientInfo) return -1;
   return clientInfo.clientIdx;
 }

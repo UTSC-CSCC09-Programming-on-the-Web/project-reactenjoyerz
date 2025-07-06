@@ -6,7 +6,10 @@ export class WebSocketService {
   private handlers: Map<string, Array<(v: any) => void>>;
 
   constructor() {
-    this.socket = io("http://localhost:8000");
+    this.socket = io("http://localhost:8000", {
+      withCredentials: true,
+      transports: ['websocket', 'polling']
+    });
     this.handlers = new Map<string, Array<(v: any) => void>>();
   }
 

@@ -10,7 +10,7 @@ import { GoogleLogin } from './google-login/google-login';
 
 export const routes: Routes = [
     { path: 'game', component: GameBoard, canActivate: [AuthGuard] },
-    { path: 'game', component: MatchQueue, canActivate: [AuthGuard] },
+    { path: 'match', component: MatchQueue, canActivate: [AuthGuard] },
     { path: 'home', component: Home },
     { path: 'login', component: Login },
     { path: 'register', component: Register },

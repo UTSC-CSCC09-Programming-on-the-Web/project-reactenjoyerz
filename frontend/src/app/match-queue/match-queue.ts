@@ -15,9 +15,12 @@ export class MatchQueue {
   message = '';
 
   constructor (private authService: AuthService, private router: Router) {
-    join(() => {
-      this.router.navigate(['/game']);
-    })
+    setTimeout(() => {
+      join(() => {
+        console.log("json")
+        this.router.navigate(['/game']);
+      })
+    }, 1000);
 
     setInterval(() => {
       this.dots += ".";

@@ -24,8 +24,22 @@ const games: Map<number, Game> = new Map<number, Game>([]);
 export function bindWSHandlers(io: Server) {
 
   io.on("connection", (socket) => {
-    socket.on("disconnect", () => {
+    const session = socket.request.session;
+    const req = socket.request;
 
+    socket.use((__, next) => {
+      session.reload((err) => {
+        if (err) {
+          console.log(err);
+          socket.disconnect();
+        } else {
+          next();
+        }
+      });
+    });
+
+    socket.on("disconnect", () => {
+      
     });
 
     socket.on("match.joinRequest", (user: MatchJoinRequest, callback) => {
@@ -43,23 +57,27 @@ export function bindWSHandlers(io: Server) {
       }
 
       // send identification back to client
-      // note: this is going to be removed in the future and integrated into
-      // express-session
       callback({
         gameId: nextGameId,
         clientIdx: game.players.length,
       })
 
-      game.players.push(user.userId);
+      console.log(session);
+      session.clientIdx = game.players.length;
+      session.gameId = nextGameId;
+      session.save();
+
+      game.players.push(session.userId);
       socket.join(`game-${nextGameId}`);
-      console.log(`${user.userId} joined game-${nextGameId}.`);;
+      console.log(`User id: ${session.userId} joined game-${nextGameId}. ${Date.now()}`);;
 
       if (game.players.length === 2) {
         console.log(`Starting game-${nextGameId}`);
         game.started = true;
         game.currentState = initialize();
+        game.currentState.timestamp = Date.now();
 
-        io.to(`game-${nextGameId}`).emit({
+        io.to(`game-${nextGameId}`).emit("match.join", {
           initialState: game.currentState,
         });
 
@@ -68,12 +86,17 @@ export function bindWSHandlers(io: Server) {
     });
 
     socket.on("game.shoot", (input: InputRequest) => {
-      const game = games.get(input.gameId);
+      const session = socket.request.session;
+      const game = games.get(session.gameId);
+
       if (game && game.started) {
+        assert(session.clientIdx && session.gameId)
         game.inputs.push({
           req: input,
           timestamp: Date.now() - serverStepSize,
           action: "shoot",
+          clientIdx: session.clientIdx,
+          gameId: session.gameId
         });
 
         console.log(`Shoot req @ ${Date.now() - serverStepSize}`);
@@ -81,12 +104,17 @@ export function bindWSHandlers(io: Server) {
     });
 
     socket.on("game.move", (input: InputRequest) => {
-      const game = games.get(input.gameId);
+      const session = socket.request.session;
+      const game = games.get(session.gameId);
+
       if (game && game.started) {
+        assert(session.clientIdx && session.gameId)
         game.inputs.push({
           req: input,
           timestamp: Date.now() - serverStepSize,
           action: "move",
+          clientIdx: session.clientIdx,
+          gameId: session.gameId
         });
 
         console.log(`Move req @ ${Date.now() - serverStepSize}`);
@@ -95,7 +123,7 @@ export function bindWSHandlers(io: Server) {
   });
 
   setInterval(() => {
-    games.forEach((game) => {
+    games.forEach((game, gameId) => {
       if (!game.started)
         return;
 
@@ -123,16 +151,18 @@ export function bindWSHandlers(io: Server) {
 
         delta = targetTime - headTime;
         if (input && input.timestamp - headTime < delta) {
+          assert(input.gameId === gameId);
+
           delta = input.timestamp - delta;
           game.inputs.shift();
 
-          const { clientIdx, x, y } = input.req;
+          const { x, y } = input.req;
           switch (input.action) {
             case "shoot":
-              shoot(game.currentState, clientIdx, x, y);
+              shoot(game.currentState, input.clientIdx, x, y);
             break;
             case "move":
-              move(game.currentState, clientIdx, x, y);
+              move(game.currentState, input.clientIdx, x, y);
             break;
             default:
               console.error(`Error: action ${input.action} not found.`);

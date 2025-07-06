@@ -6,12 +6,12 @@ export const serverStepSize = 100;
 export type InputRequest = {
   x: number,
   y: number,
-  gameId: number,
-  clientIdx: number,
 };
 
 export type InputFrame = {
   req: InputRequest,
   timestamp: number,
   action: string,
+  gameId: number,
+  clientIdx: number,
 }
