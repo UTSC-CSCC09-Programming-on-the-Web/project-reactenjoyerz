@@ -1,8 +1,8 @@
-import { Component } from '@angular/core';
-import { PlayerTank } from './tank/player-tank';
-import { Bullet } from './bullet/bullet';
-import { Wall } from './wall/wall';
-import { EnemyTank } from './tank/enemy-tank';
+import { moveTo ,shootBullet, fetchFrame, getClientIdx } from "../../../../gamelogic/netcode/client";
+import { Sprite } from "../../../../gamelogic/gamelogic/sprite";
+import { createWall } from "../../../../gamelogic/gamelogic/wall";
+import { GameState } from "../../../../gamelogic/gamelogic/game-state";
+import { Component } from "@angular/core";
 
 @Component({
   selector: 'game-board',
@@ -11,83 +11,31 @@ import { EnemyTank } from './tank/enemy-tank';
   styleUrl: './game-board.css',
 })
 export class GameBoard {
-  lastTime: number;
-  bullets: Array<Bullet> = [];
-  nextBulletId = 0;
-  walls: Array<Wall> = [];
-  playerTank: PlayerTank;
-  enemyTanks: Array<EnemyTank> = [];
+  clientIdx: number;
+  currentState?: GameState;
+  walls: Sprite[];
 
   constructor() {
-    this.playerTank = new PlayerTank(0);
-    this.enemyTanks.push(new EnemyTank(1));
-
-    this.lastTime = Date.now();
-    // push border walls in the first 4 indices of the array
-    // so they aren't rendered
-
-    this.walls.push(new Wall(0, 0, 192, 1, 10, -1));
-    this.walls.push(new Wall(0, 950, 192, 1, 10, -1));
-    this.walls.push(new Wall(0, 0, 1, 108, 10, -1));
-    this.walls.push(new Wall(1910, 0, 1, 108, 10, -1));
-
-    this.walls.push(new Wall(1000, 500, 10, 2, 48, 0));
-    this.walls.push(new Wall(500, 50, 3, 15, 48, 1));
+    this.clientIdx = getClientIdx();
+    this.walls = [
+      createWall(0, 0, 192, 1, 48),
+      createWall(0, 950, 192, 1, 48),
+      createWall(0, 0, 1, 108, 48),
+      createWall(1910, 0, 1, 108, 48),
+      createWall(1000, 500, 10, 2, 48),
+      createWall(500, 50, 3, 15, 48),
+    ];
 
     setInterval(() => {
-      const now: number = Date.now();
-      const delta = now - this.lastTime;
-
-      for (let i = this.bullets.length - 1; i >= 0; i--) {
-        this.bullets[i].moveSprite(delta);
-        for (const wall of this.walls)
-          if (this.bullets[i].testCollisionWall(wall)) {
-            this.bullets.splice(i, 1);
-            break;
-          }
-      }
-
-      this.walls.forEach((wall) => {
-        this.playerTank.testCollisionWall(wall);
-        this.enemyTanks.forEach((tank) => {
-          tank.testCollisionWall(wall)
-        });
-      })
-
-      this.playerTank.moveSprite(delta);
-      for (let j = this.bullets.length - 1; j >= 0; j--) {
-        const bullet = this.bullets[j];
-        if (this.playerTank.testCollisionBullet(bullet)) {
-          this.bullets.splice(j, 1);
-          break;
-        }
-      }
-
-      for (let i = this.enemyTanks.length - 1; i >= 0; i--) {
-        const tank = this.enemyTanks[i];
-        tank.moveSprite(delta);
-
-        for (let j = this.bullets.length - 1; j >= 0; j--) {
-          const bullet = this.bullets[j];
-          if (tank.testCollisionBullet(bullet)) {
-            this.bullets.splice(j, 1);
-            this.enemyTanks.splice(i, 1);
-            break;
-          }
-        }
-      }
-
-      this.lastTime = now;
+      this.currentState = fetchFrame();
     }, 20);
   }
 
   onClick(event: MouseEvent): void {
-    if (!this.playerTank.render) return;
-    
-    if (event.altKey)
-      this.bullets.push(
-        this.playerTank.shootBullet(event.x, event.y, this.nextBulletId++),
-      );
-    else this.playerTank.moveSpriteTo(event.x, event.y);
+    if (event.altKey) {
+      shootBullet(event.x, event.y);
+    } else {
+      moveTo(event.x, event.y);
+    }
   }
 }

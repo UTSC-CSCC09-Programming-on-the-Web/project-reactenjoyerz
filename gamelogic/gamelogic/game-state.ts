@@ -1,8 +1,8 @@
-import { Sprite } from "./sprite.ts";
-import { createWall } from "./wall.ts";
+import { Sprite } from "./sprite";
+import { createWall } from "./wall";
 
-import * as tank from "./tank.ts";
-import * as bullet from "./bullet.ts";
+import * as tank from "./tank";
+import * as bullet from "./bullet";
 
 let walls: Sprite[];
 

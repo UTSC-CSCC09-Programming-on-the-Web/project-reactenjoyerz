@@ -1,4 +1,4 @@
-import { GameState } from "../gamelogic/game-state.ts";
+import { GameState } from "../gamelogic/game-state";
 
 export const maxStepSize = 20; // ms
 export const serverStepSize = 100;

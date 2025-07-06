@@ -1,53 +1,51 @@
+@if (!currentState) {
+<p>loading gameboard</p>
+
+} @else {
 <div class="background" (click)="onClick($event)"></div>
-  
-@if (playerTank.render) {
 <img
   class="tank"
-  style.left="{{ playerTank.getPosition()[0] }}px"
-  style.top="{{ playerTank.getPosition()[1] }}px"
-  style.transform="rotate({{ playerTank.getRotation() }}rad)"
-  [src]="playerTank.getSprite()"
-  [width]="playerTank.getWidth()"
-  [height]="playerTank.getHeight()"
+  style.left="{{ currentState.tanks[clientIdx].sprite.x }}px"
+  style.top="{{ currentState.tanks[clientIdx].sprite.y }}px"
+  style.transform="rotate({{ currentState.tanks[clientIdx].rotation }}rad)"
+  src="blueTank.png"
+  (click)="onClick($event)"
+/>
+
+@for (tank of currentState.tanks; track tank.rotation){
+<img
+  class="tank"
+  style.left="{{ tank.sprite.x }}px"
+  style.top="{{ tank.sprite.y }}px"
+  style.transform="rotate({{ tank.rotation }}rad)"
+  src="redTank.png"
   (click)="onClick($event)"
 />
 }
 
-@for (tank of enemyTanks; track tank.getId()){
-<img
-  class="tank"
-  style.left="{{ tank.getPosition()[0] }}px"
-  style.top="{{ tank.getPosition()[1] }}px"
-  style.transform="rotate({{ tank.getRotation() }}rad)"
-  [src]="tank.getSprite()"
-  [width]="tank.getWidth()"
-  [height]="tank.getHeight()"
-  (click)="onClick($event)"
-/>
-}
-
-@for (bullet of bullets; track bullet.getId()) {
+@for (bullet of currentState.bullets; track bullet.nBounces) {
 <img
   class="bullet"
-  style.left="{{bullet.getPosition()[0]}}px"
-  style.top="{{ bullet.getPosition()[1] }}px"
-  style.transform="rotate({{ bullet.getRotation() }}rad)"
-  [src]="bullet.getSprite()"
-  [width]="bullet.getWidth()"
-  [height]="bullet.getHeight()"
+  style.left="{{ bullet.dSprite.sprite.x }}px"
+  style.top="{{ bullet.dSprite.sprite.y }}px"
+  style.transform="rotate({{ bullet.dSprite.rotation }}rad)"
+  src="bullet.png"
+  width="17"
+  height="32"
   (click)="onClick($event)"
 />
 }
 
-@for (wall of walls.slice(4); track wall.getId()) {
+@for (wall of walls.slice(4); track wall.x) {
   <div
     class="wall"
-    style.left="{{ wall.getPosition()[0] }}px"
-    style.top="{{ wall.getPosition()[1] }}px"
-    style.background="url({{ wall.getSprite() }})"
-    style.background-size="{{ wall.getTileSize() }}px"
-    style.width="{{ wall.getWidth() }}px"
-    style.height="{{ wall.getHeight() }}px"
+    style.left="{{ wall.x }}px"
+    style.top="{{ wall.y }}px"
+    style.background="url(wall.png)"
+    style.background-size="48px"
+    style.width="{{ wall.width }}px"
+    style.height="{{ wall.height }}px"
     (click)="onClick($event)"
   ></div>
+}
 }

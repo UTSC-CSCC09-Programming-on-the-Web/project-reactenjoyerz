@@ -1,5 +1,5 @@
-import { Component, inject } from '@angular/core';
-import { WebSocketService } from '../web-socket-service';
+import { join } from "../../../../gamelogic/netcode/client";
+import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
@@ -8,20 +8,16 @@ import { AuthService } from '../services/auth.service';
   imports: [],
   templateUrl: './match-queue.html',
   styleUrl: './match-queue.css',
-  providers: [WebSocketService]
+  providers: []
 })
 export class MatchQueue {
-  wss = inject(WebSocketService);
   dots = "";
   message = '';
 
   constructor (private authService: AuthService, private router: Router) {
-    this.wss.bindHandler("match.join", ({ matchId }) => {
-      this.wss.unbindHandlers("match.join");
-      router.navigate([matchId, "game"]);
+    join(() => {
+      this.router.navigate(['/game']);
     })
-
-    this.wss.emit("match.joinRequest", { user: 0 });
 
     setInterval(() => {
       this.dots += ".";

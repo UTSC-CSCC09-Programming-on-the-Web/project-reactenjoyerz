@@ -1,6 +1,6 @@
-import { Bullet } from './bullet.ts';
-import { DSprite } from './dynamic-sprite.ts';
-import { Sprite, collidesWith } from "./sprite.ts";
+import { Bullet } from './bullet';
+import { DSprite } from './dynamic-sprite';
+import { Sprite, collidesWith } from "./sprite";
 
 export const animationSpeed = 0.5;
 export const enemySprite = "redTank.png";

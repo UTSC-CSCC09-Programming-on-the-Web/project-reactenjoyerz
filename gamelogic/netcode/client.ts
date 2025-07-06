@@ -1,11 +1,10 @@
-import { WebSocketService } from "./web-socket-service.ts";
-import { GameState, Tank, initialize, logState, step, shoot, move } from "../gamelogic/game-state.ts";
-import { maxStepSize, serverStepSize } from "./common.ts";
-import assert from "node:assert";
+import { WebSocketService } from "./web-socket-service";
+import { GameState, initialize, logState, step, shoot, move } from "../gamelogic/game-state";
+import { Tank } from "../gamelogic/tank";
+import { maxStepSize, serverStepSize } from "./common";
 
 const wss = new WebSocketService();
-const game = initialize();
-logState(game);
+initialize();
 
 type MatchInfo = {
   initialState: GameState,
@@ -67,8 +66,9 @@ export function shootBullet (x: number, y: number): void {
   }
 }
 
-export function join (userId: number): void {
-  wss.emit("match.joinRequest", { userId }, (c: ClientInfo) => {
+export function join (cb: () => void): void {
+  wss.emit("match.joinRequest", { }, (c: ClientInfo) => {
+    cb();
     clientInfo = c;
   });
 }
@@ -81,11 +81,13 @@ export function fetchFrame () : GameState | undefined {
   // then that input has already been processed
 
   const targetTime = Date.now();
-  const frameIdx = serverStates.findLastIndex((s) => {
-    currentState.timestamp <= s.timestamp && s.timestamp <= targetTime;
-  })
+  for (let i = serverStates.length; i >= 0; i--) {
+    if (currentState.timestamp <= serverStates[i].timestamp && serverStates[i].timestamp <= targetTime) {
+      currentState = serverStates[i];
+      break;
+    }
+  }
 
-  currentState = serverStates[frameIdx-1] || currentState;
   let headTime = currentState.timestamp;
 
   serverStates = serverStates.filter((s) => {
@@ -103,7 +105,7 @@ export function fetchFrame () : GameState | undefined {
     let delta = 0;
 
     const input = unprocessedInputs[0];
-    assert(!input || ((headTime < input.timestamp && input.timestamp < targetTime)));
+    console.assert(!input || ((headTime < input.timestamp && input.timestamp < targetTime)));
 
     delta = Math.min(maxStepSize, targetTime - headTime);
 
@@ -124,7 +126,7 @@ export function fetchFrame () : GameState | undefined {
       }
     }
 
-    assert(delta > 0);
+    console.assert(delta > 0);
 
     step(currentState, delta);
     headTime += delta;
@@ -140,4 +142,8 @@ export function getDistance(idx1: number, idx2: number) : number | undefined{
   const t1: Tank = currentState.tanks[idx1];
   const t2: Tank = currentState.tanks[idx2];
   return Math.sqrt((t1.sprite.x - t2.sprite.x)**2 + (t1.sprite.y - t2.sprite.y)**2);
+}
+
+export function getClientIdx(): number {
+  return clientInfo.clientIdx;
 }

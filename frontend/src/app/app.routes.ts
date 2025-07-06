@@ -9,7 +9,7 @@ import { AuthGuard } from './services/auth.guard';
 import { GoogleLogin } from './google-login/google-login';
 
 export const routes: Routes = [
-    { path: ':id/game', component: GameBoard, canActivate: [AuthGuard] },
+    { path: 'game', component: GameBoard, canActivate: [AuthGuard] },
     { path: 'game', component: MatchQueue, canActivate: [AuthGuard] },
     { path: 'home', component: Home },
     { path: 'login', component: Login },

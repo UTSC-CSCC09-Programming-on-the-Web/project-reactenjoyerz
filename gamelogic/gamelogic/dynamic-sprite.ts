@@ -1,4 +1,4 @@
-import { Sprite } from "./sprite.ts";
+import { Sprite } from "./sprite";
 
 export type DSprite = {
   newX: number,

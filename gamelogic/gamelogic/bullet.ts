@@ -1,5 +1,5 @@
-import { DSprite }  from './dynamic-sprite.ts';
-import { Sprite, collidesWith } from "./sprite.ts";
+import { DSprite }  from './dynamic-sprite';
+import { Sprite, collidesWith } from "./sprite";
 
 const animationSpeed = 0.7;
 export type Bullet = {

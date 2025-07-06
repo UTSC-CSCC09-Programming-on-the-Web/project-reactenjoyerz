@@ -8,7 +8,7 @@ import session from "express-session";
 
 import { usersRouter } from "./routers/users_router.js";
 import { Server } from "socket.io";
-import { bindWSHandlers } from "./socket.js";
+import { bindWSHandlers } from "../gamelogic/netcode/server.ts";
 import { webhookRouter } from "./routers/webhook.js";
 
 dotenv.config();
