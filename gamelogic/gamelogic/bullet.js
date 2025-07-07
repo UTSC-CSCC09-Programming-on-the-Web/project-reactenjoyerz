@@ -1,13 +1,8 @@
-import { DSprite }  from './dynamic-sprite';
-import { Sprite, collidesWith } from "./sprite";
+import { collidesWith } from "./sprite.js";
 
 const animationSpeed = 0.7;
-export type Bullet = {
-  nBounces: number,
-  dSprite: DSprite,
-}
 
-export function testCollisionWall(bullet: Bullet, wall: Sprite) : boolean {
+export function testCollisionWall(bullet, wall) {
   const sprite = bullet.dSprite.sprite;
 
   if (!collidesWith(sprite, wall))
@@ -49,7 +44,7 @@ export function testCollisionWall(bullet: Bullet, wall: Sprite) : boolean {
 }
 
 // override to never stop moving
-export function step(bullet: Bullet, delta: number): void {
+export function step(bullet, delta) {
   const dSprite = bullet.dSprite;
   const sprite = dSprite.sprite;
   bullet.dSprite.sprite.x = sprite.x + dSprite.dx * delta * animationSpeed;

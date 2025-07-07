@@ -1,27 +1,12 @@
-import { Server } from "socket.io";
-import { InputFrame, InputRequest, serverStepSize, maxStepSize } from "./common";
-import { GameState, initialize, step, shoot, move } from "../gamelogic/game-state";
+import { serverStepSize, maxStepSize } from "./common.js";
+import { initialize, step, shoot, move } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 
-// Most of this (auth) shouldn't be handled here and should be put in the express
-// session
-type MatchJoinRequest = {
-  userId: number,
-}
-
-type Game = {
-  currentState?: GameState,
-  inputs: InputFrame[],
-  players: number[],
-  name: string,
-  started: boolean,
-}
-
 let nextGameId = 0;
-const games: Map<number, Game> = new Map<number, Game>([]);
+const games = new Map([]);
 
-export function bindWSHandlers(io: Server) {
+export function bindWSHandlers(io) {
 
   io.on("connection", (socket) => {
     const session = socket.request.session;
@@ -30,7 +15,7 @@ export function bindWSHandlers(io: Server) {
     socket.use((__, next) => {
       session.reload((err) => {
         if (err) {
-          console.log(err);
+          console.error("session reload failed", err);
           socket.disconnect();
         } else {
           next();
@@ -42,7 +27,7 @@ export function bindWSHandlers(io: Server) {
       
     });
 
-    socket.on("match.joinRequest", (user: MatchJoinRequest, callback) => {
+    socket.on("match.joinRequest", (user, callback) => {
       let game = games.get(nextGameId);
 
       if (!game) {
@@ -62,7 +47,6 @@ export function bindWSHandlers(io: Server) {
         clientIdx: game.players.length,
       })
 
-      console.log(session);
       session.clientIdx = game.players.length;
       session.gameId = nextGameId;
       session.save();
@@ -85,7 +69,7 @@ export function bindWSHandlers(io: Server) {
       }
     });
 
-    socket.on("game.shoot", (input: InputRequest) => {
+    socket.on("game.shoot", (input) => {
       const session = socket.request.session;
       const game = games.get(session.gameId);
 
@@ -103,7 +87,7 @@ export function bindWSHandlers(io: Server) {
       }
     });
 
-    socket.on("game.move", (input: InputRequest) => {
+    socket.on("game.move", (input) => {
       const session = socket.request.session;
       const game = games.get(session.gameId);
 
@@ -130,7 +114,7 @@ export function bindWSHandlers(io: Server) {
       assert(game.currentState);
 
       // don't ship currentState since that was part of the previous shipment
-      const newStates: GameState[] = [];
+      const newStates = [];
 
       // 1. process inputs relative to state (from -100ms ago) to compute new
       // current state (0 ms) to account for input delay

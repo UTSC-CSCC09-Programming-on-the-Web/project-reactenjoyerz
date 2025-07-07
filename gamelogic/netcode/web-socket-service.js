@@ -1,24 +1,24 @@
 import { io, Socket } from "socket.io-client";
 
 export class WebSocketService {
-  private delay = 0;
-  private socket: Socket;
-  private handlers: Map<string, Array<(v: any) => void>>;
+  delay = 0;
+  socket;
+  handlers;
 
   constructor() {
     this.socket = io("http://localhost:8000", {
       withCredentials: true,
       transports: ['websocket', 'polling']
     });
-    this.handlers = new Map<string, Array<(v: any) => void>>();
+    this.handlers = new Map();
   }
 
-  setDelay(d: number) {
+  setDelay(d) {
     console.log(`setting delay = ${d}.`);
     this.delay = d;
   }
 
-  bindHandler(event: string, handler: (v: any) => void) {
+  bindHandler(event, handler) {
     const h = this.handlers.get(event);
     if (!h) {
       this.handlers.set(event, [handler]);
@@ -39,11 +39,11 @@ export class WebSocketService {
       h.push(handler);
   }
 
-  unbindHandlers(event: string): void {
+  unbindHandlers(event) {
     this.socket.off(event);
   }
 
-  emit(event: string, v: any, callback?: (v: any) => void) {
+  emit(event, v, callback) {
     console.log(`Sent ${event} event (delay = ${this.delay}) @ ${Date.now()} `);
     setTimeout(() => {
       this.socket.emit(event, v, callback);

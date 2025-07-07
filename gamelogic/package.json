@@ -11,6 +11,8 @@
   "description": "",
   "dependencies": {
     "dotenv": "^17.0.0",
-    "express-session": "^1.18.1"
+    "express-session": "^1.18.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   }
 }

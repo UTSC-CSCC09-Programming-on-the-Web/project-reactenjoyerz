@@ -3,22 +3,13 @@
 
 } @else {
 <div class="background" (click)="onClick($event)"></div>
-<img
-  class="tank"
-  style.left="{{ currentState.tanks[clientIdx].sprite.x }}px"
-  style.top="{{ currentState.tanks[clientIdx].sprite.y }}px"
-  style.transform="rotate({{ currentState.tanks[clientIdx].rotation }}rad)"
-  src="blueTank.png"
-  (click)="onClick($event)"
-/>
-
-@for (tank of currentState.tanks; track tank.rotation){
+@for (tank of currentState.tanks; track tank.rotation; let idx = $index){
 <img
   class="tank"
   style.left="{{ tank.sprite.x }}px"
   style.top="{{ tank.sprite.y }}px"
   style.transform="rotate({{ tank.rotation }}rad)"
-  src="redTank.png"
+  src="{{ idx === clientIdx ? 'blueTank.png' : 'redTank.png' }}"
   (click)="onClick($event)"
 />
 }

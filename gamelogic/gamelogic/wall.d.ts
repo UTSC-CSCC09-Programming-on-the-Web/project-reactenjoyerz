@@ -1,0 +1,1 @@
+export function createWall(x, y, nTilesX, nTilesY, tileSize);

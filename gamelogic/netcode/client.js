@@ -1,38 +1,17 @@
 import { WebSocketService } from "./web-socket-service";
-import { GameState, initialize, logState, step, shoot, move } from "../gamelogic/game-state";
-import { Tank } from "../gamelogic/tank";
+import { initialize, step, shoot, move } from "../gamelogic/game-state";
 import { maxStepSize, serverStepSize } from "./common";
 
 const wss = new WebSocketService();
 initialize();
 
-type MatchInfo = {
-  initialState: GameState,
-};
-
-type ClientInfo = {
-  gameId: number,
-  clientIdx: number,
-}
-
-type UnprocessedInput = {
-  timestamp: number,
-  action: string,
-  x: number,
-  y: number,
-};
-
-type NewMatchStates = {
-  newStates: GameState[],
-}
-
-let clientInfo: ClientInfo;
-let currentState: GameState;
-let serverStates: GameState[];
-let unprocessedInputs: UnprocessedInput[];
+let clientInfo;
+let currentState;
+let serverStates;
+let unprocessedInputs;
 
 
-export function moveTo (x: number, y: number): void {
+export function moveTo (x, y) {
   if (clientInfo) {
     wss.emit("game.move", { x, y, gameId: clientInfo.gameId, clientIdx: clientInfo.clientIdx });
     unprocessedInputs.push({
@@ -44,7 +23,7 @@ export function moveTo (x: number, y: number): void {
   }
 }
 
-export function shootBullet (x: number, y: number): void {
+export function shootBullet (x, y) {
   if (clientInfo) {
     wss.emit("game.shoot", { x, y, gameId: clientInfo.gameId, clientIdx: clientInfo.clientIdx });
     unprocessedInputs.push({
@@ -56,12 +35,12 @@ export function shootBullet (x: number, y: number): void {
   }
 }
 
-export function join (cb: () => void): void {
-  wss.emit("match.joinRequest", { }, (c: ClientInfo) => {
+export function join (cb ) {
+  wss.emit("match.joinRequest", { }, (c) => {
     clientInfo = c;
   });
 
-  wss.bindHandler("match.join", (match: MatchInfo) => {
+  wss.bindHandler("match.join", (match) => {
     cb();
 
     wss.unbindHandlers("match.join");
@@ -69,13 +48,13 @@ export function join (cb: () => void): void {
     serverStates = [];
     unprocessedInputs = [];
 
-    wss.bindHandler("match.stateUpdate", (res: NewMatchStates) => {
+    wss.bindHandler("match.stateUpdate", (res) => {
       serverStates = res.newStates.concat(serverStates).sort((a, b) => a.timestamp - b.timestamp);
     })
   })
 }
 
-export function fetchFrame () : GameState | undefined {
+export function fetchFrame () {
   if (!clientInfo || !currentState) return;
 
   // for every unprocessed input if there exists a state in
@@ -137,16 +116,20 @@ export function fetchFrame () : GameState | undefined {
   return currentState;
 }
 
-export function getDistance(idx1: number, idx2: number) : number | undefined{
-  if (!(0 <= idx1 && idx1 < currentState.tanks.length)) return;
-  if (!(0 <= idx2 && idx2 < currentState.tanks.length)) return;
+export function getDistance(idx) {
+  const t1 = currentState.tanks[idx];
+  if (!t1 || !currentState) return;
 
-  const t1: Tank = currentState.tanks[idx1];
-  const t2: Tank = currentState.tanks[idx2];
-  return Math.sqrt((t1.sprite.x - t2.sprite.x)**2 + (t1.sprite.y - t2.sprite.y)**2);
+  assert(currentState);
+
+  const t2 = currentState.tanks.clientInfo[clientInfo.clientIdx];
+  assert(t2);
+
+  return Math.sqrt(
+    (t1.sprite.x - t2.sprite.x) ** 2 + (t1.sprite.y - t2.sprite.y) ** 2
+  );
 }
 
-export function getClientIdx(): number {
-  if (!clientInfo) return -1;
-  return clientInfo.clientIdx;
+export function getClientIdx() {
+  return clientInfo ? clientInfo.clientIdx : undefined;
 }

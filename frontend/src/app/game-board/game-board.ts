@@ -1,7 +1,6 @@
 import { moveTo ,shootBullet, fetchFrame, getClientIdx } from "../../../../gamelogic/netcode/client";
-import { Sprite } from "../../../../gamelogic/gamelogic/sprite";
 import { createWall } from "../../../../gamelogic/gamelogic/wall";
-import { GameState } from "../../../../gamelogic/gamelogic/game-state";
+import { Sprite, GameState } from "../../../../gamelogic/gamelogic/game-state";
 import { Component } from "@angular/core";
 
 @Component({
@@ -11,12 +10,14 @@ import { Component } from "@angular/core";
   styleUrl: './game-board.css',
 })
 export class GameBoard {
-  clientIdx: number;
+  clientIdx?: number;
   currentState?: GameState;
   walls: Sprite[];
 
   constructor() {
     this.clientIdx = getClientIdx();
+    console.assert(!!this.clientIdx); // not not
+
     this.walls = [
       createWall(0, 0, 192, 1, 48),
       createWall(0, 950, 192, 1, 48),
@@ -32,10 +33,9 @@ export class GameBoard {
   }
 
   onClick(event: MouseEvent): void {
-    if (event.altKey) {
+    if (event.altKey)
       shootBullet(event.x, event.y);
-    } else {
+    else
       moveTo(event.x, event.y);
-    }
   }
 }

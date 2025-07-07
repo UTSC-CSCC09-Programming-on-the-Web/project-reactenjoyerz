@@ -1,14 +1,10 @@
-import { Bullet } from './bullet';
-import { DSprite } from './dynamic-sprite';
-import { Sprite, collidesWith } from "./sprite";
+import { collidesWith } from "./sprite.js";
 
 export const animationSpeed = 0.5;
 export const enemySprite = "redTank.png";
 export const playerSprite = "blueTank.png";
 
-export type Tank = DSprite;
-
-export function createTank(x: number, y: number): Tank {
+export function createTank(x, y) {
   return {
     dx: 0,
     dy: 0,
@@ -25,7 +21,7 @@ export function createTank(x: number, y: number): Tank {
   }
 }
 
-export function shootBullet(tank: Tank, x: number, y: number): Bullet {
+export function shootBullet(tank, x, y) {
   const sprite = tank.sprite;
 
   const px = sprite.x;
@@ -65,7 +61,7 @@ export function shootBullet(tank: Tank, x: number, y: number): Bullet {
   }
 }
 
-export function testCollisionWall(tank: Tank, wall: Sprite): void {
+export function testCollisionWall(tank, wall) {
   const dx = tank.dx;
   const dy = tank.dy;
   const tankSprite = tank.sprite;
@@ -114,7 +110,7 @@ export function testCollisionWall(tank: Tank, wall: Sprite): void {
   tank.sprite.y = cy;
 }
 
-export function testCollisionBullet(tank: Tank, bullet: Bullet) {
+export function testCollisionBullet(tank, bullet) {
   if (collidesWith(tank.sprite, bullet.dSprite.sprite)) {
     tank.sprite.x = 960;
     tank.sprite.y = 540;
@@ -124,7 +120,7 @@ export function testCollisionBullet(tank: Tank, bullet: Bullet) {
   return false;
 }
 
-export function moveTo(tank: Tank, newX: number, newY: number): void {
+export function moveTo(tank, newX, newY) {
   const sprite = tank.sprite;
 
   const x = sprite.x;
@@ -146,7 +142,7 @@ export function moveTo(tank: Tank, newX: number, newY: number): void {
 }
 
 // COPILOT USED: autocomplete
-export function step(tank: Tank, delta: number): void {
+export function step(tank, delta) {
   if (tank.dx === 0 && tank.dy === 0) return;
 
   const x = tank.sprite.x;

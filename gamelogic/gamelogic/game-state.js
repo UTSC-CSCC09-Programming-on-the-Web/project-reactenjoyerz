@@ -1,18 +1,11 @@
-import { Sprite } from "./sprite";
-import { createWall } from "./wall";
+import { createWall } from "./wall.js";
 
-import * as tank from "./tank";
-import * as bullet from "./bullet";
+import * as tank from "./tank.js";
+import * as bullet from "./bullet.js";
 
-let walls: Sprite[];
+let walls;
 
-export type GameState = {
-  timestamp: number,
-  tanks: tank.Tank[],
-  bullets: bullet.Bullet[],
-};
-
-export function initialize(): GameState {
+export function initialize() {
   walls = [
     createWall(0, 0, 192, 1, 10),
     createWall(0, 950, 192, 1, 10),
@@ -32,7 +25,7 @@ export function initialize(): GameState {
   }
 }
 
-export function step(state: GameState, delta: number) {
+export function step(state, delta) {
   if (delta === 0) return;
 
   state.bullets = state.bullets.filter((b) => {
@@ -53,20 +46,20 @@ export function step(state: GameState, delta: number) {
 }
 
 // shoot a bullet and catch it up to timestamp
-export function shoot(state: GameState, tankIdx: number, x: number, y: number) {
+export function shoot(state, tankIdx, x, y) {
   const b = tank.shootBullet(state.tanks[tankIdx], x, y);
   state.bullets.push(b);
 }
 
-export function move(state: GameState, tankIdx: number, x: number, y: number) {
+export function move(state, tankIdx, x, y) {
   const t = state.tanks[tankIdx];
   tank.moveTo(t, x, y);
 }
 
-export function logState(state: GameState) {
+export function logState(state) {
   console.log(`TIME: ${state.timestamp}
   Tanks:`)
-  state.tanks.forEach((t: tank.Tank) => {
+  state.tanks.forEach((t) => {
     console.log(`    x: ${t.sprite.x} ---> ${t.newX}
     y: ${t.sprite.y} ---> ${t.newY}
     dx: ${t.dy}
