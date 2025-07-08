@@ -1,6 +1,6 @@
 import { collidesWith } from "./sprite.js";
 
-export const animationSpeed = 0.5;
+export const animationSpeed = 0.125;
 export const enemySprite = "redTank.png";
 export const playerSprite = "blueTank.png";
 
@@ -15,8 +15,8 @@ export function createTank(x, y) {
     sprite: {
       x,
       y,
-      width: 40,
-      height: 64,
+      width: 20,
+      height: 32,
     }
   }
 }
@@ -39,8 +39,8 @@ export function shootBullet(tank, x, y) {
   tank.rotation = angle;
 
   // compute end of muzzle accounting for rotation of sprite
-  const muzX = -Math.sin(Math.PI + angle) * (width/ 2 + 5);
-  const muzY = Math.cos(Math.PI + angle) * (height / 2 + 5);
+  const muzX = -Math.sin(Math.PI + angle) * (height);
+  const muzY = Math.cos(Math.PI + angle) * (height);
   return {
     nBounces: 0,
 
@@ -54,8 +54,8 @@ export function shootBullet(tank, x, y) {
       sprite: {
         x: px + muzX,
         y: py + muzY,
-        width: 17,
-        height: 32,
+        width: 11,
+        height: 21,
       }
     }
   }

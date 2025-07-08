@@ -1,6 +1,6 @@
 import { collidesWith } from "./sprite.js";
 
-const animationSpeed = 0.7;
+const animationSpeed = 0.35;
 
 export function testCollisionWall(bullet, wall) {
   const sprite = bullet.dSprite.sprite;

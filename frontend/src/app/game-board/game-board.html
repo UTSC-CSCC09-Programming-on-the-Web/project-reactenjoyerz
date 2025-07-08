@@ -9,6 +9,7 @@
   style.left="{{ tank.sprite.x }}px"
   style.top="{{ tank.sprite.y }}px"
   style.transform="rotate({{ tank.rotation }}rad)"
+  style.z-index="{{ idx === clientIdx ? 3 : 2}}"
   src="{{ idx === clientIdx ? 'blueTank.png' : 'redTank.png' }}"
   (click)="onClick($event)"
 />
@@ -21,8 +22,8 @@
   style.top="{{ bullet.dSprite.sprite.y }}px"
   style.transform="rotate({{ bullet.dSprite.rotation }}rad)"
   src="bullet.png"
-  width="17px"
-  height="32px"
+  width="11px"
+  height="21px"
   (click)="onClick($event)"
 />
 }
