@@ -43,6 +43,8 @@ export function step(state, delta) {
   state.bullets.filter((b) => {
     return state.tanks.some((t) => !tank.testCollisionBullet(t, b));
   });
+
+  state.timestamp += delta;
 }
 
 // shoot a bullet and catch it up to timestamp

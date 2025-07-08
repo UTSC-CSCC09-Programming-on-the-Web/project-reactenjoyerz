@@ -1,7 +1,7 @@
 import { moveTo ,shootBullet, fetchFrame, getClientIdx } from "../../../../gamelogic/netcode/client";
 import { createWall } from "../../../../gamelogic/gamelogic/wall";
-import { Sprite, GameState } from "../../../../gamelogic/gamelogic/game-state";
-import { Component } from "@angular/core";
+import { Sprite, GameState, Tank, Bullet } from "../../../../gamelogic/gamelogic/game-state";
+import { signal, Component } from "@angular/core";
 
 @Component({
   selector: 'game-board',
@@ -11,7 +11,8 @@ import { Component } from "@angular/core";
 })
 export class GameBoard {
   clientIdx?: number;
-  currentState?: GameState;
+  tanks = signal<Tank[]>([]);
+  bullets = signal<Bullet[]>([]);
   walls: Sprite[];
 
   constructor() {
@@ -25,9 +26,13 @@ export class GameBoard {
     ];
 
     setInterval(() => {
-      this.currentState = fetchFrame();
-      if (this.currentState && !this.clientIdx)
+      const res = fetchFrame();
+      if (!res) return;
+      if (res && !this.clientIdx)
         this.clientIdx = getClientIdx();
+
+      this.bullets.set(res.bullets);
+      this.tanks.set(res.tanks);
     }, 20);
   }
 

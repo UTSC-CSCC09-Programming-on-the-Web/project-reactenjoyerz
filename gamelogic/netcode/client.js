@@ -9,30 +9,18 @@ initialize();
 let clientInfo;
 let currentState;
 let serverStates;
-let unprocessedInputs;
 
 export function moveTo (x, y) {
   if (clientInfo) {
-    console.log(x, y, clientInfo);
     wss.emit("game.move", { x, y, gameId: clientInfo.gameId, clientIdx: clientInfo.clientIdx });
-    unprocessedInputs.push({
-      timestamp: Date.now() - serverStepSize,
-      action: "move",
-      x,
-      y
-    })
+    move(currentState, clientInfo.clientIdx, x, y); 
   }
 }
 
 export function shootBullet (x, y) {
   if (clientInfo) {
     wss.emit("game.shoot", { x, y, gameId: clientInfo.gameId, clientIdx: clientInfo.clientIdx });
-    unprocessedInputs.push({
-      timestamp: Date.now() - serverStepSize,
-      action: "move",
-      x,
-      y
-    })
+    shoot(currentState, clientInfo.clientIdx, x, y); 
   }
 }
 
@@ -43,7 +31,6 @@ export function join (cb) {
     wss.unbindHandlers("match.join");
     currentState = match.initialState;
     serverStates = [];
-    unprocessedInputs = [];
 
     wss.bindHandler("match.stateUpdate", (res) => {
       serverStates = res.newStates.concat(serverStates).sort((a, b) => a.timestamp - b.timestamp);
@@ -58,11 +45,7 @@ export function join (cb) {
 export function fetchFrame () {
   if (!clientInfo || !currentState) return;
 
-  // for every unprocessed input if there exists a state in
-  // serverStates that has a greater timestamp than the unprocessed input
-  // then that input has already been processed
-
-  const targetTime = Date.now();
+  const targetTime = Date.now() - serverStepSize;
   if (serverStates.length !== 0)
     console.log(serverStates);
 
@@ -74,13 +57,10 @@ export function fetchFrame () {
   }
 
   let headTime = currentState.timestamp;
+  if (headTime > targetTime) return;
 
   serverStates = serverStates.filter((s) => {
     s.timestamp > targetTime;
-  })
-
-  unprocessedInputs = unprocessedInputs.filter((u) => {
-    u.timestamp > headTime;
   })
 
   // note: we don't have to compensate for lag because the lastComputedState is
@@ -89,35 +69,14 @@ export function fetchFrame () {
     serverStates.filter((s) => s.timestamp > headTime);
     let delta = 0;
 
-    const input = unprocessedInputs[0];
-    console.assert(!isDef(input) || ((headTime < input.timestamp && input.timestamp < targetTime)), "non-null input w/ incorrect timestamp");
-
     delta = Math.min(maxStepSize, targetTime - headTime);
-
-    if (input && input.timestamp - headTime < delta) {
-      delta = input.timestamp - delta;
-      unprocessedInputs.shift();
-
-      const { x, y } = input;
-      switch (input.action) {
-        case "shoot":
-          shoot(currentState, clientInfo.clientIdx, x, y);
-        break;
-        case "move":
-          move(currentState, clientInfo.clientIdx, x, y);
-        break;
-        default:
-          console.error(`Error: action ${input.action} not found.`);
-      }
-    }
-
     console.assert(delta > 0, "negative delta");
 
     step(currentState, delta);
     headTime += delta;
   }
 
-  return currentState;
+  return structuredClone(currentState);
 }
 
 export function getDistance(idx) {

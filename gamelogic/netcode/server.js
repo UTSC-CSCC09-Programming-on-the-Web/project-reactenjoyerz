@@ -1,5 +1,5 @@
 import { isDef, serverStepSize, maxStepSize } from "./common.js";
-import { initialize, step, shoot, move } from "../gamelogic/game-state.js";
+import { initialize, step, shoot, move, logState } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 
@@ -63,7 +63,8 @@ export function bindWSHandlers(io) {
             x,
             y
           },
-          timestamp: Date.now() - serverStepSize,
+          //timestamp: Date.now() - serverStepSize,
+          timestamp: Date.now(),
           action: "shoot",
           clientIdx: clientIdx,
           gameId: gameId
@@ -84,7 +85,8 @@ export function bindWSHandlers(io) {
             x,
             y
           },
-          timestamp: Date.now() - serverStepSize,
+          //timestamp: Date.now() - serverStepSize,
+          timestamp: Date.now(),
           action: "move",
           clientIdx,
           gameId,
@@ -120,14 +122,19 @@ export function bindWSHandlers(io) {
         let delta = 0;
 
         const input = game.inputs[0];
+        let push = false;
+
         if (isDef(input))
           console.log(headTime, input, targetTime);
-        assert(!isDef(input) || (headTime < input.timestamp && input.timestamp < targetTime));
 
-        delta = targetTime - headTime;
-        if (input && input.timestamp - headTime < delta) {
+        // ensure that no elements are going unprocessed
+        assert(!isDef(input) || (headTime <= input.timestamp && input.timestamp <= targetTime));
+
+        delta = Math.min(maxStepSize, targetTime - headTime);
+        if (isDef(input) && input.timestamp - headTime < delta) {
           assert(input.gameId === gameId);
 
+          push = true;
           delta = input.timestamp - delta;
           game.inputs.shift();
 
@@ -142,25 +149,19 @@ export function bindWSHandlers(io) {
             default:
               console.error(`Error: action ${input.action} not found.`);
           }
-        }
 
-        assert(delta > 0);
+          newStates.push(structuredClone(game.currentState));
+        }
 
         // only ship new state if step isn't a normal one
-        if (delta <= maxStepSize) {
-          step(game.currentState, delta);
-          newStates.push(structuredClone(game.currentState));
-
-        } else {
-          delta = maxStepSize;
-          step(game.currentState, delta);
-        }
-
+        step(game.currentState, delta);
         headTime += delta;
       }
 
       // 4. ship it to clients
-      io.to(game.name).emit("match.stateUpdate", { newStates })
+      assert(game.currentState.timestamp === targetTime);
+      if (newStates.length !== 0)
+        io.to(game.name).emit("match.stateUpdate", { newStates });
     })
   }, serverStepSize);
 }

@@ -1,9 +1,9 @@
-@if (!currentState) {
+@if (!clientIdx) {
 <p>loading gameboard</p>
 
 } @else {
 <div class="background" (click)="onClick($event)"></div>
-@for (tank of currentState.tanks; track $index; let idx = $index){
+@for (tank of tanks(); track $index; let idx = $index){
 <img
   class="tank"
   style.left="{{ tank.sprite.x }}px"
@@ -14,7 +14,7 @@
 />
 }
 
-@for (bullet of currentState.bullets; track $index) {
+@for (bullet of bullets(); track $index) {
 <img
   class="bullet"
   style.left="{{ bullet.dSprite.sprite.x }}px"
