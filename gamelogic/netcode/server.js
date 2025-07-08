@@ -1,5 +1,5 @@
 import { isDef, serverStepSize, maxStepSize, inputCooldown } from "./common.js";
-import { initialize, step, shoot, move } from "../gamelogic/game-state.js";
+import { initialize, step, shoot, move, logState } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 
@@ -88,7 +88,6 @@ export function bindWSHandlers(io) {
       // add rate limit
       const now = Date.now();
       const lastInput = game.inputs[game.inputs.length - 1];
-      console.log(game.inputs);
       if (
         isDef(lastInput) &&
         now - lastInput.timestamp < inputCooldown &&
@@ -96,7 +95,6 @@ export function bindWSHandlers(io) {
       )
         return;
 
-      console.log(now);
       assert(isDef(clientIdx) && isDef(gameId));
       game.inputs.push({
         req: {
@@ -143,13 +141,14 @@ export function bindWSHandlers(io) {
           !isDef(input) ||
             (headTime <= input.timestamp && input.timestamp <= targetTime)
         );
+        assert(headTime <= targetTime);
 
         delta = Math.min(maxStepSize, targetTime - headTime);
         if (isDef(input) && input.timestamp - headTime < delta) {
           assert(input.gameId === gameId);
 
           push = true;
-          delta = input.timestamp - delta;
+          delta = input.timestamp - headTime;
           game.inputs.shift();
 
           const { x, y } = input.req;
@@ -168,6 +167,9 @@ export function bindWSHandlers(io) {
         }
 
         // only ship new state if step isn't a normal one
+        assert(0 <= delta);
+        assert(delta <= maxStepSize);
+
         step(game.currentState, delta);
         headTime += delta;
       }
@@ -176,6 +178,7 @@ export function bindWSHandlers(io) {
       assert(game.currentState.timestamp === targetTime);
       if (newStates.length !== 0)
         io.to(game.name).emit("match.stateUpdate", { newStates });
+      }
     })
   }, serverStepSize);
 }
