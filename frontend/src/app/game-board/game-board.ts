@@ -15,9 +15,6 @@ export class GameBoard {
   walls: Sprite[];
 
   constructor() {
-    this.clientIdx = getClientIdx();
-    console.assert(!!this.clientIdx); // not not
-
     this.walls = [
       createWall(0, 0, 192, 1, 48),
       createWall(0, 950, 192, 1, 48),
@@ -29,6 +26,8 @@ export class GameBoard {
 
     setInterval(() => {
       this.currentState = fetchFrame();
+      if (this.currentState && !this.clientIdx)
+        this.clientIdx = getClientIdx();
     }, 20);
   }
 

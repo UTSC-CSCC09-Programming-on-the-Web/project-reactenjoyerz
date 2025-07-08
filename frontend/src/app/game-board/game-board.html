@@ -3,7 +3,7 @@
 
 } @else {
 <div class="background" (click)="onClick($event)"></div>
-@for (tank of currentState.tanks; track tank.rotation; let idx = $index){
+@for (tank of currentState.tanks; track $index; let idx = $index){
 <img
   class="tank"
   style.left="{{ tank.sprite.x }}px"
@@ -14,15 +14,15 @@
 />
 }
 
-@for (bullet of currentState.bullets; track bullet.nBounces) {
+@for (bullet of currentState.bullets; track $index) {
 <img
   class="bullet"
   style.left="{{ bullet.dSprite.sprite.x }}px"
   style.top="{{ bullet.dSprite.sprite.y }}px"
   style.transform="rotate({{ bullet.dSprite.rotation }}rad)"
   src="bullet.png"
-  width="17"
-  height="32"
+  width="17px"
+  height="32px"
   (click)="onClick($event)"
 />
 }
@@ -32,8 +32,7 @@
     class="wall"
     style.left="{{ wall.x }}px"
     style.top="{{ wall.y }}px"
-    style.background="url(wall.png)"
-    style.background-size="48px"
+    [style.background-image]="'url(wall.png)'"
     style.width="{{ wall.width }}px"
     style.height="{{ wall.height }}px"
     (click)="onClick($event)"
