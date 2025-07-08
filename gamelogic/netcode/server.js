@@ -1,4 +1,4 @@
-import { isDef, serverStepSize, maxStepSize } from "./common.js";
+import { isDef, serverStepSize, maxStepSize, inputCooldown } from "./common.js";
 import { initialize, step, shoot, move, logState } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
@@ -9,12 +9,9 @@ const games = new Map([]);
 export function bindWSHandlers(io) {
 
   io.on("connection", (socket) => {
+    socket.on("disconnect", () => {});
 
-    socket.on("disconnect", () => {
-      
-    });
-
-    socket.on("match.joinRequest", ({ }, callback) => {
+    socket.on("match.joinRequest", ({}, callback) => {
       let game = games.get(nextGameId);
 
       if (!game) {
@@ -32,12 +29,14 @@ export function bindWSHandlers(io) {
       callback({
         gameId: nextGameId,
         clientIdx: game.players.length,
-      })
+      });
 
       // D:
       game.players.push(1);
       socket.join(`game-${nextGameId}`);
-      console.log(`Player ${game.players.length} of 2 joined game-${nextGameId}`);;
+      console.log(
+        `Player ${game.players.length} of 2 joined game-${nextGameId}`
+      );
 
       if (game.players.length === 2) {
         console.log(`Starting game-${nextGameId}`);
@@ -55,45 +54,62 @@ export function bindWSHandlers(io) {
 
     socket.on("game.shoot", ({ x, y, gameId, clientIdx }) => {
       const game = games.get(gameId);
+      if (!game || !game.started) return;
 
-      if (game && game.started) {
-        assert(isDef(clientIdx) && isDef(gameId))
-        game.inputs.push({
-          req: {
-            x,
-            y
-          },
-          //timestamp: Date.now() - serverStepSize,
-          timestamp: Date.now(),
-          action: "shoot",
-          clientIdx: clientIdx,
-          gameId: gameId
-        });
+      // add rate limit
+      const now = Date.now();
+      const lastInput = game.inputs[game.inputs.length - 1];
+      if (
+        isDef(lastInput) &&
+        now - lastInput.timestamp < inputCooldown &&
+        lastInput.clientIdx === clientIdx
+      )
+        return;
 
-        console.log(`Shoot req @ ${Date.now() - serverStepSize}`);
-      }
+      assert(isDef(clientIdx) && isDef(gameId));
+      game.inputs.push({
+        req: {
+          x,
+          y,
+        },
+        timestamp: Date.now(),
+        action: "shoot",
+        clientIdx: clientIdx,
+        gameId: gameId,
+      });
+
+      console.log(`Shoot req @ ${Date.now() - serverStepSize}`);
     });
 
     socket.on("game.move", ({ x, y, gameId, clientIdx }) => {
       const game = games.get(gameId);
+      if (!game || !game.started) return;
 
-      if (game && game.started) {
-        console.log(clientIdx, gameId);
-        assert(isDef(clientIdx) && isDef(gameId));
-        game.inputs.push({
-          req: {
-            x,
-            y
-          },
-          //timestamp: Date.now() - serverStepSize,
-          timestamp: Date.now(),
-          action: "move",
-          clientIdx,
-          gameId,
-        });
+      // add rate limit
+      const now = Date.now();
+      const lastInput = game.inputs[game.inputs.length - 1];
+      console.log(game.inputs);
+      if (
+        isDef(lastInput) &&
+        now - lastInput.timestamp < inputCooldown &&
+        lastInput.clientIdx === clientIdx
+      )
+        return;
 
-        console.log(`Move req @ ${Date.now() - serverStepSize}`);
-      }
+      console.log(now);
+      assert(isDef(clientIdx) && isDef(gameId));
+      game.inputs.push({
+        req: {
+          x,
+          y,
+        },
+        timestamp: Date.now(),
+        action: "move",
+        clientIdx,
+        gameId,
+      });
+
+      console.log(`Move req @ ${Date.now() - serverStepSize}`);
     });
   });
 
@@ -123,9 +139,6 @@ export function bindWSHandlers(io) {
 
         const input = game.inputs[0];
         let push = false;
-
-        if (isDef(input))
-          console.log(headTime, input, targetTime);
 
         // ensure that no elements are going unprocessed
         assert(!isDef(input) || (headTime <= input.timestamp && input.timestamp <= targetTime));

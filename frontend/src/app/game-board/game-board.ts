@@ -1,4 +1,4 @@
-import { moveTo ,shootBullet, fetchFrame, getClientIdx } from "../../../../gamelogic/netcode/client";
+import { moveTo ,shootBullet, fetchFrame, getClientIdx, hasStarted } from "../../../../gamelogic/netcode/client";
 import { createWall } from "../../../../gamelogic/gamelogic/wall";
 import { Sprite, GameState, Tank, Bullet } from "../../../../gamelogic/gamelogic/game-state";
 import { signal, Component } from "@angular/core";
@@ -10,6 +10,7 @@ import { signal, Component } from "@angular/core";
   styleUrl: './game-board.css',
 })
 export class GameBoard {
+  started = signal<boolean>(false);
   clientIdx?: number;
   tanks = signal<Tank[]>([]);
   bullets = signal<Bullet[]>([]);
@@ -26,11 +27,11 @@ export class GameBoard {
     ];
 
     setInterval(() => {
-      const res = fetchFrame();
-      if (!res) return;
-      if (res && !this.clientIdx)
-        this.clientIdx = getClientIdx();
+      if (hasStarted() === false) return;
 
+      const res = fetchFrame();
+      this.started.set(true);
+      this.clientIdx = getClientIdx();
       this.bullets.set(res.bullets);
       this.tanks.set(res.tanks);
     }, 20);

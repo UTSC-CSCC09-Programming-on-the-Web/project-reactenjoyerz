@@ -9,25 +9,38 @@ initialize();
 let clientInfo;
 let currentState;
 let serverStates;
+let started = false;
 
-export function moveTo (x, y) {
-  if (clientInfo) {
-    wss.emit("game.move", { x, y, gameId: clientInfo.gameId, clientIdx: clientInfo.clientIdx });
-    move(currentState, clientInfo.clientIdx, x, y); 
-  }
+export function moveTo(x, y) {
+  console.assert(started, "moveTo: not started");
+  wss.emit("game.move", {
+    x,
+    y,
+    gameId: clientInfo.gameId,
+    clientIdx: clientInfo.clientIdx,
+  });
+  move(currentState, clientInfo.clientIdx, x, y);
 }
 
-export function shootBullet (x, y) {
-  if (clientInfo) {
-    wss.emit("game.shoot", { x, y, gameId: clientInfo.gameId, clientIdx: clientInfo.clientIdx });
-    shoot(currentState, clientInfo.clientIdx, x, y); 
-  }
+export function shootBullet(x, y) {
+  console.assert(started, "shootBullet: not started");
+  wss.emit("game.shoot", {
+    x,
+    y,
+    gameId: clientInfo.gameId,
+    clientIdx: clientInfo.clientIdx,
+  });
+  shoot(currentState, clientInfo.clientIdx, x, y);
 }
 
 export function join (cb) {
+  console.assert(!started, "join: already started");
+  started = false;
+
   wss.bindHandler("match.join", (match) => {
     cb();
 
+    started = true;
     wss.unbindHandlers("match.join");
     currentState = match.initialState;
     serverStates = [];
@@ -43,9 +56,9 @@ export function join (cb) {
 }
 
 export function fetchFrame () {
-  if (!clientInfo || !currentState) return;
+  console.assert(started, "fetchFrame: not started");
 
-  const targetTime = Date.now() - serverStepSize;
+  const targetTime = Date.now();
   if (serverStates.length !== 0)
     console.log(serverStates);
 
@@ -57,7 +70,6 @@ export function fetchFrame () {
   }
 
   let headTime = currentState.timestamp;
-  if (headTime > targetTime) return;
 
   serverStates = serverStates.filter((s) => {
     s.timestamp > targetTime;
@@ -80,6 +92,7 @@ export function fetchFrame () {
 }
 
 export function getDistance(idx) {
+  console.assert(started, "getDistance: not started");
   const t1 = currentState.tanks[idx];
   if (!t1 || !currentState) return;
 
@@ -92,6 +105,10 @@ export function getDistance(idx) {
 }
 
 export function getClientIdx() {
-  console.assert(isDef(clientInfo), "null clientInfo");
+  console.assert(started, "getClientIdx: not started");
   return clientInfo.clientIdx;
+}
+
+export function hasStarted() {
+  return started;
 }
