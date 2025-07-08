@@ -11,6 +11,21 @@ export class WebSocketService {
   constructor() { 
     this.socket = io("http://localhost:8000");
     this.handlers = new Map<string, Array<(v: any) => void>>();
+
+    this.socket.on("voice.welcome", ({ id }) => {
+      console.log("My socket ID is", id);
+    });
+    
+    this.socket.on("voice.signal", ({ from, data }) => {
+      console.log("Received signal from", from, data);
+    });
+  }
+
+  get socketId(): string {
+    if (!this.socket?.id) {
+      throw new Error("Socket is not connected yet");
+    }
+    return this.socket.id;
   }
 
   bindHandler(event: string, handler: (v: any) => void) {
@@ -37,4 +52,5 @@ export class WebSocketService {
   emit(event: string, v: any, callback?: (v: any) => void) {
     this.socket.emit(event, v, callback);
   }
+
 }

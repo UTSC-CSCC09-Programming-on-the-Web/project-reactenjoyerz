@@ -3,6 +3,7 @@ import { PlayerTank } from './tank/player-tank';
 import { Bullet } from './bullet/bullet';
 import { Wall } from './wall/wall';
 import { EnemyTank } from './tank/enemy-tank';
+import { VoiceService } from '../services/voice.service';
 
 @Component({
   selector: 'game-board',
@@ -17,20 +18,19 @@ export class GameBoard {
   walls: Array<Wall> = [];
   playerTank: PlayerTank;
   enemyTanks: Array<EnemyTank> = [];
+  isMuted = false;
 
-  constructor() {
+  constructor(private voice: VoiceService) {
     this.playerTank = new PlayerTank(0);
-    this.enemyTanks.push(new EnemyTank(1));
+    this.enemyTanks.push;
+    this.voice.initLocalAudio();
 
     this.lastTime = Date.now();
-    // push border walls in the first 4 indices of the array
-    // so they aren't rendered
 
     this.walls.push(new Wall(0, 0, 192, 1, 10, -1));
     this.walls.push(new Wall(0, 950, 192, 1, 10, -1));
     this.walls.push(new Wall(0, 0, 1, 108, 10, -1));
     this.walls.push(new Wall(1910, 0, 1, 108, 10, -1));
-
     this.walls.push(new Wall(1000, 500, 10, 2, 48, 0));
     this.walls.push(new Wall(500, 50, 3, 15, 48, 1));
 
@@ -50,11 +50,12 @@ export class GameBoard {
       this.walls.forEach((wall) => {
         this.playerTank.testCollisionWall(wall);
         this.enemyTanks.forEach((tank) => {
-          tank.testCollisionWall(wall)
+          tank.testCollisionWall(wall);
         });
-      })
+      });
 
       this.playerTank.moveSprite(delta);
+
       for (let j = this.bullets.length - 1; j >= 0; j--) {
         const bullet = this.bullets[j];
         if (this.playerTank.testCollisionBullet(bullet)) {
@@ -81,6 +82,10 @@ export class GameBoard {
     }, 20);
   }
 
+  toggleMute() {
+    this.isMuted = this.voice.toggleMute();
+  }
+
   onClick(event: MouseEvent): void {
     if (!this.playerTank.render) return;
     
@@ -90,4 +95,5 @@ export class GameBoard {
       );
     else this.playerTank.moveSpriteTo(event.x, event.y);
   }
+
 }

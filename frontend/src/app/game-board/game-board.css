@@ -24,3 +24,15 @@
   padding: 0;
   margin: 0;
 }
+
+.voice-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: white;
+  border: 1px solid black;
+  padding: 8px 12px;
+  font-size: 16px;
+  cursor: pointer;
+}

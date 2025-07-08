@@ -1,5 +1,5 @@
 <div class="background" (click)="onClick($event)"></div>
-  
+
 @if (playerTank.render) {
 <img
   class="tank"
@@ -11,9 +11,7 @@
   [height]="playerTank.getHeight()"
   (click)="onClick($event)"
 />
-}
-
-@for (tank of enemyTanks; track tank.getId()){
+} @for (tank of enemyTanks; track tank.getId()) {
 <img
   class="tank"
   style.left="{{ tank.getPosition()[0] }}px"
@@ -24,12 +22,10 @@
   [height]="tank.getHeight()"
   (click)="onClick($event)"
 />
-}
-
-@for (bullet of bullets; track bullet.getId()) {
+} @for (bullet of bullets; track bullet.getId()) {
 <img
   class="bullet"
-  style.left="{{bullet.getPosition()[0]}}px"
+  style.left="{{ bullet.getPosition()[0] }}px"
   style.top="{{ bullet.getPosition()[1] }}px"
   style.transform="rotate({{ bullet.getRotation() }}rad)"
   [src]="bullet.getSprite()"
@@ -37,17 +33,19 @@
   [height]="bullet.getHeight()"
   (click)="onClick($event)"
 />
+} @for (wall of walls.slice(4); track wall.getId()) {
+<div
+  class="wall"
+  style.left="{{ wall.getPosition()[0] }}px"
+  style.top="{{ wall.getPosition()[1] }}px"
+  style.background="url({{ wall.getSprite() }})"
+  style.background-size="{{ wall.getTileSize() }}px"
+  style.width="{{ wall.getWidth() }}px"
+  style.height="{{ wall.getHeight() }}px"
+  (click)="onClick($event)"
+></div>
 }
 
-@for (wall of walls.slice(4); track wall.getId()) {
-  <div
-    class="wall"
-    style.left="{{ wall.getPosition()[0] }}px"
-    style.top="{{ wall.getPosition()[1] }}px"
-    style.background="url({{ wall.getSprite() }})"
-    style.background-size="{{ wall.getTileSize() }}px"
-    style.width="{{ wall.getWidth() }}px"
-    style.height="{{ wall.getHeight() }}px"
-    (click)="onClick($event)"
-  ></div>
-}
+<button (click)="toggleMute()" class="voice-btn">
+  {{ isMuted ? 'Unmute' : 'Mute' }}
+</button>
