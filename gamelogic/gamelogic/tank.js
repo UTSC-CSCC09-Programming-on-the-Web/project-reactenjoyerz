@@ -108,6 +108,8 @@ export function testCollisionWall(tank, wall) {
 
   tank.sprite.x = cx;
   tank.sprite.y = cy;
+  tank.dx = 0;
+  tank.dy = 0;
 }
 
 export function testCollisionBullet(tank, bullet) {

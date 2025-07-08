@@ -30,7 +30,7 @@ export function step(state, delta) {
 
   state.bullets = state.bullets.filter((b) => {
     bullet.step(b, delta);
-    return walls.some((wall) => !bullet.testCollisionWall(b, wall));
+    return walls.every((wall) => !bullet.testCollisionWall(b, wall));
   });
 
   walls.forEach((wall) => {
@@ -40,8 +40,8 @@ export function step(state, delta) {
   });
 
   state.tanks.forEach((t) => tank.step(t, delta));
-  state.bullets.filter((b) => {
-    return state.tanks.some((t) => !tank.testCollisionBullet(t, b));
+  state.bullets = state.bullets.filter((b) => {
+    return state.tanks.every((t) => !tank.testCollisionBullet(t, b));
   });
 
   state.timestamp += delta;

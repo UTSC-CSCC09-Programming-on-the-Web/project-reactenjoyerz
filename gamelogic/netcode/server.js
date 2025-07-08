@@ -1,5 +1,5 @@
 import { isDef, serverStepSize, maxStepSize, inputCooldown } from "./common.js";
-import { initialize, step, shoot, move, logState } from "../gamelogic/game-state.js";
+import { initialize, step, shoot, move } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 
@@ -115,8 +115,7 @@ export function bindWSHandlers(io) {
 
   setInterval(() => {
     games.forEach((game, gameId) => {
-      if (!game.started)
-        return;
+      if (!game.started) return;
 
       assert(isDef(game.currentState));
 
@@ -130,7 +129,6 @@ export function bindWSHandlers(io) {
 
       // 3 .set current state to 0ms state
 
-
       let headTime = game.currentState.timestamp;
       const targetTime = Date.now();
 
@@ -141,7 +139,10 @@ export function bindWSHandlers(io) {
         let push = false;
 
         // ensure that no elements are going unprocessed
-        assert(!isDef(input) || (headTime <= input.timestamp && input.timestamp <= targetTime));
+        assert(
+          !isDef(input) ||
+            (headTime <= input.timestamp && input.timestamp <= targetTime)
+        );
 
         delta = Math.min(maxStepSize, targetTime - headTime);
         if (isDef(input) && input.timestamp - headTime < delta) {
