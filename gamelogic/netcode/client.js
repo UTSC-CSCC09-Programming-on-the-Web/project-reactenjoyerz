@@ -59,13 +59,11 @@ export function fetchFrame () {
   console.assert(started, "fetchFrame: not started");
 
   const targetTime = Date.now();
-  if (serverStates.length !== 0)
-    console.log(serverStates);
 
   let idx;
-  for (idx = serverStates.length - 1; i >= 0; i--) {
-    if (serverStates[i].timestamp <= targetTime) {
-      currentState = serverStates[i];
+  for (idx = serverStates.length - 1; idx >= 0; idx--) {
+    if (serverStates[idx].timestamp <= targetTime) {
+      currentState = serverStates[idx];
       break;
     }
   }
