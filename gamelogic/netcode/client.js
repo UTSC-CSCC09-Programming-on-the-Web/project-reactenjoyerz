@@ -62,8 +62,9 @@ export function fetchFrame () {
   if (serverStates.length !== 0)
     console.log(serverStates);
 
-  for (let i = serverStates.length - 1; i >= 0; i--) {
-    if (currentState.timestamp <= serverStates[i].timestamp && serverStates[i].timestamp <= targetTime) {
+  let idx;
+  for (idx = serverStates.length - 1; i >= 0; i--) {
+    if (serverStates[i].timestamp <= targetTime) {
       currentState = serverStates[i];
       break;
     }
@@ -71,9 +72,10 @@ export function fetchFrame () {
 
   let headTime = currentState.timestamp;
 
-  serverStates = serverStates.filter((s) => {
-    s.timestamp > targetTime;
-  })
+  if (idx !== -1)
+    serverStates = serverStates.slice(idx+1);
+  else
+    serverStates = []
 
   // note: we don't have to compensate for lag because the lastComputedState is
   // the current state from -100ms ago
