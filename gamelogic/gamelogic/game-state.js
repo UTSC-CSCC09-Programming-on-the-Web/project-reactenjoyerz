@@ -93,3 +93,7 @@ export function logState(state) {
     TBD
   `);
 }
+
+export function leave(state, idx) {
+  state.tanks.splice(idx, 1);
+}

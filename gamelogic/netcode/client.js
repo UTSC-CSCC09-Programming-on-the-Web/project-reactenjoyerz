@@ -47,7 +47,13 @@ export function join (cb) {
     setWalls(match.walls);
 
     wss.bindHandler("match.stateUpdate", (res) => {
-      serverStates = res.newStates.concat(serverStates).sort((a, b) => a.timestamp - b.timestamp);
+      serverStates =  res.newStates;
+    });
+
+    wss.bindHandler("match.playerChange", ({ updatedIndices }) => {
+      console.log("old clientIdx: ", clientInfo.clientIdx)
+      clientInfo.clientIdx = updatedIndices[clientInfo.clientIdx];
+      console.log("new clientIdx: ", clientInfo.clientIdx)
     })
   });
 
@@ -112,4 +118,15 @@ export function getClientIdx() {
 
 export function hasStarted() {
   return started;
+}
+
+export function leave() {
+  wss.emit("match.leave", clientInfo);
+  clientInfo = undefined;
+  currentState = undefined;
+  serverStates = [];
+  started = false;
+  
+  wss.unbindHandlers("match.stateUpdate");
+  wss.unbindHandlers("match.playerChange");
 }

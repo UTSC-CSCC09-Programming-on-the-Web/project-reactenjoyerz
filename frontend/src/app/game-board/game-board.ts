@@ -1,6 +1,6 @@
-import { moveTo ,shootBullet, fetchFrame, getClientIdx, hasStarted } from "../../../../gamelogic/netcode/client";
+import { moveTo ,shootBullet, fetchFrame, getClientIdx, hasStarted, leave } from "../../../../gamelogic/netcode/client";
 import { Sprite, GameState, Tank, Bullet, getWalls } from "../../../../gamelogic/gamelogic/game-state";
-import { signal, Component } from "@angular/core";
+import { signal, Component, HostListener } from "@angular/core";
 
 @Component({
   selector: 'game-board',
@@ -34,5 +34,10 @@ export class GameBoard {
       shootBullet(event.x, event.y);
     else
       moveTo(event.x, event.y);
+  }
+
+  @HostListener("window:beforeunload")
+  onUnload() {
+    leave()
   }
 }

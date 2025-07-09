@@ -7,3 +7,4 @@ export function fetchFrame () : GameState;
 export function getDistance(idx1: number) : number;
 export function getClientIdx(): number;
 export function hasStarted(): boolean;
+export function leave();

@@ -1,5 +1,5 @@
 import { isDef, serverStepSize, maxStepSize, inputCooldown } from "./common.js";
-import { initialize, step, shoot, move, getWalls, logState } from "../gamelogic/game-state.js";
+import { initialize, step, shoot, move, getWalls, logState, leave } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 
@@ -54,9 +54,44 @@ export function bindWSHandlers(io) {
       }
     });
 
+    socket.on("match.leave", ({ clientIdx, gameId }) => {
+      console.log(`Player ${clientIdx} left game-${gameId}`);
+      socket.leave(`game-${gameId}`);
+
+      const game = games.get(gameId);
+      assert(isDef(game));
+      assert(isDef(game.players[clientIdx]));
+
+      if (game.players.length === 1) {
+        games.delete(gameId)
+        console.log(`Deleting game-${gameId}`);
+        return;
+      }
+
+      const updatedIndices = game.players.map((_, idx) => idx < clientIdx ? idx : idx - 1);
+      console.log(updatedIndices);
+
+      io.to(`game-${gameId}`).emit("match.playerChange", {
+        updatedIndices
+      });
+
+      game.players.splice(clientIdx, 1);
+      if (game.started) {
+        game.inputs.push({
+          timestamp: Date.now(),
+          clientIdx,
+          gameId,
+          action: "leave",
+        })
+      }
+    })
+
     socket.on("game.shoot", ({ x, y, gameId, clientIdx }) => {
       const game = games.get(gameId);
       if (!game || !game.started) return;
+
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
 
       // add rate limit
       const now = Date.now();
@@ -70,10 +105,8 @@ export function bindWSHandlers(io) {
 
       assert(isDef(clientIdx) && isDef(gameId));
       game.inputs.push({
-        req: {
-          x,
-          y,
-        },
+        x,
+        y,
         timestamp: Date.now(),
         action: "shoot",
         clientIdx: clientIdx,
@@ -87,6 +120,9 @@ export function bindWSHandlers(io) {
       const game = games.get(gameId);
       if (!game || !game.started) return;
 
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
+
       // add rate limit
       const now = Date.now();
       const lastInput = game.inputs[game.inputs.length - 1];
@@ -99,10 +135,8 @@ export function bindWSHandlers(io) {
 
       assert(isDef(clientIdx) && isDef(gameId));
       game.inputs.push({
-        req: {
-          x,
-          y,
-        },
+        x,
+        y,
         timestamp: Date.now(),
         action: "move",
         clientIdx,
@@ -153,13 +187,15 @@ export function bindWSHandlers(io) {
           delta = input.timestamp - headTime;
           game.inputs.shift();
 
-          const { x, y } = input.req;
           switch (input.action) {
             case "shoot":
-              shoot(game.currentState, input.clientIdx, x, y);
+              shoot(game.currentState, input.clientIdx, input.x, input.y);
               break;
             case "move":
-              move(game.currentState, input.clientIdx, x, y);
+              move(game.currentState, input.clientIdx, input.x, input.y);
+              break;
+            case "leave":
+              leave(game.currentState, input.clientIdx);
               break;
             default:
               console.error(`Error: action ${input.action} not found.`);
