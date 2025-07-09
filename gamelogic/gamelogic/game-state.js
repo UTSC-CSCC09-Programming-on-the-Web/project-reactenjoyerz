@@ -5,7 +5,7 @@ import * as bullet from "./bullet.js";
 
 let walls;
 
-export function initialize(_walls) {
+export function initialize(playerCount) {
   walls = [
     createWall(0, 0, 192, 1, 10),
     createWall(0, 950, 192, 1, 10),
@@ -15,9 +15,13 @@ export function initialize(_walls) {
     createWall(500, 50, 3, 15, 48),
   ];
 
+  const tanks = []
+  for (let i = 0; i < playerCount; i++) {
+    tanks.push(tank.createTank(960, 540));
+  }
   return {
     timestamp: 0,
-    tanks: [tank.createTank(960, 540), tank.createTank(960, 540)],
+    tanks,
     bullets: [],
   };
 }

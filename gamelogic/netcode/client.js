@@ -47,14 +47,15 @@ export function join (cb) {
     setWalls(match.walls);
 
     wss.bindHandler("match.stateUpdate", (res) => {
-      serverStates =  res.newStates;
+      serverStates = res.newStates;
+      if (isDef(res.updatedIndices)) {
+        console.log(res);
+        console.log(`old idx: ${clientInfo.clientIdx}`);
+        clientInfo.clientIdx = res.updatedIndices[clientInfo.clientIdx];
+        console.log(`new idx: ${clientInfo.clientIdx}`);
+        fetchFrame();
+      }
     });
-
-    wss.bindHandler("match.playerChange", ({ updatedIndices }) => {
-      console.log("old clientIdx: ", clientInfo.clientIdx)
-      clientInfo.clientIdx = updatedIndices[clientInfo.clientIdx];
-      console.log("new clientIdx: ", clientInfo.clientIdx)
-    })
   });
 
   wss.emit("match.joinRequest", { }, (c) => {
@@ -76,7 +77,6 @@ export function fetchFrame () {
   }
 
   let headTime = currentState.timestamp;
-
   if (idx !== -1)
     serverStates = serverStates.slice(idx+1);
   else
@@ -128,5 +128,4 @@ export function leave() {
   started = false;
   
   wss.unbindHandlers("match.stateUpdate");
-  wss.unbindHandlers("match.playerChange");
 }

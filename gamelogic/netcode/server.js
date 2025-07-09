@@ -1,4 +1,4 @@
-import { isDef, serverStepSize, maxStepSize, inputCooldown } from "./common.js";
+import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize } from "./common.js";
 import { initialize, step, shoot, move, getWalls, logState, leave } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
@@ -35,14 +35,14 @@ export function bindWSHandlers(io) {
       game.players.push(1);
       socket.join(`game-${nextGameId}`);
       console.log(
-        `Player ${game.players.length} of 2 joined game-${nextGameId}`
+        `Player ${game.players.length} of ${matchSize} joined game-${nextGameId}`
       );
 
-      if (game.players.length === 2) {
+      if (game.players.length === matchSize) {
         console.log(`Starting game-${nextGameId}`);
         game.started = true;
 
-        game.currentState = initialize();
+        game.currentState = initialize(matchSize);
         game.currentState.timestamp = Date.now();
 
         io.to(`game-${nextGameId}`).emit("match.join", {
@@ -59,7 +59,7 @@ export function bindWSHandlers(io) {
       socket.leave(`game-${gameId}`);
 
       const game = games.get(gameId);
-      assert(isDef(game));
+      if (!isDef(game)) return;
       assert(isDef(game.players[clientIdx]));
 
       if (game.players.length === 1) {
@@ -68,22 +68,22 @@ export function bindWSHandlers(io) {
         return;
       }
 
-      const updatedIndices = game.players.map((_, idx) => idx < clientIdx ? idx : idx - 1);
-      console.log(updatedIndices);
+      if (game.started) {
+        leave(game.currentState, clientIdx);
+        game.inputs = game.inputs.filter((input) => {
+          clientIdx === input.clientIdx && gameId === input.gameId
+        });
+        
+        game.inputs.forEach((input) => {
+          input.clientIdx = input.clientIdx < clientIdx ? clientIdx : clientIdx - 1;
+        })
 
-      io.to(`game-${gameId}`).emit("match.playerChange", {
-        updatedIndices
-      });
+        const updatedIndices = game.players.map((_, idx) => idx < clientIdx ? idx : idx - 1);
+        io.to(game.name).emit("match.stateUpdate", { newStates: [game.currentState], updatedIndices})
+        console.log(`Updated indices: ${updatedIndices}`);
+      }
 
       game.players.splice(clientIdx, 1);
-      if (game.started) {
-        game.inputs.push({
-          timestamp: Date.now(),
-          clientIdx,
-          gameId,
-          action: "leave",
-        })
-      }
     })
 
     socket.on("game.shoot", ({ x, y, gameId, clientIdx }) => {
@@ -194,9 +194,6 @@ export function bindWSHandlers(io) {
             case "move":
               move(game.currentState, input.clientIdx, input.x, input.y);
               break;
-            case "leave":
-              leave(game.currentState, input.clientIdx);
-              break;
             default:
               console.error(`Error: action ${input.action} not found.`);
           }
@@ -214,9 +211,9 @@ export function bindWSHandlers(io) {
 
       // 4. ship it to clients
       assert(game.currentState.timestamp === targetTime);
-      if (newStates.length !== 0) {
-        io.to(game.name).emit("match.stateUpdate", { newStates });
-      }
+
+      if (newStates.length !== 0) 
+        io.to(game.name).emit("match.stateUpdate", { newStates});
     })
   }, serverStepSize);
 }
