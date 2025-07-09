@@ -1,5 +1,5 @@
 import { WebSocketService } from "./web-socket-service";
-import { initialize, step, shoot, move, setWalls } from "../gamelogic/game-state";
+import { initialize, step, shoot, move, setWalls, removeTank } from "../gamelogic/game-state";
 import { maxStepSize, serverStepSize, isDef } from "./common";
 
 const wss = new WebSocketService();
@@ -56,6 +56,13 @@ export function join (cb) {
         fetchFrame();
       }
     });
+
+    wss.bindHandler("match.playerChange", ({ clientIdx }) => {
+      if (clientIdx < clientInfo.clientIdx)
+        clientInfo.clientIdx -= 1;
+      if (started)
+        removeTank(currentState, clientIdx);
+    })
   });
 
   wss.emit("match.joinRequest", { }, (c) => {
@@ -128,4 +135,5 @@ export function leave() {
   started = false;
   
   wss.unbindHandlers("match.stateUpdate");
+  wss.unbindHandlers("match.playerChange");
 }

@@ -98,6 +98,6 @@ export function logState(state) {
   `);
 }
 
-export function leave(state, idx) {
+export function removeTank(state, idx) {
   state.tanks.splice(idx, 1);
 }

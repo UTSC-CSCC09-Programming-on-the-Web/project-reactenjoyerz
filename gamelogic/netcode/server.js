@@ -1,5 +1,5 @@
 import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize } from "./common.js";
-import { initialize, step, shoot, move, getWalls, logState, leave } from "../gamelogic/game-state.js";
+import { initialize, step, shoot, move, getWalls, logState, removeTank } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 
@@ -69,7 +69,7 @@ export function bindWSHandlers(io) {
       }
 
       if (game.started) {
-        leave(game.currentState, clientIdx);
+        removeTank(game.currentState, clientIdx);
         game.inputs = game.inputs.filter((input) => {
           clientIdx === input.clientIdx && gameId === input.gameId
         });
@@ -78,9 +78,7 @@ export function bindWSHandlers(io) {
           input.clientIdx = input.clientIdx < clientIdx ? clientIdx : clientIdx - 1;
         })
 
-        const updatedIndices = game.players.map((_, idx) => idx < clientIdx ? idx : idx - 1);
-        io.to(game.name).emit("match.stateUpdate", { newStates: [game.currentState], updatedIndices})
-        console.log(`Updated indices: ${updatedIndices}`);
+        io.to(game.name).emit("match.playerChange", { clientIdx })
       }
 
       game.players.splice(clientIdx, 1);
