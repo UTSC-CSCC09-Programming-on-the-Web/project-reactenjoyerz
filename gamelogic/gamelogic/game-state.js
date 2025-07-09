@@ -5,7 +5,7 @@ import * as bullet from "./bullet.js";
 
 let walls;
 
-export function initialize() {
+export function initialize(_walls) {
   walls = [
     createWall(0, 0, 192, 1, 10),
     createWall(0, 950, 192, 1, 10),
@@ -17,12 +17,17 @@ export function initialize() {
 
   return {
     timestamp: 0,
-    tanks: [
-      tank.createTank(960, 540),
-      tank.createTank(960, 540),
-    ],
+    tanks: [tank.createTank(960, 540), tank.createTank(960, 540)],
     bullets: [],
-  }
+  };
+}
+
+export function getWalls() {
+  return walls;
+}
+
+export function setWalls(_walls) {
+  walls = _walls;
 }
 
 export function step(state, delta) {

@@ -1,5 +1,5 @@
 import { isDef, serverStepSize, maxStepSize, inputCooldown } from "./common.js";
-import { initialize, step, shoot, move, logState } from "../gamelogic/game-state.js";
+import { initialize, step, shoot, move, getWalls, logState } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 
@@ -41,11 +41,13 @@ export function bindWSHandlers(io) {
       if (game.players.length === 2) {
         console.log(`Starting game-${nextGameId}`);
         game.started = true;
+
         game.currentState = initialize();
         game.currentState.timestamp = Date.now();
 
         io.to(`game-${nextGameId}`).emit("match.join", {
           initialState: game.currentState,
+          walls: getWalls(),
         });
 
         nextGameId++;

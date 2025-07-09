@@ -1,4 +1,4 @@
-import { GameState } from "../gamelogic/game-state";
+import { GameState, Sprite } from "../gamelogic/game-state";
 
 export function moveTo (x: number, y: number): void;
 export function shootBullet (x: number, y: number): void;

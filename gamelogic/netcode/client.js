@@ -1,10 +1,9 @@
 import { WebSocketService } from "./web-socket-service";
-import { initialize, step, shoot, move } from "../gamelogic/game-state";
+import { initialize, step, shoot, move, setWalls } from "../gamelogic/game-state";
 import { maxStepSize, serverStepSize, isDef } from "./common";
 
 const wss = new WebSocketService();
 wss.setDelay(0);
-initialize();
 
 let clientInfo;
 let currentState;
@@ -44,6 +43,8 @@ export function join (cb) {
     wss.unbindHandlers("match.join");
     currentState = match.initialState;
     serverStates = [];
+
+    setWalls(match.walls);
 
     wss.bindHandler("match.stateUpdate", (res) => {
       serverStates = res.newStates.concat(serverStates).sort((a, b) => a.timestamp - b.timestamp);
