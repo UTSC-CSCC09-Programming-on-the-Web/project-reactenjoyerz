@@ -179,6 +179,5 @@ export function bindWSHandlers(io) {
       if (newStates.length !== 0)
         io.to(game.name).emit("match.stateUpdate", { newStates });
       }
-    })
-  }, serverStepSize);
+  )}, serverStepSize);
 }

@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { SpeechService } from '../services/speech';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -9,8 +11,10 @@ import { AuthService } from '../services/auth.service';
   styleUrl: './home.css'
 })
 export class Home implements OnInit {
+  speechText = '';
+  transcriptSub?: Subscription;
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router, private speechService: SpeechService) {}
   login() {
     
   }
@@ -25,5 +29,11 @@ export class Home implements OnInit {
         }
       }
     });
+    this.speechService.startListening();
+
+    this.transcriptSub = this.speechService.transcript$.subscribe(text => {
+      this.speechText = text;
+    });
   }
+
 }
