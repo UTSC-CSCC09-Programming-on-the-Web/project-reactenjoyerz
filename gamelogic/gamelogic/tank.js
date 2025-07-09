@@ -95,8 +95,8 @@ export function testCollisionWall(tank, wall) {
       cy = wallHeight + wallY;
 
   } else { // tank hits corner of wall
-    let cx = x < wallX ? wallX - width : wallWidth + wallX;
-    let cy = y < wallY ? wallY - height: wallHeight + wallY;
+    cx = x < wallX ? wallX - width : wallWidth + wallX;
+    cy = y < wallY ? wallY - height: wallHeight + wallY;
 
     // if tank hits corner move tank by the smallest amount
     if (Math.abs(x - cx) < Math.abs(y - cy)) // move in x direction

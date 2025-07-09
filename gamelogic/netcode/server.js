@@ -176,7 +176,7 @@ export function bindWSHandlers(io) {
 
       // 4. ship it to clients
       assert(game.currentState.timestamp === targetTime);
-      if (newStates.length !== 0)
+      if (newStates.length !== 0) {
         io.to(game.name).emit("match.stateUpdate", { newStates });
       }
     })
