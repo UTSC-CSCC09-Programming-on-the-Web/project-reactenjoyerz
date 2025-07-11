@@ -1,10 +1,9 @@
 import { WebSocketService } from "./web-socket-service";
-import { initialize, step, shoot, move } from "../gamelogic/game-state";
+import { initialize, step, shoot, move, setWalls, removeTank } from "../gamelogic/game-state";
 import { maxStepSize, serverStepSize, isDef } from "./common";
 
 const wss = new WebSocketService();
 wss.setDelay(0);
-initialize();
 
 let clientInfo;
 let currentState;
@@ -45,8 +44,24 @@ export function join (cb) {
     currentState = match.initialState;
     serverStates = [];
 
+    setWalls(match.walls);
+
     wss.bindHandler("match.stateUpdate", (res) => {
-      serverStates = res.newStates.concat(serverStates).sort((a, b) => a.timestamp - b.timestamp);
+      serverStates = res.newStates;
+      if (isDef(res.updatedIndices)) {
+        console.log(res);
+        console.log(`old idx: ${clientInfo.clientIdx}`);
+        clientInfo.clientIdx = res.updatedIndices[clientInfo.clientIdx];
+        console.log(`new idx: ${clientInfo.clientIdx}`);
+        fetchFrame();
+      }
+    });
+
+    wss.bindHandler("match.playerChange", ({ clientIdx }) => {
+      if (clientIdx < clientInfo.clientIdx)
+        clientInfo.clientIdx -= 1;
+      if (started)
+        removeTank(currentState, clientIdx);
     })
   });
 
@@ -69,7 +84,6 @@ export function fetchFrame () {
   }
 
   let headTime = currentState.timestamp;
-
   if (idx !== -1)
     serverStates = serverStates.slice(idx+1);
   else
@@ -111,4 +125,15 @@ export function getClientIdx() {
 
 export function hasStarted() {
   return started;
+}
+
+export function leave() {
+  wss.emit("match.leave", clientInfo);
+  clientInfo = undefined;
+  currentState = undefined;
+  serverStates = [];
+  started = false;
+  
+  wss.unbindHandlers("match.stateUpdate");
+  wss.unbindHandlers("match.playerChange");
 }

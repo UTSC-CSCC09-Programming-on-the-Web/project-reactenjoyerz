@@ -26,3 +26,5 @@ export type GameState = {
   tanks: tank.Tank[],
   bullets: bullet.Bullet[],
 };
+
+export function getWalls(): Sprite[];

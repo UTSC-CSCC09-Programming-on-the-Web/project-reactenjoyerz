@@ -1,5 +1,5 @@
-import { isDef, serverStepSize, maxStepSize, inputCooldown } from "./common.js";
-import { initialize, step, shoot, move, logState } from "../gamelogic/game-state.js";
+import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize } from "./common.js";
+import { initialize, step, shoot, move, getWalls, logState, removeTank } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 
@@ -35,26 +35,61 @@ export function bindWSHandlers(io) {
       game.players.push(1);
       socket.join(`game-${nextGameId}`);
       console.log(
-        `Player ${game.players.length} of 2 joined game-${nextGameId}`
+        `Player ${game.players.length} of ${matchSize} joined game-${nextGameId}`
       );
 
-      if (game.players.length === 2) {
+      if (game.players.length === matchSize) {
         console.log(`Starting game-${nextGameId}`);
         game.started = true;
-        game.currentState = initialize();
+
+        game.currentState = initialize(matchSize);
         game.currentState.timestamp = Date.now();
 
         io.to(`game-${nextGameId}`).emit("match.join", {
           initialState: game.currentState,
+          walls: getWalls(),
         });
 
         nextGameId++;
       }
     });
 
+    socket.on("match.leave", ({ clientIdx, gameId }) => {
+      console.log(`Player ${clientIdx} left game-${gameId}`);
+      socket.leave(`game-${gameId}`);
+
+      const game = games.get(gameId);
+      if (!isDef(game)) return;
+      assert(isDef(game.players[clientIdx]));
+
+      if (game.players.length === 1) {
+        games.delete(gameId)
+        console.log(`Deleting game-${gameId}`);
+        return;
+      }
+
+      if (game.started) {
+        removeTank(game.currentState, clientIdx);
+        game.inputs = game.inputs.filter((input) => {
+          clientIdx === input.clientIdx && gameId === input.gameId
+        });
+        
+        game.inputs.forEach((input) => {
+          input.clientIdx = input.clientIdx < clientIdx ? clientIdx : clientIdx - 1;
+        })
+
+        io.to(game.name).emit("match.playerChange", { clientIdx })
+      }
+
+      game.players.splice(clientIdx, 1);
+    })
+
     socket.on("game.shoot", ({ x, y, gameId, clientIdx }) => {
       const game = games.get(gameId);
       if (!game || !game.started) return;
+
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
 
       // add rate limit
       const now = Date.now();
@@ -68,10 +103,8 @@ export function bindWSHandlers(io) {
 
       assert(isDef(clientIdx) && isDef(gameId));
       game.inputs.push({
-        req: {
-          x,
-          y,
-        },
+        x,
+        y,
         timestamp: Date.now(),
         action: "shoot",
         clientIdx: clientIdx,
@@ -85,6 +118,9 @@ export function bindWSHandlers(io) {
       const game = games.get(gameId);
       if (!game || !game.started) return;
 
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
+
       // add rate limit
       const now = Date.now();
       const lastInput = game.inputs[game.inputs.length - 1];
@@ -97,10 +133,8 @@ export function bindWSHandlers(io) {
 
       assert(isDef(clientIdx) && isDef(gameId));
       game.inputs.push({
-        req: {
-          x,
-          y,
-        },
+        x,
+        y,
         timestamp: Date.now(),
         action: "move",
         clientIdx,
@@ -151,13 +185,12 @@ export function bindWSHandlers(io) {
           delta = input.timestamp - headTime;
           game.inputs.shift();
 
-          const { x, y } = input.req;
           switch (input.action) {
             case "shoot":
-              shoot(game.currentState, input.clientIdx, x, y);
+              shoot(game.currentState, input.clientIdx, input.x, input.y);
               break;
             case "move":
-              move(game.currentState, input.clientIdx, x, y);
+              move(game.currentState, input.clientIdx, input.x, input.y);
               break;
             default:
               console.error(`Error: action ${input.action} not found.`);
@@ -176,8 +209,9 @@ export function bindWSHandlers(io) {
 
       // 4. ship it to clients
       assert(game.currentState.timestamp === targetTime);
-      if (newStates.length !== 0)
-        io.to(game.name).emit("match.stateUpdate", { newStates });
-      }
-  )}, serverStepSize);
+
+      if (newStates.length !== 0) 
+        io.to(game.name).emit("match.stateUpdate", { newStates});
+    })
+  }, serverStepSize);
 }

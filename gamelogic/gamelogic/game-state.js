@@ -5,7 +5,7 @@ import * as bullet from "./bullet.js";
 
 let walls;
 
-export function initialize() {
+export function initialize(playerCount) {
   walls = [
     createWall(0, 0, 192, 1, 10),
     createWall(0, 950, 192, 1, 10),
@@ -15,14 +15,23 @@ export function initialize() {
     createWall(500, 50, 3, 15, 48),
   ];
 
+  const tanks = []
+  for (let i = 0; i < playerCount; i++) {
+    tanks.push(tank.createTank(960, 540));
+  }
   return {
     timestamp: 0,
-    tanks: [
-      tank.createTank(960, 540),
-      tank.createTank(960, 540),
-    ],
+    tanks,
     bullets: [],
-  }
+  };
+}
+
+export function getWalls() {
+  return walls;
+}
+
+export function setWalls(_walls) {
+  walls = _walls;
 }
 
 export function step(state, delta) {
@@ -87,4 +96,8 @@ export function logState(state) {
   Leaderboard:
     TBD
   `);
+}
+
+export function removeTank(state, idx) {
+  state.tanks.splice(idx, 1);
 }
