@@ -24,7 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.1",
     "socket.io": "^4.8.1",
-    "stripe": "^18.2.1",
+    "stripe": "^18.3.0",
     "tsx": "^4.20.3"
   },
   "devDependencies": {

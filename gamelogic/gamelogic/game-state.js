@@ -1,18 +1,11 @@
-import { Sprite } from "./sprite";
-import { createWall } from "./wall";
+import { createWall } from "./wall.js";
 
-import * as tank from "./tank";
-import * as bullet from "./bullet";
+import * as tank from "./tank.js";
+import * as bullet from "./bullet.js";
 
-let walls: Sprite[];
+let walls;
 
-export type GameState = {
-  timestamp: number,
-  tanks: tank.Tank[],
-  bullets: bullet.Bullet[],
-};
-
-export function initialize(): GameState {
+export function initialize(playerCount) {
   walls = [
     createWall(0, 0, 192, 1, 10),
     createWall(0, 950, 192, 1, 10),
@@ -22,22 +15,31 @@ export function initialize(): GameState {
     createWall(500, 50, 3, 15, 48),
   ];
 
+  const tanks = []
+  for (let i = 0; i < playerCount; i++) {
+    tanks.push(tank.createTank(960, 540));
+  }
   return {
     timestamp: 0,
-    tanks: [
-      tank.createTank(960, 540),
-      tank.createTank(960, 540),
-    ],
+    tanks,
     bullets: [],
-  }
+  };
 }
 
-export function step(state: GameState, delta: number) {
+export function getWalls() {
+  return walls;
+}
+
+export function setWalls(_walls) {
+  walls = _walls;
+}
+
+export function step(state, delta) {
   if (delta === 0) return;
 
   state.bullets = state.bullets.filter((b) => {
     bullet.step(b, delta);
-    return walls.some((wall) => !bullet.testCollisionWall(b, wall));
+    return walls.every((wall) => !bullet.testCollisionWall(b, wall));
   });
 
   walls.forEach((wall) => {
@@ -47,26 +49,28 @@ export function step(state: GameState, delta: number) {
   });
 
   state.tanks.forEach((t) => tank.step(t, delta));
-  state.bullets.filter((b) => {
-    return state.tanks.some((t) => !tank.testCollisionBullet(t, b));
+  state.bullets = state.bullets.filter((b) => {
+    return state.tanks.every((t) => !tank.testCollisionBullet(t, b));
   });
+
+  state.timestamp += delta;
 }
 
 // shoot a bullet and catch it up to timestamp
-export function shoot(state: GameState, tankIdx: number, x: number, y: number) {
+export function shoot(state, tankIdx, x, y) {
   const b = tank.shootBullet(state.tanks[tankIdx], x, y);
   state.bullets.push(b);
 }
 
-export function move(state: GameState, tankIdx: number, x: number, y: number) {
+export function move(state, tankIdx, x, y) {
   const t = state.tanks[tankIdx];
   tank.moveTo(t, x, y);
 }
 
-export function logState(state: GameState) {
+export function logState(state) {
   console.log(`TIME: ${state.timestamp}
   Tanks:`)
-  state.tanks.forEach((t: tank.Tank) => {
+  state.tanks.forEach((t) => {
     console.log(`    x: ${t.sprite.x} ---> ${t.newX}
     y: ${t.sprite.y} ---> ${t.newY}
     dx: ${t.dy}
@@ -92,4 +96,8 @@ export function logState(state: GameState) {
   Leaderboard:
     TBD
   `);
+}
+
+export function removeTank(state, idx) {
+  state.tanks.splice(idx, 1);
 }

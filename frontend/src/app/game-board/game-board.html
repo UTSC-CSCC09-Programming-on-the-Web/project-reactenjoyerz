@@ -1,37 +1,32 @@
-@if (!currentState) {
+@if (!started) {
 <p>loading gameboard</p>
 
 } @else {
+<button (click)="toggleListening()">
+{{ isListening ? 'Stop Listening' : 'Start Listening' }}
+</button>
 <div class="background" (click)="onClick($event)"></div>
-<img
-  class="tank"
-  style.left="{{ currentState.tanks[clientIdx].sprite.x }}px"
-  style.top="{{ currentState.tanks[clientIdx].sprite.y }}px"
-  style.transform="rotate({{ currentState.tanks[clientIdx].rotation }}rad)"
-  src="blueTank.png"
-  (click)="onClick($event)"
-/>
-
-@for (tank of currentState.tanks; track tank.rotation){
+@for (tank of tanks(); track $index; let idx = $index){
 <img
   class="tank"
   style.left="{{ tank.sprite.x }}px"
   style.top="{{ tank.sprite.y }}px"
   style.transform="rotate({{ tank.rotation }}rad)"
-  src="redTank.png"
+  style.z-index="{{ idx === clientIdx ? 3 : 2}}"
+  src="{{ idx === clientIdx ? 'blueTank.png' : 'redTank.png' }}"
   (click)="onClick($event)"
 />
 }
 
-@for (bullet of currentState.bullets; track bullet.nBounces) {
+@for (bullet of bullets(); track $index) {
 <img
   class="bullet"
   style.left="{{ bullet.dSprite.sprite.x }}px"
   style.top="{{ bullet.dSprite.sprite.y }}px"
   style.transform="rotate({{ bullet.dSprite.rotation }}rad)"
   src="bullet.png"
-  width="17"
-  height="32"
+  width="11px"
+  height="21px"
   (click)="onClick($event)"
 />
 }
@@ -41,8 +36,7 @@
     class="wall"
     style.left="{{ wall.x }}px"
     style.top="{{ wall.y }}px"
-    style.background="url(wall.png)"
-    style.background-size="48px"
+    [style.background-image]="'url(wall.png)'"
     style.width="{{ wall.width }}px"
     style.height="{{ wall.height }}px"
     (click)="onClick($event)"

@@ -1,14 +1,10 @@
-import { Bullet } from './bullet';
-import { DSprite } from './dynamic-sprite';
-import { Sprite, collidesWith } from "./sprite";
+import { collidesWith } from "./sprite.js";
 
-export const animationSpeed = 0.5;
+export const animationSpeed = 0.125;
 export const enemySprite = "redTank.png";
 export const playerSprite = "blueTank.png";
 
-export type Tank = DSprite;
-
-export function createTank(x: number, y: number): Tank {
+export function createTank(x, y) {
   return {
     dx: 0,
     dy: 0,
@@ -19,13 +15,13 @@ export function createTank(x: number, y: number): Tank {
     sprite: {
       x,
       y,
-      width: 40,
-      height: 64,
+      width: 20,
+      height: 32,
     }
   }
 }
 
-export function shootBullet(tank: Tank, x: number, y: number): Bullet {
+export function shootBullet(tank, x, y) {
   const sprite = tank.sprite;
 
   const px = sprite.x;
@@ -43,8 +39,8 @@ export function shootBullet(tank: Tank, x: number, y: number): Bullet {
   tank.rotation = angle;
 
   // compute end of muzzle accounting for rotation of sprite
-  const muzX = -Math.sin(Math.PI + angle) * (width/ 2 + 5);
-  const muzY = Math.cos(Math.PI + angle) * (height / 2 + 5);
+  const muzX = -Math.sin(Math.PI + angle) * (height);
+  const muzY = Math.cos(Math.PI + angle) * (height);
   return {
     nBounces: 0,
 
@@ -58,14 +54,14 @@ export function shootBullet(tank: Tank, x: number, y: number): Bullet {
       sprite: {
         x: px + muzX,
         y: py + muzY,
-        width: 17,
-        height: 32,
+        width: 11,
+        height: 21,
       }
     }
   }
 }
 
-export function testCollisionWall(tank: Tank, wall: Sprite): void {
+export function testCollisionWall(tank, wall) {
   const dx = tank.dx;
   const dy = tank.dy;
   const tankSprite = tank.sprite;
@@ -99,8 +95,8 @@ export function testCollisionWall(tank: Tank, wall: Sprite): void {
       cy = wallHeight + wallY;
 
   } else { // tank hits corner of wall
-    let cx = x < wallX ? wallX - width : wallWidth + wallX;
-    let cy = y < wallY ? wallY - height: wallHeight + wallY;
+    cx = x < wallX ? wallX - width : wallWidth + wallX;
+    cy = y < wallY ? wallY - height: wallHeight + wallY;
 
     // if tank hits corner move tank by the smallest amount
     if (Math.abs(x - cx) < Math.abs(y - cy)) // move in x direction
@@ -112,9 +108,11 @@ export function testCollisionWall(tank: Tank, wall: Sprite): void {
 
   tank.sprite.x = cx;
   tank.sprite.y = cy;
+  tank.dx = 0;
+  tank.dy = 0;
 }
 
-export function testCollisionBullet(tank: Tank, bullet: Bullet) {
+export function testCollisionBullet(tank, bullet) {
   if (collidesWith(tank.sprite, bullet.dSprite.sprite)) {
     tank.sprite.x = 960;
     tank.sprite.y = 540;
@@ -124,7 +122,7 @@ export function testCollisionBullet(tank: Tank, bullet: Bullet) {
   return false;
 }
 
-export function moveTo(tank: Tank, newX: number, newY: number): void {
+export function moveTo(tank, newX, newY) {
   const sprite = tank.sprite;
 
   const x = sprite.x;
@@ -146,7 +144,7 @@ export function moveTo(tank: Tank, newX: number, newY: number): void {
 }
 
 // COPILOT USED: autocomplete
-export function step(tank: Tank, delta: number): void {
+export function step(tank, delta) {
   if (tank.dx === 0 && tank.dy === 0) return;
 
   const x = tank.sprite.x;

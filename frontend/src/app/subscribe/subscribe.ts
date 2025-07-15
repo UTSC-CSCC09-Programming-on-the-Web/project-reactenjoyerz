@@ -18,7 +18,7 @@ export class Subscribe implements OnInit {
       .subscribe({
         next: (res) => {
           if (res.hasSubscription) {
-            this.router.navigate(['/game']);
+            this.router.navigate(['/match']);
           }
         },
         error: () => {
