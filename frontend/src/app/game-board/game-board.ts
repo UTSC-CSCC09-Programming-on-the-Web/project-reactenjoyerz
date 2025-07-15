@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
 import { PlayerTank } from './tank/player-tank';
 import { Bullet } from './bullet/bullet';
 import { Wall } from './wall/wall';
@@ -20,10 +21,21 @@ export class GameBoard {
   enemyTanks: Array<EnemyTank> = [];
   isMuted = false;
 
-  constructor(private voice: VoiceService) {
+  constructor(private voice: VoiceService, private router: Router) {
+
+    const navigation = this.router.getCurrentNavigation();
+    const peers = navigation?.extras?.state?.['peers'];
+
+    if (peers) {
+      console.log("GameBoard loaded, starting voice call with peers:", peers);
+      this.voice.startCall(peers);
+    } else {
+      console.error('Could not find peer data. Voice chat will not work.');
+    }
+
     this.playerTank = new PlayerTank(0);
     this.enemyTanks.push;
-    this.voice.initLocalAudio();
+    // this.voice.initLocalAudio();
 
     this.lastTime = Date.now();
 

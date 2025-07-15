@@ -1,48 +1,41 @@
-let nextMatchId = 0;
-
-const rooms = {};
+let waitingPlayer = null;
 
 export function bindWSHandlers(io) {
   io.on("connection", (socket) => {
-    console.log("user connected ...");
-
-    socket.emit("voice.welcome", { id: socket.id });
-
-    socket.on("voice.signal", ({ to, data }) => {
-      io.to(to).emit("voice.signal", {
-        from: socket.id,
-        data,
-      });
-    });
+    console.log(`User connected: ${socket.id}`);
 
     socket.on("disconnect", () => {
-      console.log("user disconnected ...");
+      console.log(`User disconnected: ${socket.id}`);
       io.emit("peer.disconnected", { fromId: socket.id });
+
+      if (waitingPlayer && waitingPlayer.id === socket.id) {
+        waitingPlayer = null;
+      }
     });
 
-    socket.on("match.joinRequest", ({ user }) => {
-      console.log(`user joined room-${nextMatchId}`);
-      socket.join(`room-${nextMatchId}`);
-      if (!rooms[`room-${nextMatchId}`]) {
-        rooms[`room-${nextMatchId}`] = {
-          players: [],
-          sockets: [],
-        };
-      }
+    socket.on("match.joinRequest", () => {
+      console.log(`User ${socket.id} is looking for a match.`);
 
-      const room = rooms[`room-${nextMatchId}`];
-      room.players.push(user);
-      room.sockets.push(socket.id);
+      if (waitingPlayer) {
+        const player1 = waitingPlayer;
+        const player2 = socket;
 
-      if (room.players.length === 4) {
-        socket.to(`room-${nextMatchId}`).emit("match.join", {
-          matchId: nextMatchId++,
-          players: room.players,
-          socketIds: room.sockets,
+        const matchId = `match-${player1.id}-${player2.id}`;
+
+        player1.join(matchId);
+        player2.join(matchId);
+
+        waitingPlayer = null;
+
+        console.log(`Match found! Starting match in room ${matchId}`);
+
+        io.to(matchId).emit("match.found", {
+          matchId: matchId,
+          peerIds: [player1.id, player2.id],
         });
-
-        console.log("req sent");
-        nextMatchId++;
+      } else {
+        waitingPlayer = socket;
+        console.log(`User ${socket.id} is now waiting.`);
       }
     });
 

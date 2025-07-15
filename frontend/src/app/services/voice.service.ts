@@ -1,86 +1,81 @@
 import { Injectable } from '@angular/core';
 import { WebSocketService } from '../web-socket-service';
 
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ],
+};
+
 @Injectable({ providedIn: 'root' })
 export class VoiceService {
   private peers = new Map<string, RTCPeerConnection>();
   private localStream: MediaStream | null = null;
-  private wss: WebSocketService;
   private isMuted = false;
 
-  constructor(wss: WebSocketService) {
-    this.wss = wss;
-
+  constructor(private wss: WebSocketService) {
+    console.log('VoiceService Initialized');
     this.wss.bindHandler("webrtc.offer", this.handleOffer.bind(this));
     this.wss.bindHandler("webrtc.answer", this.handleAnswer.bind(this));
     this.wss.bindHandler("webrtc.ice-candidate", this.handleIceCandidate.bind(this));
-    this.wss.bindHandler("disconnect", ({ fromId }) => {
-    const pc = this.peers.get(fromId);
-        if (pc) {
-            pc.close();
-            this.peers.delete(fromId);
-        }
-        });
+    this.wss.bindHandler("peer.disconnected", ({ fromId }: { fromId: string }) => {
+      console.log(`[VOICE] Peer ${fromId} disconnected.`);
+      this.peers.get(fromId)?.close();
+      this.peers.delete(fromId);
+    });
   }
 
   async initLocalAudio() {
-    this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    console.log("Local audio tracks:", this.localStream?.getAudioTracks());
-  }
-
-  toggleMute(): boolean {
-    this.isMuted = !this.isMuted;
-    this.updateTrackState();
-    return this.isMuted;
-  }
-
-  private updateTrackState() {
-    if (!this.localStream) return;
-    for (const track of this.localStream.getAudioTracks()) {
-        track.enabled = !this.isMuted;
-        console.log(`Track ${track.id} enabled: ${track.enabled}`);
+    try {
+      this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioTrack = this.localStream.getAudioTracks()[0];
+    } catch (error) {
     }
   }
 
   async startCall(peerIds: string[]) {
-    if (!this.localStream) await this.initLocalAudio();
+    await this.initLocalAudio();
+    if (!this.localStream) return console.error('[VOICE] Cannot start call without a local audio stream.');
 
-    for (const peerId of peerIds) {
-      if (peerId === this.wss.socketId) continue;
+    // 1. Find the opponent's ID
+    const opponentId = peerIds.find(id => id !== this.wss.socketId);
+    if (!opponentId) return;
 
-      const pc = this.createPeerConnection(peerId);
-      this.localStream!.getTracks().forEach((track) => pc.addTrack(track, this.localStream!));
+    // 2. Determine who is the caller based on a simple string comparison
+    const isCaller = this.wss.socketId! < opponentId;
 
+    // 3. The "caller" sends the offer; the "callee" waits.
+    if (isCaller) {
+      const pc = this.createPeerConnection(opponentId);
+      this.localStream.getTracks().forEach((track) => pc.addTrack(track, this.localStream!));
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-
-      this.wss.emit("webrtc.offer", { targetId: peerId, offer });
+      this.wss.emit("webrtc.offer", { targetId: opponentId, offer });
+    } else {
+      //Create the connection object and wait for the offer to arrive.
+      this.createPeerConnection(opponentId);
     }
   }
 
   private createPeerConnection(peerId: string): RTCPeerConnection {
-    const pc = new RTCPeerConnection();
-
+    if (this.peers.has(peerId)) {
+      return this.peers.get(peerId)!;
+    }
+    const pc = new RTCPeerConnection(ICE_SERVERS);
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        this.wss.emit("webrtc.ice-candidate", {
-          targetId: peerId,
-          candidate: event.candidate,
-        });
+        this.wss.emit("webrtc.ice-candidate", { targetId: peerId, candidate: event.candidate });
       }
     };
-
     pc.ontrack = (event) => {
-        console.log("Receiving audio stream from:", peerId, event.streams[0]);
-        const audio = new Audio();
-        audio.srcObject = event.streams[0];
-        audio.autoplay = true;
-        audio.controls = true;
-        audio.play().catch((e) => {
-            console.error("Failed to play audio:", e);
-        });
+      const audio = new Audio();
+      audio.srcObject = event.streams[0];
+      audio.muted = false;
+      audio.autoplay = true;
+      audio.play().catch(e => console.error("[VOICE] Audio playback failed.", e));
+      document.body.appendChild(audio);
     };
-
     this.peers.set(peerId, pc);
     return pc;
   }
@@ -106,5 +101,23 @@ export class VoiceService {
   private async handleIceCandidate({ fromId, candidate }: any) {
     const pc = this.peers.get(fromId);
     if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+  }
+
+  toggleMute(): boolean {
+
+    this.isMuted = !this.isMuted;
+
+    if (!this.localStream) {
+      return this.isMuted;
+    }
+
+    const audioTracks = this.localStream.getAudioTracks();
+
+    audioTracks.forEach(track => {
+      const newEnabledState = !this.isMuted;
+      track.enabled = newEnabledState;
+    });
+
+    return this.isMuted;
   }
 }

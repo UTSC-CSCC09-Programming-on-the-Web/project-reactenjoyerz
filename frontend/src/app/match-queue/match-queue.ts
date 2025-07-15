@@ -1,31 +1,48 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { WebSocketService } from '../web-socket-service';
-import { Router } from '@angular/router';
+import { VoiceService } from '../services/voice.service';
 import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-match-queue',
   imports: [],
   templateUrl: './match-queue.html',
   styleUrl: './match-queue.css',
-  providers: [WebSocketService]
+  // providers: [WebSocketService]
 })
-export class MatchQueue {
+export class MatchQueue implements OnInit, OnDestroy {
   wss = inject(WebSocketService);
+  voiceService = inject(VoiceService); // Inject VoiceService
   dots = "";
-  message = '';
+  message = 'Finding a match...';
+  private intervalId: any;
 
-  constructor (private authService: AuthService, private router: Router) {
-    this.wss.bindHandler("match.join", ({ matchId }) => {
-      this.wss.unbindHandlers("match.join");
-      router.navigate([matchId, "game"]);
-    })
+  constructor (private authService: AuthService, private router: Router) {}
 
-    this.wss.emit("match.joinRequest", { user: 0 });
+  ngOnInit() {
+    this.wss.bindHandler("match.found", 
+      ({ matchId, peerIds }: { matchId: string, peerIds: string[] }) => {
+      this.message = 'Match Found! Starting voice chat...';
+      console.log('Match found with peers:', peerIds);
 
-    setInterval(() => {
-      this.dots += ".";
-    }, 5000);
+      this.router.navigate([matchId, 'game'], { 
+        state: { peers: peerIds } 
+      });
+    });
+
+    this.wss.emit("match.joinRequest", {});
+
+    this.intervalId = setInterval(() => {
+      this.dots = this.dots.length >= 3 ? "" : this.dots + ".";
+    }, 1000);
+  }
+
+  ngOnDestroy() {
+    this.wss.unbindHandlers("match.found");
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
   }
 
   logout() {
