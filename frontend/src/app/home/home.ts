@@ -22,7 +22,6 @@ export class Home implements OnInit {
   lastIndex = -1;
   lastTranscript = '';
   resetTimeout?: any;
-
   isListening = false;
 
   constructor(private authService: AuthService, private router: Router, private speechService: SpeechService) {}
