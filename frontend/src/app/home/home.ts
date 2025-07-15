@@ -23,6 +23,8 @@ export class Home implements OnInit {
   lastTranscript = '';
   resetTimeout?: any;
 
+  isListening = false;
+
   constructor(private authService: AuthService, private router: Router, private speechService: SpeechService) {}
   login() {
     
@@ -104,6 +106,14 @@ export class Home implements OnInit {
 
     });
     /* ------------ END VOICE CONTROL BLOCK ------------- */
+  }
+  toggleListening() {
+    if (this.isListening) {
+      this.speechService.stopListening();
+    } else {
+      this.speechService.startListening();
+    }
+    this.isListening = !this.isListening;
   }
 
 }
