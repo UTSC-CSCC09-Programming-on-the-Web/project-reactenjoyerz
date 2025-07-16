@@ -32,7 +32,6 @@ export class WebSocketService {
         const handlers = this.handlers.get(event);
         if (handlers) {
           setTimeout(() => {
-            console.log(`Received ${event} event (delay = ${this.delay})`);
             handlers.forEach((hh) => hh(v));
           }, this.delay);
         }
@@ -47,7 +46,6 @@ export class WebSocketService {
   }
 
   emit(event: string, v: any, callback?: (response: any) => void) {
-    console.log(`Sent ${event} event (delay = ${this.delay})`);
     setTimeout(() => {
       this.socket.emit(event, v, callback);
     }, this.delay);

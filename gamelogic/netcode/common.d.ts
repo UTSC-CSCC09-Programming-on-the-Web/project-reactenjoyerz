@@ -1,0 +1,2 @@
+export const MAX_PROXIMITY_DISTANCE = 500;
+export const MIN_AUDIBLE_DISTANCE = 50;

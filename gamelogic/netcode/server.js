@@ -1,4 +1,4 @@
-import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize } from "./common.js";
+import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize, MAX_PROXIMITY_DISTANCE } from "./common.js";
 import { initialize, step, shoot, move, getWalls, logState, removeTank, stopTank, moveVec } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
@@ -153,10 +153,6 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("voice.audioChunk", ({ gameId, clientIdx, chunk }) => {
-      console.log(
-        `--- SERVER RECEIVED 'voice.audioChunk' from client ${clientIdx} in game ${gameId} ---`
-      );
-
       const game = games.get(gameId);
       if (!game || !game.started || !game.currentState) return;
 
@@ -188,11 +184,6 @@ export function bindWSHandlers(io) {
         const distance = Math.sqrt(
           Math.pow(senderTank.sprite.x - receiverTank.sprite.x, 2) +
             Math.pow(senderTank.sprite.y - receiverTank.sprite.y, 2)
-        );
-        console.log(
-          `[Game ${gameId}] Proximity Check: Sender ${clientIdx} to Receiver ${receiverIdx}. Distance: ${distance.toFixed(
-            2
-          )}`
         );
 
         if (distance <= MAX_PROXIMITY_DISTANCE) {

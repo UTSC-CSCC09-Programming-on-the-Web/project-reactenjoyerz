@@ -1,5 +1,6 @@
 import { moveTo ,shootBullet, fetchFrame, getClientIdx, hasStarted, leave, setDirection, shootBulletVec, stop, getDistance, getClientInfo} from "../../../../gamelogic/netcode/client";
 import { Sprite, GameState, Tank, Bullet, getWalls } from "../../../../gamelogic/gamelogic/game-state";
+import { MAX_PROXIMITY_DISTANCE, MIN_AUDIBLE_DISTANCE } from "../../../../gamelogic/netcode/common"
 import { signal, Component, HostListener, computed, Host, OnDestroy, OnInit} from "@angular/core";
 import { SpeechService } from '../services/speech';
 import { VoiceChatService } from '../services/voice-chat';
@@ -8,17 +9,13 @@ import { CommonModule } from '@angular/common';
 import { WebSocketService } from '../services/web-socket.service';
 import {initClient} from "../../../../gamelogic/netcode/client"; 
 
-
-const MAX_PROXIMITY_DISTANCE = 500;
-const MIN_AUDIBLE_DISTANCE = 50;
-
 @Component({
   selector: 'game-board',
-  imports: [CommonModule], 
+  imports: [CommonModule],
   templateUrl: './game-board.html',
   styleUrl: './game-board.css',
 })
-export class GameBoard implements OnInit, OnDestroy {
+export class GameBoard implements OnDestroy {
   started = signal<boolean>(false);
   clientIdx?: number;
   tanks = signal<Tank[]>([]);
@@ -46,14 +43,18 @@ export class GameBoard implements OnInit, OnDestroy {
 
   private clientInfoSet = false;
 
-  constructor(private speechService: SpeechService, private voiceChatService: VoiceChatService, private wss: WebSocketService) {
+  constructor(
+    private speechService: SpeechService,
+    private voiceChatService: VoiceChatService,
+    private wss: WebSocketService
+  ) {
     initClient(wss);
     this.walls = getWalls();
 
     setInterval(() => {
       if (!hasStarted()) {
         if (this.started()) {
-            this.started.set(false);
+          this.started.set(false);
         }
         return;
       }
@@ -72,7 +73,8 @@ export class GameBoard implements OnInit, OnDestroy {
       // --- Proximity Chat Volume Adjustment ---
       const currentClientIdx = this.clientIdx;
       if (currentClientIdx !== undefined) {
-        this.tanks().forEach((_tank, idx) => { // Iterate through all tanks
+        this.tanks().forEach((_tank, idx) => {
+          // Iterate through all tanks
           if (idx === currentClientIdx) return; // Don't adjust own volume
 
           // Check if player is explicitly muted by the user
@@ -90,7 +92,10 @@ export class GameBoard implements OnInit, OnDestroy {
             proximityVolume = 0; // Silent if outside max range
           } else if (distance > MIN_AUDIBLE_DISTANCE) {
             // Linear falloff from 1 at MIN_AUDIBLE_DISTANCE to 0 at MAX_PROXIMITY_DISTANCE
-            proximityVolume = 1 - ((distance - MIN_AUDIBLE_DISTANCE) / (MAX_PROXIMITY_DISTANCE - MIN_AUDIBLE_DISTANCE));
+            proximityVolume =
+              1 -
+              (distance - MIN_AUDIBLE_DISTANCE) /
+                (MAX_PROXIMITY_DISTANCE - MIN_AUDIBLE_DISTANCE);
           }
           // Clamp to ensure valid range (0 to 1)
           proximityVolume = Math.max(0, Math.min(1, proximityVolume));
@@ -103,12 +108,7 @@ export class GameBoard implements OnInit, OnDestroy {
         });
       }
       // --- End Proximity Chat Volume Adjustment ---
-
     }, 20);
-  }
-
-  ngOnInit(): void {
-    this.speechService.startListening();
   }
 
   ngOnDestroy(): void {
@@ -120,7 +120,7 @@ export class GameBoard implements OnInit, OnDestroy {
     }
 
     // Stop listening and transmitting when component is destroyed
-    this.speechService.stopListening();
+    this.speechService.stopRecording();
     this.voiceChatService.stopTransmitting();
     this.speechService.stopRecording();
     leave(); // Call game leave logic from client.ts
@@ -172,8 +172,9 @@ export class GameBoard implements OnInit, OnDestroy {
   }
 
   startRecording() {
+    if (this.isVoiceTransmitting) this.voiceChatService.stopTransmitting()
     this.speechService.startRecording((transcript: string) => {
-      if (transcript.toLowerCase().includes("stop")) {
+      if (transcript.toLowerCase().includes('stop')) {
         stop();
         return;
       }
@@ -231,17 +232,8 @@ export class GameBoard implements OnInit, OnDestroy {
     });
   }
 
-  toggleListening() {
-    if (this.isListening) {
-      this.speechService.stopListening();
-    } else {
-      this.speechService.startListening();
-    }
-    this.isListening = !this.isListening;
-  }
-
   stopRecording() {
-    this.speechService.stopListening();
+    this.speechService.stopRecording();
   }
 
   // toggleVoiceTransmission(): void {
@@ -268,26 +260,31 @@ export class GameBoard implements OnInit, OnDestroy {
         if (distance > MAX_PROXIMITY_DISTANCE) {
           proximityVolume = 0;
         } else if (distance > MIN_AUDIBLE_DISTANCE) {
-          proximityVolume = 1 - ((distance - MIN_AUDIBLE_DISTANCE) / (MAX_PROXIMITY_DISTANCE - MIN_AUDIBLE_DISTANCE));
+          proximityVolume =
+            1 -
+            (distance - MIN_AUDIBLE_DISTANCE) /
+              (MAX_PROXIMITY_DISTANCE - MIN_AUDIBLE_DISTANCE);
         }
         proximityVolume = Math.max(0, Math.min(1, proximityVolume));
         const userSetVolume = this.playerVolumes.get(playerIdx) ?? 1;
-        this.voiceChatService.setPlayerVolume(playerIdx, proximityVolume * userSetVolume);
+        this.voiceChatService.setPlayerVolume(
+          playerIdx,
+          proximityVolume * userSetVolume
+        );
       }
     }
   }
 
   toggleVoiceTransmission(): void {
-  // The isVoiceTransmitting property comes from your subscription to the voice chat service
-  if (this.isVoiceTransmitting) {
-    // If we are currently talking, just stop the voice chat.
-    this.voiceChatService.stopTransmitting();
-    this.speechService.startListening();
-  } else {
-    this.speechService.stopListening();
-    this.voiceChatService.startTransmitting();
+    // The isVoiceTransmitting property comes from your subscription to the voice chat service
+    if (this.isVoiceTransmitting) {
+      // If we are currently talking, just stop the voice chat.
+      this.voiceChatService.stopTransmitting();
+    } else {
+      this.speechService.stopRecording();
+      this.voiceChatService.startTransmitting();
+    }
   }
-}
 
   setPlayerCustomVolume(playerIdx: number, event: Event): void {
     const target = event.target as HTMLInputElement;
@@ -303,10 +300,16 @@ export class GameBoard implements OnInit, OnDestroy {
         if (distance > MAX_PROXIMITY_DISTANCE) {
           proximityVolume = 0;
         } else if (distance > MIN_AUDIBLE_DISTANCE) {
-          proximityVolume = 1 - ((distance - MIN_AUDIBLE_DISTANCE) / (MAX_PROXIMITY_DISTANCE - MIN_AUDIBLE_DISTANCE));
+          proximityVolume =
+            1 -
+            (distance - MIN_AUDIBLE_DISTANCE) /
+              (MAX_PROXIMITY_DISTANCE - MIN_AUDIBLE_DISTANCE);
         }
         proximityVolume = Math.max(0, Math.min(1, proximityVolume));
-        this.voiceChatService.setPlayerVolume(playerIdx, proximityVolume * volume);
+        this.voiceChatService.setPlayerVolume(
+          playerIdx,
+          proximityVolume * volume
+        );
       }
     }
   }
@@ -326,6 +329,4 @@ export class GameBoard implements OnInit, OnDestroy {
   get micAccessError(): boolean {
     return this.micAccessStatus === 'error';
   }
-  
-
 }
