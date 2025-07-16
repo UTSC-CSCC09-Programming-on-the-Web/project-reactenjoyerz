@@ -165,7 +165,7 @@ export class GameBoard implements OnDestroy {
       case 'd':
         stop();
         break;
-      case 'm':
+      case 'v':
         this.stopRecording();
         break;
     }
@@ -227,6 +227,7 @@ export class GameBoard implements OnDestroy {
         console.error('the impossible just happended!');
       }
 
+      console.log(dx, dy);
       if (action === 'shoot') shootBulletVec(dx, dy);
       else if (action === 'move') setDirection(dx, dy);
     });
@@ -280,7 +281,9 @@ export class GameBoard implements OnDestroy {
     if (this.isVoiceTransmitting) {
       // If we are currently talking, just stop the voice chat.
       this.voiceChatService.stopTransmitting();
+      this.isVoiceTransmitting = false;
     } else {
+      this.isVoiceTransmitting = true;
       this.speechService.stopRecording();
       this.voiceChatService.startTransmitting();
     }
