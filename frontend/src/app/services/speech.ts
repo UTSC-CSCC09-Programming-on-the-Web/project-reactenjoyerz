@@ -1,7 +1,7 @@
 import { Injectable, NgZone } from '@angular/core';
 import { Subject } from 'rxjs';
+import { MicrophoneService } from './microphone.service'; // Import new service
 
-// youtube tutorial: https://www.youtube.com/watch?v=dCaZhWIhLWI
 declare var webkitSpeechRecognition: any;
 
 @Injectable({
@@ -9,51 +9,53 @@ declare var webkitSpeechRecognition: any;
 })
 export class SpeechService {
   recognition: any;
-  isRecording = false; // boolean for later to toggle if its recording voice
-  leftCount = 0;
-
-
-  //https://v17.angular.io/guide/rx-library
+  isListening = false;
   private transcriptSubject = new Subject<{ transcript: string, index: number }>();
   transcript$ = this.transcriptSubject.asObservable();
 
-  constructor(private zone: NgZone) {
+  // Inject the new MicrophoneService
+  constructor(private zone: NgZone, private micService: MicrophoneService) {
     const SpeechRecognition = webkitSpeechRecognition;
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
     this.recognition.lang = 'en-US';
-    this.recognition.interimResults = true; //to allow partial results (so faster processing)
+    this.recognition.interimResults = true;
   }
 
-  startListening() {
-    if (this.isRecording ) {
-      return;
-    };
-    this.isRecording = true; 
+  async startListening() {
+    if (this.isListening) return;
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognitionResult
-    this.recognition.onresult = (event: any) => {
-      this.zone.run(() => {
-        this.transcriptSubject.next({ transcript: event.results[event.resultIndex][0].transcript, index: event.resultIndex});
-      });
-    };
+    try {
+      // Request the stream from the central service
+      await this.micService.getStream('speech');
+      this.isListening = true;
 
-    //restarts to keep recording
-    this.recognition.onend = () => {
-      if (this.isRecording) {
-        this.recognition.start();
-      }
-    };
+      this.recognition.onresult = (event: any) => {
+        this.zone.run(() => {
+          this.transcriptSubject.next({ transcript: event.results[event.resultIndex][0].transcript, index: event.resultIndex});
+        });
+      };
 
-    this.recognition.start();
-  }
+      this.recognition.onend = () => {
+        if (this.isListening) {
+          this.recognition.start();
+        }
+      };
 
-  //toggle voice controls off
-  stopListening() {
-    if (this.isRecording) {
-      this.recognition.stop();
-      this.isRecording = false;
+      this.recognition.start();
+      console.log("Speech recognition started.");
+    } catch (error) {
+      console.error("SpeechService could not acquire microphone:", error);
     }
   }
 
+  stopListening() {
+    if (this.isListening) {
+      this.recognition.stop();
+      this.isListening = false;
+      // Release the stream so other services can use it
+      this.micService.releaseStream('speech');
+      console.log("Speech recognition stopped.");
+    }
+  }
 }

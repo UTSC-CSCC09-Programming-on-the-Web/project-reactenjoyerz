@@ -1,14 +1,25 @@
-import { WebSocketService } from "./web-socket-service";
-import { initialize, step, shoot, move, setWalls, removeTank } from "../gamelogic/game-state";
+import { WebSocketService } from "../../frontend/src/app/services/web-socket.service";
+import {
+  initialize,
+  step,
+  shoot,
+  move,
+  setWalls,
+  removeTank,
+} from "../gamelogic/game-state";
 import { maxStepSize, serverStepSize, isDef } from "./common";
 
-const wss = new WebSocketService();
-wss.setDelay(0);
+let wss;
 
 let clientInfo;
 let currentState;
 let serverStates;
 let started = false;
+
+export function initClient(socketService) {
+  console.log("Initializing client.js with shared WebSocketService.");
+  wss = socketService;
+}
 
 export function moveTo(x, y) {
   console.assert(started, "moveTo: not started");
@@ -32,12 +43,16 @@ export function shootBullet(x, y) {
   shoot(currentState, clientInfo.clientIdx, x, y);
 }
 
-export function join (cb) {
+export function join(cb) {
   console.assert(!started, "join: already started");
   started = false;
 
   wss.bindHandler("match.join", (match) => {
-    cb();
+    cb({
+      initialState: match.initialState,
+      walls: match.walls,
+      clientInfo: clientInfo, // Pass the clientInfo received earlier
+    });
 
     started = true;
     wss.unbindHandlers("match.join");
@@ -58,20 +73,22 @@ export function join (cb) {
     });
 
     wss.bindHandler("match.playerChange", ({ clientIdx }) => {
-      if (clientIdx < clientInfo.clientIdx)
-        clientInfo.clientIdx -= 1;
-      if (started)
-        removeTank(currentState, clientIdx);
-    })
+      if (clientIdx < clientInfo.clientIdx) clientInfo.clientIdx -= 1;
+      if (started) removeTank(currentState, clientIdx);
+    });
   });
 
-  wss.emit("match.joinRequest", { }, (c) => {
+  wss.emit("match.joinRequest", {}, (c) => {
     clientInfo = c;
   });
 }
 
-export function fetchFrame () {
+export function fetchFrame() {
   console.assert(started, "fetchFrame: not started");
+
+  if (!currentState) {
+    return { tanks: [], bullets: [] };
+  }
 
   const targetTime = Date.now();
 
@@ -84,13 +101,9 @@ export function fetchFrame () {
   }
 
   let headTime = currentState.timestamp;
-  if (idx !== -1)
-    serverStates = serverStates.slice(idx+1);
-  else
-    serverStates = []
+  if (idx !== -1) serverStates = serverStates.slice(idx + 1);
+  else serverStates = [];
 
-  // note: we don't have to compensate for lag because the lastComputedState is
-  // the current state from -100ms ago
   while (targetTime !== headTime) {
     serverStates.filter((s) => s.timestamp > headTime);
     let delta = 0;
@@ -107,11 +120,21 @@ export function fetchFrame () {
 
 export function getDistance(idx) {
   console.assert(started, "getDistance: not started");
-  const t1 = currentState.tanks[idx];
-  if (!t1 || !currentState) return;
 
-  const t2 = currentState.tanks.clientInfo[clientInfo.clientIdx];
-  assert(isDef(t2), "null client tank");
+  // 1. Add a check to ensure clientInfo and currentState are initialized
+  if (!clientInfo || !currentState) {
+    return;
+  }
+
+  const t1 = currentState.tanks[idx];
+
+  // 2. Correctly access the client's tank from the tanks array
+  const t2 = currentState.tanks[clientInfo.clientIdx];
+
+  // 3. Add a check to ensure both tank objects exist before using them
+  if (!t1 || !t2) {
+    return;
+  }
 
   return Math.sqrt(
     (t1.sprite.x - t2.sprite.x) ** 2 + (t1.sprite.y - t2.sprite.y) ** 2
@@ -133,7 +156,11 @@ export function leave() {
   currentState = undefined;
   serverStates = [];
   started = false;
-  
+
   wss.unbindHandlers("match.stateUpdate");
   wss.unbindHandlers("match.playerChange");
+}
+
+export function getClientInfo() {
+  return clientInfo;
 }

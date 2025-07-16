@@ -1,13 +1,29 @@
-import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize } from "./common.js";
-import { initialize, step, shoot, move, getWalls, logState, removeTank } from "../gamelogic/game-state.js";
+import {
+  isDef,
+  serverStepSize,
+  maxStepSize,
+  inputCooldown,
+  matchSize,
+} from "./common.js";
+import {
+  initialize,
+  step,
+  shoot,
+  move,
+  getWalls,
+  logState,
+  removeTank,
+} from "../gamelogic/game-state.js";
+import { Server, Socket } from "socket.io";
+const MAX_PROXIMITY_DISTANCE = 500;
 
 import assert from "node:assert";
+const speakingStatus = new Map();
 
 let nextGameId = 0;
 const games = new Map([]);
 
 export function bindWSHandlers(io) {
-
   io.on("connection", (socket) => {
     socket.on("disconnect", () => {});
 
@@ -32,7 +48,7 @@ export function bindWSHandlers(io) {
       });
 
       // D:
-      game.players.push(1);
+      game.players.push(socket);
       socket.join(`game-${nextGameId}`);
       console.log(
         `Player ${game.players.length} of ${matchSize} joined game-${nextGameId}`
@@ -63,7 +79,7 @@ export function bindWSHandlers(io) {
       assert(isDef(game.players[clientIdx]));
 
       if (game.players.length === 1) {
-        games.delete(gameId)
+        games.delete(gameId);
         console.log(`Deleting game-${gameId}`);
         return;
       }
@@ -71,18 +87,19 @@ export function bindWSHandlers(io) {
       if (game.started) {
         removeTank(game.currentState, clientIdx);
         game.inputs = game.inputs.filter((input) => {
-          clientIdx === input.clientIdx && gameId === input.gameId
+          clientIdx === input.clientIdx && gameId === input.gameId;
         });
-        
-        game.inputs.forEach((input) => {
-          input.clientIdx = input.clientIdx < clientIdx ? clientIdx : clientIdx - 1;
-        })
 
-        io.to(game.name).emit("match.playerChange", { clientIdx })
+        game.inputs.forEach((input) => {
+          input.clientIdx =
+            input.clientIdx < clientIdx ? clientIdx : clientIdx - 1;
+        });
+
+        io.to(game.name).emit("match.playerChange", { clientIdx });
       }
 
       game.players.splice(clientIdx, 1);
-    })
+    });
 
     socket.on("game.shoot", ({ x, y, gameId, clientIdx }) => {
       const game = games.get(gameId);
@@ -142,6 +159,84 @@ export function bindWSHandlers(io) {
       });
 
       console.log(`Move req @ ${Date.now() - serverStepSize}`);
+    });
+
+    socket.on("voice.start", ({ gameId, clientIdx }) => {
+      console.log(`Player ${clientIdx} in game ${gameId} started talking.`);
+      if (!speakingStatus.has(gameId)) {
+        speakingStatus.set(gameId, new Map());
+      }
+      speakingStatus.get(gameId).set(clientIdx, true);
+      // Notify other clients in the room that this player started talking (for UI)
+      io.to(`game-${gameId}`).emit("voice.playerStartedTalking", {
+        senderClientIdx: clientIdx,
+      });
+    });
+
+    socket.on("voice.stop", ({ gameId, clientIdx }) => {
+      console.log(`Player ${clientIdx} in game ${gameId} stopped talking.`);
+      if (speakingStatus.has(gameId)) {
+        speakingStatus.get(gameId).set(clientIdx, false);
+      }
+      // Notify other clients in the room that this player stopped talking (for UI)
+      io.to(`game-${gameId}`).emit("voice.playerStoppedTalking", {
+        senderClientIdx: clientIdx,
+      });
+    });
+
+    socket.on("voice.audioChunk", ({ gameId, clientIdx, chunk }) => {
+      console.log(
+        `--- SERVER RECEIVED 'voice.audioChunk' from client ${clientIdx} in game ${gameId} ---`
+      );
+
+      const game = games.get(gameId);
+      if (!game || !game.started || !game.currentState) return;
+
+      if (
+        !speakingStatus.has(gameId) ||
+        !speakingStatus.get(gameId).get(clientIdx)
+      ) {
+        // console.warn(`Received audio chunk from non-speaking player ${clientIdx} in game ${gameId}.`);
+        return;
+      }
+
+      const senderTank = game.currentState.tanks[clientIdx];
+      if (!senderTank) {
+        console.warn(
+          `Sender tank ${clientIdx} not found for audio chunk in game ${gameId}.`
+        );
+        return;
+      }
+
+      // Iterate through all players in the game to determine proximity
+      game.players.forEach((receiverSocket, receiverIdx) => {
+        // Don't send audio back to the person who is talking.
+        if (receiverIdx === clientIdx) return;
+
+        const receiverTank = game.currentState.tanks[receiverIdx];
+        if (!receiverTank) return;
+
+        // Calculate the distance between the sender and the receiver.
+        const distance = Math.sqrt(
+          Math.pow(senderTank.sprite.x - receiverTank.sprite.x, 2) +
+            Math.pow(senderTank.sprite.y - receiverTank.sprite.y, 2)
+        );
+        console.log(
+          `[Game ${gameId}] Proximity Check: Sender ${clientIdx} to Receiver ${receiverIdx}. Distance: ${distance.toFixed(
+            2
+          )}`
+        );
+
+        if (distance <= MAX_PROXIMITY_DISTANCE) {
+          console.log(
+            `[Game ${gameId}] Distance OK. Sending audio from ${clientIdx} to Receiver ${receiverIdx}.`
+          );
+          receiverSocket.emit("voice.playerAudio", {
+            senderClientIdx: clientIdx,
+            chunk: chunk,
+          });
+        }
+      });
     });
   });
 
@@ -210,8 +305,8 @@ export function bindWSHandlers(io) {
       // 4. ship it to clients
       assert(game.currentState.timestamp === targetTime);
 
-      if (newStates.length !== 0) 
-        io.to(game.name).emit("match.stateUpdate", { newStates});
-    })
+      if (newStates.length !== 0)
+        io.to(game.name).emit("match.stateUpdate", { newStates });
+    });
   }, serverStepSize);
 }
