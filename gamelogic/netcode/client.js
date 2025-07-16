@@ -1,5 +1,5 @@
 import { WebSocketService } from "./web-socket-service";
-import { initialize, step, shoot, move, setWalls, removeTank } from "../gamelogic/game-state";
+import { initialize, step, shoot, move, setWalls, removeTank, moveVec, stopTank } from "../gamelogic/game-state";
 import { maxStepSize, serverStepSize, isDef } from "./common";
 
 const wss = new WebSocketService();
@@ -141,11 +141,18 @@ export function leave() {
 
 export function setDirection(dx, dy) {
   console.assert(started, "client.setDirection match not started");
-  console.assert(dx ** 2 + dy ** 2 === 1, "client.setDirection direction vector not normalized");
+  console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.setDirection direction vector not normalized");
   console.assert(isDef(clientInfo), "client.setDirection clientInfo not defined");
 
-  currentState.tanks[clientInfo.clientIdx].dx = dx;
-  currentState.tanks[clientInfo.clientIdx].dy = dy;
+  const tankSprite = currentState.tanks[clientInfo.clientIdx].sprite;
+
+  moveVec(currentState, clientInfo.clientIdx, dx, dy);
+  wss.emit("game.moveVec", {
+    dx,
+    dy,
+    gameId: clientInfo.gameId,
+    clientIdx: clientInfo.clientIdx,
+  });
 }
 
 export function shootBulletVec(dx, dy) {
@@ -153,13 +160,17 @@ export function shootBulletVec(dx, dy) {
   console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.shootBulletVec vector not normalized");
   console.assert(isDef(clientInfo), "client.shootBulletVec clientInfo not defined");
 
-  shootBullet(currentState.tanks[clientInfo.clientIdx].sprite.x + dx, currentState.tanks[clientInfo.clientIdx].sprite.y + dy);
+  const tankSprite = currentState.tanks[clientInfo.clientIdx].sprite;
+  shootBullet(tankSprite.x + dx, tankSprite.y + dy);
 }
 
 export function stop() {
   console.assert(started, "client.stop match not started");
   console.assert(isDef(clientInfo), "client.stop clientInfo not defined");
 
-  currentState.tanks[clientInfo.clientIdx].dx = 0;
-  currentState.tanks[clientInfo.clientIdx].dy = 0;
+  stopTank(currentState, clientInfo.clientIdx);
+  wss.emit("game.stop", {
+    gameId: clientInfo.gameId,
+    clientIdx: clientInfo.clientIdx,
+  })
 }

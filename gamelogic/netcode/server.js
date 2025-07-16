@@ -1,5 +1,5 @@
 import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize } from "./common.js";
-import { initialize, step, shoot, move, getWalls, logState, removeTank } from "../gamelogic/game-state.js";
+import { initialize, step, shoot, move, getWalls, logState, removeTank, stopTank, moveVec } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 
@@ -63,7 +63,7 @@ export function bindWSHandlers(io) {
       assert(isDef(game.players[clientIdx]));
 
       if (game.players.length === 1) {
-        games.delete(gameId)
+        games.delete(gameId);
         console.log(`Deleting game-${gameId}`);
         return;
       }
@@ -71,18 +71,19 @@ export function bindWSHandlers(io) {
       if (game.started) {
         removeTank(game.currentState, clientIdx);
         game.inputs = game.inputs.filter((input) => {
-          clientIdx === input.clientIdx && gameId === input.gameId
+          clientIdx === input.clientIdx && gameId === input.gameId;
         });
-        
-        game.inputs.forEach((input) => {
-          input.clientIdx = input.clientIdx < clientIdx ? clientIdx : clientIdx - 1;
-        })
 
-        io.to(game.name).emit("match.playerChange", { clientIdx })
+        game.inputs.forEach((input) => {
+          input.clientIdx =
+            input.clientIdx < clientIdx ? clientIdx : clientIdx - 1;
+        });
+
+        io.to(game.name).emit("match.playerChange", { clientIdx });
       }
 
       game.players.splice(clientIdx, 1);
-    })
+    });
 
     socket.on("game.shoot", ({ x, y, gameId, clientIdx }) => {
       const game = games.get(gameId);
@@ -91,15 +92,7 @@ export function bindWSHandlers(io) {
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
 
-      // add rate limit
       const now = Date.now();
-      const lastInput = game.inputs[game.inputs.length - 1];
-      if (
-        isDef(lastInput) &&
-        now - lastInput.timestamp < inputCooldown &&
-        lastInput.clientIdx === clientIdx
-      )
-        return;
 
       assert(isDef(clientIdx) && isDef(gameId));
       game.inputs.push({
@@ -121,15 +114,7 @@ export function bindWSHandlers(io) {
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
 
-      // add rate limit
       const now = Date.now();
-      const lastInput = game.inputs[game.inputs.length - 1];
-      if (
-        isDef(lastInput) &&
-        now - lastInput.timestamp < inputCooldown &&
-        lastInput.clientIdx === clientIdx
-      )
-        return;
 
       assert(isDef(clientIdx) && isDef(gameId));
       game.inputs.push({
@@ -142,6 +127,48 @@ export function bindWSHandlers(io) {
       });
 
       console.log(`Move req @ ${Date.now() - serverStepSize}`);
+    });
+
+    socket.on("game.moveVec", ({ dx, dy, gameId, clientIdx }) => {
+      const game = games.get(gameId);
+      if (!game || !game.started) return;
+
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
+
+      const now = Date.now();
+
+      assert(isDef(clientIdx) && isDef(gameId));
+      game.inputs.push({
+        dx,
+        dy,
+        timestamp: Date.now(),
+        action: "moveVec",
+        clientIdx,
+        gameId,
+      });
+
+      console.log(`Move vec req @ ${Date.now() - serverStepSize}`);
+    });
+
+    socket.on("game.stop", ({ gameId, clientIdx }) => {
+      const game = games.get(gameId);
+      if (!game || !game.started) return;
+
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
+
+      const now = Date.now();
+
+      assert(isDef(clientIdx) && isDef(gameId));
+      game.inputs.push({
+        timestamp: Date.now(),
+        action: "stop",
+        clientIdx,
+        gameId,
+      });
+
+      console.log(`Stop req @ ${Date.now() - serverStepSize}`);
     });
   });
 
@@ -192,6 +219,12 @@ export function bindWSHandlers(io) {
             case "move":
               move(game.currentState, input.clientIdx, input.x, input.y);
               break;
+            case "stop":
+              stopTank(game.currentState, input.clientIdx);
+              break;
+            case "moveVec":
+              moveVec(game.currentState, input.clientIdx, input.dx, input.dy);
+              break;
             default:
               console.error(`Error: action ${input.action} not found.`);
           }
@@ -210,8 +243,8 @@ export function bindWSHandlers(io) {
       // 4. ship it to clients
       assert(game.currentState.timestamp === targetTime);
 
-      if (newStates.length !== 0) 
-        io.to(game.name).emit("match.stateUpdate", { newStates});
-    })
+      if (newStates.length !== 0)
+        io.to(game.name).emit("match.stateUpdate", { newStates });
+    });
   }, serverStepSize);
 }
