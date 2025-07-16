@@ -71,8 +71,8 @@ export function logState(state) {
   console.log(`TIME: ${state.timestamp}
   Tanks:`)
   state.tanks.forEach((t) => {
-    console.log(`    x: ${t.sprite.x} ---> ${t.newX}
-    y: ${t.sprite.y} ---> ${t.newY}
+    console.log(`    x: ${t.sprite.x}
+    y: ${t.sprite.y}
     dx: ${t.dy}
     dx: ${t.dx}
     rot: ${t.rotation}
@@ -83,8 +83,8 @@ export function logState(state) {
   Bullets:`)
   state.bullets.forEach((b) => {
     const t = b.dSprite;
-    console.log(`    x: ${t.sprite.x} ---> ${t.newX}
-    y: ${t.sprite.y} ---> ${t.newY}
+    console.log(`    x: ${t.sprite.x}
+    y: ${t.sprite.y}
     dx: ${t.dy}
     dx: ${t.dx}
     rot: ${t.rotation}

@@ -2,9 +2,6 @@
 <p>loading gameboard</p>
 
 } @else {
-<button (click)="toggleListening()">
-{{ isListening ? 'Stop Listening' : 'Start Listening' }}
-</button>
 <div class="background" (click)="onClick($event)"></div>
 @for (tank of tanks(); track $index; let idx = $index){
 <img

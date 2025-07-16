@@ -1,6 +1,6 @@
-import { moveTo ,shootBullet, fetchFrame, getClientIdx, hasStarted, leave } from "../../../../gamelogic/netcode/client";
+import { moveTo ,shootBullet, fetchFrame, getClientIdx, hasStarted, leave, setDirection, shootBulletVec, stop } from "../../../../gamelogic/netcode/client";
 import { Sprite, GameState, Tank, Bullet, getWalls } from "../../../../gamelogic/gamelogic/game-state";
-import { signal, Component, HostListener, computed } from "@angular/core";
+import { signal, Component, HostListener, computed, Host } from "@angular/core";
 import { SpeechService } from '../services/speech';
 import { Subscription } from 'rxjs';
 
@@ -16,23 +16,6 @@ export class GameBoard {
   tanks = signal<Tank[]>([]);
   bullets = signal<Bullet[]>([]);
   walls: Sprite[];
-  speechText = '';
-  transcriptSub?: Subscription;
-  leftCount = 0;
-  rightCount = 0;
-  upCount = 0;
-  downCount = 0;
-  lastIndex = -1;
-  lastTranscript = '';
-  shootCommand = '';
-  resetTimeout?: any;
-  isListening = false;
-
-  clientTank = computed(() => {
-    const idx = this.clientIdx;
-    const tanks = this.tanks();
-    return idx !== undefined ? tanks[idx] : undefined;
-  });
 
   constructor(private speechService: SpeechService) {
     this.walls = getWalls();
@@ -62,83 +45,87 @@ export class GameBoard {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
-    const tank = this.clientTank();
-    if (!tank) return;
-
-    const currentX = tank.sprite.x;
-    const currentY = tank.sprite.y;
-
     switch (event.key.toLowerCase()) {
       case 'w':
-        moveTo(currentX, currentY - 50);
         break;
       case 'a':
-        moveTo(currentX - 50, currentY);
         break;
       case 's':
-        moveTo(currentX, currentY + 50);
         break;
       case 'd':
-        moveTo(currentX + 50, currentY);
+        break;
+      case 'v':
+        this.startRecording();
         break;
     }
   }
-  ngOnInit() {
-    /* ------------ START VOICE CONTROL BLOCK ------------- */
-    this.speechService.startListening();
 
-
-    this.transcriptSub = this.speechService.transcript$.subscribe(({ transcript, index }) => {
-      if (transcript.length < this.lastTranscript.length || this.lastTranscript === transcript && this.lastIndex === index ) {
-        return;
-      } 
-      this.speechText = transcript;
-
-      let newTranscript = transcript;
-      if (this.lastIndex === index) {
-        newTranscript = transcript.replace(this.lastTranscript, '');
-      }
-      const tank = this.clientTank();
-      if (!tank) return;
-
-      const currentX = tank.sprite.x;
-      const currentY = tank.sprite.y;
-      if (transcript.toLowerCase().includes('left')) {
-        moveTo(currentX - 50, currentY);
-      }
-      if (transcript.toLowerCase().includes('right')) {
-       moveTo(currentX + 50, currentY);
-      }
-      if (transcript.toLowerCase().includes('up')) {
-        moveTo(currentX, currentY - 50);
-      }
-      if (transcript.toLowerCase().includes('down')) {
-        moveTo(currentX, currentY + 50);
-      }
-
-      this.lastIndex = index;
-      this.lastTranscript = transcript;
-      
-      if (this.resetTimeout) {
-        console.log("reset timeout")
-        clearTimeout(this.resetTimeout);
-      }
-
-      this.resetTimeout = setTimeout(() => {
-        console.log("cleared")
-        this.lastTranscript = '';
-        this.lastIndex = -1;
-      }, 1500);
-
-    });
-     /* ------------ END VOICE CONTROL BLOCK ------------- */
-  }
-  toggleListening() {
-    if (this.isListening) {
-      this.speechService.stopListening();
-    } else {
-      this.speechService.startListening();
+  @HostListener('window:keyup', ["$event"])
+  handleKeyUp(event: KeyboardEvent) {
+    switch (event.key.toLowerCase()) {
+      case 'm':
+        this.stopRecording();
+        break;
     }
-    this.isListening = !this.isListening;
+  }
+
+  startRecording() {
+    this.speechService.startListening((transcript: string) => {
+      console.log(transcript);
+      const advCmd = transcript.toLowerCase().match(/(shoot|move) ([0-9]+)(?:° | degrees )?(north|south).?(east|west)/)
+      const smpCmd = transcript.toLowerCase().match(/(shoot|move) (north|east|south|west)/);
+
+      let dx = 0;
+      let dy = 0;
+      let action = "";
+
+      if (advCmd === null && smpCmd === null) return;
+      console.assert((smpCmd === null) != (advCmd == null), "both smpCmd and advCmd are valid");   
+
+      if (advCmd) {
+        action = advCmd[1];
+        const radians = Number.parseInt(advCmd[2]);
+
+        dy = advCmd[3] === 'north' ? -1 : 1;           
+        switch (advCmd[4]) {
+          case "east":
+            dx = dy * Math.sin(radians);
+            dy = dy * Math.cos(radians);
+            break;
+          case "west":
+            dx = -dy * Math.sin(radians);
+            dy = dy * Math.cos(radians);
+            break;
+        }
+
+      } else if (smpCmd) {
+        action = smpCmd[1];
+
+        switch (smpCmd[2]) {
+          case "north":
+            dy = -1;
+            break;
+          case "south":
+            dy = 1;
+            break;
+          case "east":
+            dx = 1;
+            break;
+          case "west":
+            dx = -1;
+        }
+      } else {
+        console.error("the impossible just happended!");
+      }
+
+      if (action === "shoot")
+        shootBulletVec(dx, dy);
+      else if (action === "move")
+        setDirection(dx, dy);
+    });
+  }
+
+  stopRecording() {
+    this.speechService.stopListening();
   }
 }

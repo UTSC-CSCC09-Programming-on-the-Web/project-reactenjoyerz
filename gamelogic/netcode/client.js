@@ -129,6 +129,7 @@ export function hasStarted() {
 
 export function leave() {
   wss.emit("match.leave", clientInfo);
+  console.log(started, "client.leave match not started");
   clientInfo = undefined;
   currentState = undefined;
   serverStates = [];
@@ -136,4 +137,29 @@ export function leave() {
   
   wss.unbindHandlers("match.stateUpdate");
   wss.unbindHandlers("match.playerChange");
+}
+
+export function setDirection(dx, dy) {
+  console.assert(started, "client.setDirection match not started");
+  console.assert(dx ** 2 + dy ** 2 === 1, "client.setDirection direction vector not normalized");
+  console.assert(isDef(clientInfo), "client.setDirection clientInfo not defined");
+
+  currentState.tanks[clientInfo.clientIdx].dx = dx;
+  currentState.tanks[clientInfo.clientIdx].dy = dy;
+}
+
+export function shootBulletVec(dx, dy) {
+  console.assert(started, "client.shootBulletVec match not started");
+  console.assert(dx ** 2 + dy ** 2 === 1, "client.shootBulletVec vector not normalized");
+  console.assert(isDef(clientInfo), "client.shootBulletVec clientInfo not defined");
+
+  shootBullet(currentState.tanks[clientInfo.clientIdx].x + dx, currentState.tanks[clientInfo.clientIdx].y + dy);
+}
+
+export function stop() {
+  console.assert(started, "client.stop match not started");
+  console.assert(isDef(clientInfo), "client.stop clientInfo not defined");
+
+  currentState.tanks[clientInfo.clientIdx].dx = 0;
+  currentState.tanks[clientInfo.clientIdx].dy = 0;
 }
