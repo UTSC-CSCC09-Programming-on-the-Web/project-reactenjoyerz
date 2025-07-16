@@ -1,7 +1,7 @@
 import { Injectable, NgZone } from '@angular/core';
 import { Subject } from 'rxjs';
+import { MicrophoneService } from './microphone.service'; // Import new service
 
-// youtube tutorial: https://www.youtube.com/watch?v=dCaZhWIhLWI
 declare var webkitSpeechRecognition: any;
 
 @Injectable({
@@ -9,10 +9,12 @@ declare var webkitSpeechRecognition: any;
 })
 export class SpeechService {
   recognition: any;
+  isListening = false;
   listener?: ((transcript: string) => void);
   transcript = "";
 
-  constructor() {
+  // Inject the new MicrophoneService
+  constructor(private micService: MicrophoneService) {
     const SpeechRecognition = webkitSpeechRecognition;
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
@@ -20,13 +22,23 @@ export class SpeechService {
     this.recognition.interimResults = false;
   }
 
-  startListening(listener: (transcript: string) => void) {
+  async startListening() {
+    if (this.isListening) return;
+    this.isListening = true;
+    try {
+      await this.micService.getStream('speech');
+    } catch (error) {
+      console.error("SpeechService could not acquire microphone:", error);
+    }
+  }
+
+  startRecording(listener: (transcript: string) => void) {
     if (this.listener) return;
     this.listener = listener;
 
     this.recognition.onstart = () => {
-      console.log("speech recognition start");
-    }
+      console.log('speech recognition start');
+    };
 
     // https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognitionResult
     this.recognition.onresult = (event: any) => {
@@ -37,19 +49,25 @@ export class SpeechService {
     };
 
     this.recognition.onend = () => {
-      if (this.listener) 
-        this.listener(this.transcript);
+      if (this.listener) this.listener(this.transcript);
 
-      console.log("speech recognition end");
+      console.log('speech recognition end');
       this.listener = undefined;
-    }
+    };
 
     this.recognition.start();
+  }   
+
+  stopListening() {
+    if (this.isListening) {
+      this.isListening = false;
+      // Release the stream so other services can use it
+      this.micService.releaseStream('speech');
+      console.log("Speech recognition stopped.");
+    }
   }
 
-  //toggle voice controls off
-  stopListening() {
-    if (this.listener)
-      this.recognition.stop();
+  stopRecording() {
+
   }
 }

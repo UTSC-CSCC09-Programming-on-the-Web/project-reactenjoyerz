@@ -1,8 +1,23 @@
-@if (!started) {
+@if (!started()) {
 <p>loading gameboard</p>
-
 } @else {
+<button (click)="toggleListening()">
+  {{ isListening ? 'Stop Listening' : 'Start Listening' }}
+</button>
+
+<div class="voice-chat-controls">
+  <button
+    (click)="toggleVoiceTransmission()"
+    [ngClass]="{'speaking-active': isVoiceTransmitting}"
+    [disabled]="clientIdx === undefined || micAccessDenied || micAccessError"
+  >
+    @if (micAccessDenied) { 🎙️ Mic Denied } @else if (micAccessError) { 🎙️ Mic
+    Error } @else if (isVoiceTransmitting) { 🎙️ Speaking... } @else { 🎙️ Push to
+    Talk }
+  </button>
+</div>
 <div class="background" (click)="onClick($event)"></div>
+
 @for (tank of tanks(); track $index; let idx = $index){
 <img
   class="tank"
@@ -13,9 +28,37 @@
   src="{{ idx === clientIdx ? 'blueTank.png' : 'redTank.png' }}"
   (click)="onClick($event)"
 />
+
+@if (idx !== clientIdx) { @if (speakingPlayers.has(idx)) {
+<span
+  class="speaking-indicator"
+  [style.left.px]="tank.sprite.x + tank.sprite.width + 5"
+  [style.top.px]="tank.sprite.y"
+>
+  🗣️
+</span>
 }
 
-@for (bullet of bullets(); track $index) {
+<div
+  class="player-voice-control"
+  [style.left.px]="tank.sprite.x + tank.sprite.width + 20"
+  [style.top.px]="tank.sprite.y + 10"
+>
+  <button (click)="togglePlayerMute(idx)">
+    {{ isPlayerMuted(idx) ? '🔇 Unmute' : '🔊 Mute' }} Player {{ idx }}
+  </button>
+  <input
+    type="range"
+    min="0"
+    max="1"
+    step="0.1"
+    [value]="getPlayerCustomVolume(idx)"
+    (input)="setPlayerCustomVolume(idx, $event)"
+    [disabled]="isPlayerMuted(idx)"
+  />
+  <span>Vol: {{ (getPlayerCustomVolume(idx) * 100).toFixed(0) }}%</span>
+</div>
+} } @for (bullet of bullets(); track $index) {
 <img
   class="bullet"
   style.left="{{ bullet.dSprite.sprite.x }}px"
@@ -26,17 +69,14 @@
   height="21px"
   (click)="onClick($event)"
 />
-}
-
-@for (wall of walls.slice(4); track wall.x) {
-  <div
-    class="wall"
-    style.left="{{ wall.x }}px"
-    style.top="{{ wall.y }}px"
-    [style.background-image]="'url(wall.png)'"
-    style.width="{{ wall.width }}px"
-    style.height="{{ wall.height }}px"
-    (click)="onClick($event)"
-  ></div>
-}
-}
+} @for (wall of walls.slice(4); track wall.x) {
+<div
+  class="wall"
+  style.left="{{ wall.x }}px"
+  style.top="{{ wall.y }}px"
+  [style.background-image]="'url(wall.png)'"
+  style.width="{{ wall.width }}px"
+  style.height="{{ wall.height }}px"
+  (click)="onClick($event)"
+></div>
+} }

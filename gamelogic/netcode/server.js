@@ -2,12 +2,12 @@ import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize } from "./
 import { initialize, step, shoot, move, getWalls, logState, removeTank, stopTank, moveVec } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
+const speakingStatus = new Map();
 
 let nextGameId = 0;
 const games = new Map([]);
 
 export function bindWSHandlers(io) {
-
   io.on("connection", (socket) => {
     socket.on("disconnect", () => {});
 
@@ -32,7 +32,7 @@ export function bindWSHandlers(io) {
       });
 
       // D:
-      game.players.push(1);
+      game.players.push(socket);
       socket.join(`game-${nextGameId}`);
       console.log(
         `Player ${game.players.length} of ${matchSize} joined game-${nextGameId}`
@@ -127,6 +127,84 @@ export function bindWSHandlers(io) {
       });
 
       console.log(`Move req @ ${Date.now() - serverStepSize}`);
+    });
+
+    socket.on("voice.start", ({ gameId, clientIdx }) => {
+      console.log(`Player ${clientIdx} in game ${gameId} started talking.`);
+      if (!speakingStatus.has(gameId)) {
+        speakingStatus.set(gameId, new Map());
+      }
+      speakingStatus.get(gameId).set(clientIdx, true);
+      // Notify other clients in the room that this player started talking (for UI)
+      io.to(`game-${gameId}`).emit("voice.playerStartedTalking", {
+        senderClientIdx: clientIdx,
+      });
+    });
+
+    socket.on("voice.stop", ({ gameId, clientIdx }) => {
+      console.log(`Player ${clientIdx} in game ${gameId} stopped talking.`);
+      if (speakingStatus.has(gameId)) {
+        speakingStatus.get(gameId).set(clientIdx, false);
+      }
+      // Notify other clients in the room that this player stopped talking (for UI)
+      io.to(`game-${gameId}`).emit("voice.playerStoppedTalking", {
+        senderClientIdx: clientIdx,
+      });
+    });
+
+    socket.on("voice.audioChunk", ({ gameId, clientIdx, chunk }) => {
+      console.log(
+        `--- SERVER RECEIVED 'voice.audioChunk' from client ${clientIdx} in game ${gameId} ---`
+      );
+
+      const game = games.get(gameId);
+      if (!game || !game.started || !game.currentState) return;
+
+      if (
+        !speakingStatus.has(gameId) ||
+        !speakingStatus.get(gameId).get(clientIdx)
+      ) {
+        // console.warn(`Received audio chunk from non-speaking player ${clientIdx} in game ${gameId}.`);
+        return;
+      }
+
+      const senderTank = game.currentState.tanks[clientIdx];
+      if (!senderTank) {
+        console.warn(
+          `Sender tank ${clientIdx} not found for audio chunk in game ${gameId}.`
+        );
+        return;
+      }
+
+      // Iterate through all players in the game to determine proximity
+      game.players.forEach((receiverSocket, receiverIdx) => {
+        // Don't send audio back to the person who is talking.
+        if (receiverIdx === clientIdx) return;
+
+        const receiverTank = game.currentState.tanks[receiverIdx];
+        if (!receiverTank) return;
+
+        // Calculate the distance between the sender and the receiver.
+        const distance = Math.sqrt(
+          Math.pow(senderTank.sprite.x - receiverTank.sprite.x, 2) +
+            Math.pow(senderTank.sprite.y - receiverTank.sprite.y, 2)
+        );
+        console.log(
+          `[Game ${gameId}] Proximity Check: Sender ${clientIdx} to Receiver ${receiverIdx}. Distance: ${distance.toFixed(
+            2
+          )}`
+        );
+
+        if (distance <= MAX_PROXIMITY_DISTANCE) {
+          console.log(
+            `[Game ${gameId}] Distance OK. Sending audio from ${clientIdx} to Receiver ${receiverIdx}.`
+          );
+          receiverSocket.emit("voice.playerAudio", {
+            senderClientIdx: clientIdx,
+            chunk: chunk,
+          });
+        }
+      });
     });
 
     socket.on("game.moveVec", ({ dx, dy, gameId, clientIdx }) => {

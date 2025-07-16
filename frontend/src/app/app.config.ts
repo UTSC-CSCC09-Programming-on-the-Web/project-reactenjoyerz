@@ -1,14 +1,24 @@
 import {
   ApplicationConfig,
+  APP_INITIALIZER,
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
-  importProvidersFrom
+  importProvidersFrom, 
+  inject,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 import { provideHttpClient } from '@angular/common/http';
 import { AppAuthModule } from './app-auth.module';
+import { WebSocketService } from './services/web-socket.service';
+import { initClient } from '../../../gamelogic/netcode/client';
+
+
+export function initializeAppFactory(): () => void {
+  const wss = inject(WebSocketService); 
+  return () => initClient(wss);
+}
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,6 +26,12 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(),
-    importProvidersFrom(AppAuthModule)
+    importProvidersFrom(AppAuthModule),
+
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeAppFactory,
+      multi: true
+    }
   ],
 };

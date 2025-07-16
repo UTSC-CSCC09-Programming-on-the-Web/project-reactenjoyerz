@@ -11,3 +11,5 @@ export function leave();
 export function setDirection(dx: number, dy: number);
 export function shootBulletVec(dx: number, dy: number);
 export function stop();
+export function getClientInfo(): { gameId: number, clientIdx: number };
+export function initClient(socketService: WebSocketService): void;

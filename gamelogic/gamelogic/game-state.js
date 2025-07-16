@@ -15,7 +15,7 @@ export function initialize(playerCount) {
     createWall(500, 50, 3, 15, 48),
   ];
 
-  const tanks = []
+  const tanks = [];
   for (let i = 0; i < playerCount; i++) {
     tanks.push(tank.createTank(960, 540));
   }
@@ -80,18 +80,18 @@ export function stopTank(state, tankIdx) {
 
 export function logState(state) {
   console.log(`TIME: ${state.timestamp}
-  Tanks:`)
+  Tanks:`);
   state.tanks.forEach((t) => {
     console.log(`    x: ${t.sprite.x}
     y: ${t.sprite.y}
     dx: ${t.dy}
     dx: ${t.dx}
     rot: ${t.rotation}
-    `)
-  })
+    `);
+  });
 
   console.log(`
-  Bullets:`)
+  Bullets:`);
   state.bullets.forEach((b) => {
     const t = b.dSprite;
     console.log(`    x: ${t.sprite.x}
@@ -100,8 +100,8 @@ export function logState(state) {
     dx: ${t.dx}
     rot: ${t.rotation}
     nBounces: ${b.nBounces};
-    `)
-  })
+    `);
+  });
 
   console.log(`
   Leaderboard:
