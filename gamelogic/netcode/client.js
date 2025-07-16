@@ -150,10 +150,10 @@ export function setDirection(dx, dy) {
 
 export function shootBulletVec(dx, dy) {
   console.assert(started, "client.shootBulletVec match not started");
-  console.assert(dx ** 2 + dy ** 2 === 1, "client.shootBulletVec vector not normalized");
+  console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.shootBulletVec vector not normalized");
   console.assert(isDef(clientInfo), "client.shootBulletVec clientInfo not defined");
 
-  shootBullet(currentState.tanks[clientInfo.clientIdx].x + dx, currentState.tanks[clientInfo.clientIdx].y + dy);
+  shootBullet(currentState.tanks[clientInfo.clientIdx].sprite.x + dx, currentState.tanks[clientInfo.clientIdx].sprite.y + dy);
 }
 
 export function stop() {

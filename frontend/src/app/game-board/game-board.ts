@@ -32,27 +32,28 @@ export class GameBoard {
   }
 
   onClick(event: MouseEvent): void {
-    if (event.altKey)
-      shootBullet(event.x, event.y);
-    else
-      moveTo(event.x, event.y);
+    shootBullet(event.x, event.y);
   }
 
-  @HostListener("window:beforeunload")
+  @HostListener('window:beforeunload')
   onUnload() {
-    leave()
+    leave();
   }
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
     switch (event.key.toLowerCase()) {
       case 'w':
+        setDirection(0, -1);
         break;
       case 'a':
+        setDirection(-1, 0);
         break;
       case 's':
+        setDirection(0, 1);
         break;
       case 'd':
+        setDirection(1, 0);
         break;
       case 'v':
         this.startRecording();
@@ -60,9 +61,15 @@ export class GameBoard {
     }
   }
 
-  @HostListener('window:keyup', ["$event"])
+  @HostListener('window:keyup', ['$event'])
   handleKeyUp(event: KeyboardEvent) {
     switch (event.key.toLowerCase()) {
+      case 'w':
+      case 'a':
+      case 's':
+      case 'd':
+        stop();
+        break;
       case 'm':
         this.stopRecording();
         break;
@@ -71,57 +78,61 @@ export class GameBoard {
 
   startRecording() {
     this.speechService.startListening((transcript: string) => {
-      console.log(transcript);
-      const advCmd = transcript.toLowerCase().match(/(shoot|move) ([0-9]+)(?:° | degrees )?(north|south).?(east|west)/)
-      const smpCmd = transcript.toLowerCase().match(/(shoot|move) (north|east|south|west)/);
+      if (transcript.toLowerCase().includes("stop")) {
+        stop();
+        return;
+      }
+
+      const advCmd = transcript
+        .toLowerCase()
+        .match(
+          /(shoot|move) ([0-9]+)(?:° | degrees )?(north|south).?(east|west)/
+        );
+      const smpCmd = transcript
+        .toLowerCase()
+        .match(/(shoot|move) (north|east|south|west)/);
 
       let dx = 0;
       let dy = 0;
-      let action = "";
-
-      if (advCmd === null && smpCmd === null) return;
-      console.assert((smpCmd === null) != (advCmd == null), "both smpCmd and advCmd are valid");   
+      let action = '';
 
       if (advCmd) {
         action = advCmd[1];
-        const radians = Number.parseInt(advCmd[2]);
+        const radians = (Number.parseInt(advCmd[2]) * Math.PI) / 180;
 
-        dy = advCmd[3] === 'north' ? -1 : 1;           
+        dy = advCmd[3] === 'north' ? -1 : 1;
         switch (advCmd[4]) {
-          case "east":
+          case 'east':
             dx = dy * Math.sin(radians);
             dy = dy * Math.cos(radians);
             break;
-          case "west":
+          case 'west':
             dx = -dy * Math.sin(radians);
             dy = dy * Math.cos(radians);
             break;
         }
-
       } else if (smpCmd) {
         action = smpCmd[1];
 
         switch (smpCmd[2]) {
-          case "north":
+          case 'north':
             dy = -1;
             break;
-          case "south":
+          case 'south':
             dy = 1;
             break;
-          case "east":
+          case 'east':
             dx = 1;
             break;
-          case "west":
+          case 'west':
             dx = -1;
         }
       } else {
-        console.error("the impossible just happended!");
+        console.error('the impossible just happended!');
       }
 
-      if (action === "shoot")
-        shootBulletVec(dx, dy);
-      else if (action === "move")
-        setDirection(dx, dy);
+      if (action === 'shoot') shootBulletVec(dx, dy);
+      else if (action === 'move') setDirection(dx, dy);
     });
   }
 
