@@ -198,11 +198,11 @@ export class GameBoard implements OnDestroy {
 
         dy = advCmd[3] === 'north' ? -1 : 1;
         switch (advCmd[4]) {
-          case 'east':
+          case 'west':
             dx = dy * Math.sin(radians);
             dy = dy * Math.cos(radians);
             break;
-          case 'west':
+          case 'east':
             dx = -dy * Math.sin(radians);
             dy = dy * Math.cos(radians);
             break;
