@@ -12,11 +12,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.VM_SSH_KEY }}
-          known_hosts: "yes"
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/reactenjoyers_key
+          chmod 600 ~/.ssh/reactenjoyers_key
 
       - name: Deploy to VM
         run: |
