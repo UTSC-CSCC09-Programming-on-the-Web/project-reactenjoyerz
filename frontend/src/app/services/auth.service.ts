@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environments';
 
 interface User {
   id: number;
@@ -12,8 +13,8 @@ interface User {
   providedIn: 'root',
 })
 export class AuthService {
-  apiUrl = 'http://localhost:8000/api/users';
-  //endpoint = environment.apiEndpoint;
+  // apiUrl = ;
+  endpoint = environment.apiUrl;
   private _user: User | null = null;
 
   constructor(private http: HttpClient) {}
@@ -26,7 +27,7 @@ export class AuthService {
    */
   login(email: string, password: string): Observable<any> {
     return this.http
-      .post<User>(`${this.apiUrl}/login`, { email, password }, { withCredentials: true })
+      .post<User>(`${this.endpoint}/users/login`, { email, password }, { withCredentials: true })
       .pipe(
         tap((user) => {
           this._user = user;
@@ -36,7 +37,7 @@ export class AuthService {
 
   googleLogin(idToken: string): Observable<any> {
   return this.http
-    .post<User>(`${this.apiUrl}/google-login`, { idToken }, { withCredentials: true })
+    .post<User>(`${this.endpoint}/users/google-login`, { idToken }, { withCredentials: true })
     .pipe(
       tap((user) => {
         this._user = user;
@@ -45,16 +46,16 @@ export class AuthService {
   }
 
   register(username: string, email: string, password: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register`, { username, email, password }, { withCredentials: true });
+    return this.http.post(`${this.endpoint}/users/register`, { username, email, password }, { withCredentials: true });
   }
 
   logout(): Observable<any> {
     this._user = null;
-    return this.http.get(`${this.apiUrl}/logout`, { withCredentials: true });
+    return this.http.get(`${this.endpoint}/users/logout`, { withCredentials: true });
   }
 
   me(): Observable<User> {
-    return this.http.get<User>(`${this.apiUrl}/me`, { withCredentials: true }).pipe(
+    return this.http.get<User>(`${this.endpoint}/users/me`, { withCredentials: true }).pipe(
       tap((user) => {
         this._user = user;
       })

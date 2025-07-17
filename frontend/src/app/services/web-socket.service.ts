@@ -10,7 +10,7 @@ export class WebSocketService {
   handlers: Map<string, Function[]>;
 
   constructor() {
-    this.socket = io("http://localhost:8000", {
+    this.socket = io({
       withCredentials: true,
       transports: ['websocket', 'polling']
     });
