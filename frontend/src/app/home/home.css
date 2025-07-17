@@ -1,0 +1,70 @@
+.game-title {
+  font-family: 'Russo One', sans-serif;
+  font-size: 60px;
+  margin-top: 20%;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+.left-panel {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.right-panel {
+  flex: 1;
+  background-color: #545454;
+  border-radius: 15px;
+  margin: 3%;
+  min-width: 50%;
+}
+
+.buttons {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 50px;
+}
+
+.buttons-login {
+  background-color: white;
+  width: 300px;
+  color: black;
+  padding: 15px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: large;
+}
+
+.buttons-register {
+  background-color: white;
+  opacity: 30%;
+  width: 300px;
+  color: black;
+  padding: 15px;
+  border: 2px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: large;
+}
+
+.buttons-login:hover,
+.buttons-register:hover {
+  background-color: #c1c1c1;
+}
+
+.buttons-login:active,
+.buttons-register:active {
+  background-color: #4f4f4f;
+}
+
