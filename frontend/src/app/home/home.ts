@@ -15,11 +15,8 @@ export class Home implements OnInit {
   isRecording = false;
 
   constructor(private authService: AuthService, private router: Router, private speechService: SpeechService) {}
-  login() {
-    
-  }
-  register() {
-
+  home() {
+    this.router.navigate(['/home']);
   }
 
 

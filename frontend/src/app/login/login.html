@@ -1,26 +1,44 @@
-<h1>Login</h1>
-<form (ngSubmit)="login()">
-  <label for="email"> Email </label>
-  <input
-    [(ngModel)]="email"
-    type="email"
-    name="email"
-    placeholder="example@email.com"
-  />
-  <label for="password"> Password </label>
-  <input
-    [(ngModel)]="password"
-    type="password"
-    name="password"
-    placeholder="********"
-  />
-  <a href="/register">Don't Have Account?</a>
-  <button type="submit">Login</button>
-</form>
-<p>{{ message }}</p>
-<a href="/google-login">Google</a>
-<p>fsdkjfn</p>
-<p>
-  If you log in an register, cannot go back to home page (havent done logout
-  yet), but can go to /login
-</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="login.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap">
+</head>
+<body>
+  <div class="container">
+    <div class="left-panel">
+      <h1 class="game-title" (click)="home()">WTanks</h1>
+      <div class="login-container">
+        <form class="login-form" (ngSubmit)="login()">
+          <label for="email"> Email </label>
+          <input
+            [(ngModel)]="email"
+            type="email"
+            name="email"
+            placeholder="example@email.com"
+          />
+          <label for="password"> Password </label>
+          <input
+            [(ngModel)]="password"
+            type="password"
+            name="password"
+            placeholder="********"
+          />
+          <a href="/register">Don't Have Account?</a>
+          <button type="submit">Login</button>
+        </form>
+        <p>{{ message }}</p>
+        <button class="google-sign-in-button" (click)="googleLogin()">
+          Sign in with Google
+        </button>
+      </div>
+    </div>
+    <div class="right-panel image-placeholder"></div>
+  </div>
+</body>
+</html>
+
+

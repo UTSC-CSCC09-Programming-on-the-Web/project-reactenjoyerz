@@ -19,6 +19,12 @@ export class Login {
 
   constructor(private authService: AuthService, private router: Router) {}
 
+  home() {
+    this.router.navigate(['/home']);
+  }
+  googleLogin() {
+    this.router.navigate(['/google-login']);
+  }
   login() {
     this.authService.login(this.email, this.password).subscribe({
       next: (res) => {
