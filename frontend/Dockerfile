@@ -17,10 +17,10 @@ RUN npm run build
 ### STAGE 2: Serve the application from NGINX ###
 FROM nginx:stable-alpine
 
-# --- THIS IS THE CRITICAL MISSING STEP ---
+RUN rm -rf /usr/share/nginx/html/*
+
 # Copy the built files from the 'builder' stage into the NGINX web root
-# NOTE: Remember to replace 'your-angular-app-name'
-COPY --from=builder /app/dist/project-reactenjoyerz /usr/share/nginx/html
+COPY --from=builder /app/dist/project-reactenjoyerz/browser/. /usr/share/nginx/html
 
 # Copy the custom NGINX configuration
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
