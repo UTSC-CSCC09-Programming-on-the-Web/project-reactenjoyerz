@@ -18,7 +18,7 @@ COPY ./gamelogic /gamelogic
 # ENV NODE_ENV=production
 
 # Expose port your app runs on (adjust if not 3000)
-EXPOSE 3000
+#EXPOSE 8000
 
 # Start the server
 CMD ["npm", "start"]
