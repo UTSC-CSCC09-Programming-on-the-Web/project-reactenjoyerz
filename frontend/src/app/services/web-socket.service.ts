@@ -10,7 +10,8 @@ export class WebSocketService {
   handlers: Map<string, Function[]>;
 
   constructor() {
-    this.socket = io({
+    console.log("https://api.reactenjoyerz.me/")
+    this.socket = io("https://api.reactenjoyerz.me/", {
       withCredentials: true,
       transports: ['websocket', 'polling']
     });
