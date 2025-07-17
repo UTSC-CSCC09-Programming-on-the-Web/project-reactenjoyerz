@@ -8,8 +8,6 @@ export function createTank(x, y) {
   return {
     dx: 0,
     dy: 0,
-    newX: 0,
-    newY: 0,
     rotation: 0,
 
     sprite: {
@@ -132,8 +130,6 @@ export function moveTo(tank, newX, newY) {
 
   newX -= width / 2;
   newY -= height / 2;
-  tank.newX = newX;
-  tank.newY = newY;
 
   const norm = Math.sqrt(
     Math.pow(newX - x, 2) + Math.pow(newY - y, 2),
@@ -154,24 +150,11 @@ export function step(tank, delta) {
   const dx = tank.dx * distance;
   const dy = tank.dy * distance;
 
-  let newX = x + dx;
-  let newY = y + dy;
+  tank.sprite.x = x + dx;
+  tank.sprite.y = y + dy;
+}
 
-  let flag = 0;
-  if (Math.abs(x - tank.newX) < Math.abs(dx)) {
-    newX = tank.newX;
-    flag += 1;
-  }
-
-  if (Math.abs(y - tank.newY) < Math.abs(dy)) {
-    newY = tank.newY;
-    flag += 1;
-  }
-
-  tank.sprite.x = newX;
-  tank.sprite.y = newY;
-  if (flag === 2) {
-    tank.dx = 0;
-    tank.dy = 0;
-  }
+export function setDirection(tank, dx, dy) {
+  tank.dx = dx;
+  tank.dy = dy;
 }

@@ -67,12 +67,23 @@ export function move(state, tankIdx, x, y) {
   tank.moveTo(t, x, y);
 }
 
+export function moveVec(state, tankIdx, dx, dy) {
+  if (Math.abs(dx ** 2 + dy ** 2 - 1) > 1e-5) return;
+  state.tanks[tankIdx].dx = dx;
+  state.tanks[tankIdx].dy = dy;
+}
+
+export function stopTank(state, tankIdx) {
+  state.tanks[tankIdx].dx = 0;
+  state.tanks[tankIdx].dy = 0;
+}
+
 export function logState(state) {
   console.log(`TIME: ${state.timestamp}
   Tanks:`);
   state.tanks.forEach((t) => {
-    console.log(`    x: ${t.sprite.x} ---> ${t.newX}
-    y: ${t.sprite.y} ---> ${t.newY}
+    console.log(`    x: ${t.sprite.x}
+    y: ${t.sprite.y}
     dx: ${t.dy}
     dx: ${t.dx}
     rot: ${t.rotation}
@@ -83,8 +94,8 @@ export function logState(state) {
   Bullets:`);
   state.bullets.forEach((b) => {
     const t = b.dSprite;
-    console.log(`    x: ${t.sprite.x} ---> ${t.newX}
-    y: ${t.sprite.y} ---> ${t.newY}
+    console.log(`    x: ${t.sprite.x}
+    y: ${t.sprite.y}
     dx: ${t.dy}
     dx: ${t.dx}
     rot: ${t.rotation}

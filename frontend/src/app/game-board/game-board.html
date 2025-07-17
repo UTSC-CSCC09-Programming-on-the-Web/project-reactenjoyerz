@@ -1,10 +1,6 @@
 @if (!started()) {
 <p>loading gameboard</p>
 } @else {
-<button (click)="toggleListening()">
-  {{ isListening ? 'Stop Listening' : 'Start Listening' }}
-</button>
-
 <div class="voice-chat-controls">
   <button
     (click)="toggleVoiceTransmission()"

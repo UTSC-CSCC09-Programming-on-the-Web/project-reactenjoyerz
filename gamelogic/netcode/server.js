@@ -1,21 +1,5 @@
-import {
-  isDef,
-  serverStepSize,
-  maxStepSize,
-  inputCooldown,
-  matchSize,
-} from "./common.js";
-import {
-  initialize,
-  step,
-  shoot,
-  move,
-  getWalls,
-  logState,
-  removeTank,
-} from "../gamelogic/game-state.js";
-import { Server, Socket } from "socket.io";
-const MAX_PROXIMITY_DISTANCE = 500;
+import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize, MAX_PROXIMITY_DISTANCE } from "./common.js";
+import { initialize, step, shoot, move, getWalls, logState, removeTank, stopTank, moveVec } from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 const speakingStatus = new Map();
@@ -108,15 +92,7 @@ export function bindWSHandlers(io) {
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
 
-      // add rate limit
       const now = Date.now();
-      const lastInput = game.inputs[game.inputs.length - 1];
-      if (
-        isDef(lastInput) &&
-        now - lastInput.timestamp < inputCooldown &&
-        lastInput.clientIdx === clientIdx
-      )
-        return;
 
       assert(isDef(clientIdx) && isDef(gameId));
       game.inputs.push({
@@ -138,15 +114,7 @@ export function bindWSHandlers(io) {
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
 
-      // add rate limit
       const now = Date.now();
-      const lastInput = game.inputs[game.inputs.length - 1];
-      if (
-        isDef(lastInput) &&
-        now - lastInput.timestamp < inputCooldown &&
-        lastInput.clientIdx === clientIdx
-      )
-        return;
 
       assert(isDef(clientIdx) && isDef(gameId));
       game.inputs.push({
@@ -185,10 +153,6 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("voice.audioChunk", ({ gameId, clientIdx, chunk }) => {
-      console.log(
-        `--- SERVER RECEIVED 'voice.audioChunk' from client ${clientIdx} in game ${gameId} ---`
-      );
-
       const game = games.get(gameId);
       if (!game || !game.started || !game.currentState) return;
 
@@ -221,11 +185,6 @@ export function bindWSHandlers(io) {
           Math.pow(senderTank.sprite.x - receiverTank.sprite.x, 2) +
             Math.pow(senderTank.sprite.y - receiverTank.sprite.y, 2)
         );
-        console.log(
-          `[Game ${gameId}] Proximity Check: Sender ${clientIdx} to Receiver ${receiverIdx}. Distance: ${distance.toFixed(
-            2
-          )}`
-        );
 
         if (distance <= MAX_PROXIMITY_DISTANCE) {
           console.log(
@@ -237,6 +196,48 @@ export function bindWSHandlers(io) {
           });
         }
       });
+    });
+
+    socket.on("game.moveVec", ({ dx, dy, gameId, clientIdx }) => {
+      const game = games.get(gameId);
+      if (!game || !game.started) return;
+
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
+
+      const now = Date.now();
+
+      assert(isDef(clientIdx) && isDef(gameId));
+      game.inputs.push({
+        dx,
+        dy,
+        timestamp: Date.now(),
+        action: "moveVec",
+        clientIdx,
+        gameId,
+      });
+
+      console.log(`Move vec req @ ${Date.now() - serverStepSize}`);
+    });
+
+    socket.on("game.stop", ({ gameId, clientIdx }) => {
+      const game = games.get(gameId);
+      if (!game || !game.started) return;
+
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
+
+      const now = Date.now();
+
+      assert(isDef(clientIdx) && isDef(gameId));
+      game.inputs.push({
+        timestamp: Date.now(),
+        action: "stop",
+        clientIdx,
+        gameId,
+      });
+
+      console.log(`Stop req @ ${Date.now() - serverStepSize}`);
     });
   });
 
@@ -286,6 +287,12 @@ export function bindWSHandlers(io) {
               break;
             case "move":
               move(game.currentState, input.clientIdx, input.x, input.y);
+              break;
+            case "stop":
+              stopTank(game.currentState, input.clientIdx);
+              break;
+            case "moveVec":
+              moveVec(game.currentState, input.clientIdx, input.dx, input.dy);
               break;
             default:
               console.error(`Error: action ${input.action} not found.`);

@@ -1,12 +1,4 @@
-import { WebSocketService } from "../../frontend/src/app/services/web-socket.service";
-import {
-  initialize,
-  step,
-  shoot,
-  move,
-  setWalls,
-  removeTank,
-} from "../gamelogic/game-state";
+import { initialize, step, shoot, move, setWalls, removeTank, moveVec, stopTank } from "../gamelogic/game-state";
 import { maxStepSize, serverStepSize, isDef } from "./common";
 
 let wss;
@@ -152,6 +144,7 @@ export function hasStarted() {
 
 export function leave() {
   wss.emit("match.leave", clientInfo);
+  console.log(started, "client.leave match not started");
   clientInfo = undefined;
   currentState = undefined;
   serverStates = [];
@@ -159,6 +152,42 @@ export function leave() {
 
   wss.unbindHandlers("match.stateUpdate");
   wss.unbindHandlers("match.playerChange");
+}
+
+export function setDirection(dx, dy) {
+  console.assert(started, "client.setDirection match not started");
+  console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.setDirection direction vector not normalized");
+  console.assert(isDef(clientInfo), "client.setDirection clientInfo not defined");
+
+  const tankSprite = currentState.tanks[clientInfo.clientIdx].sprite;
+
+  moveVec(currentState, clientInfo.clientIdx, dx, dy);
+  wss.emit("game.moveVec", {
+    dx,
+    dy,
+    gameId: clientInfo.gameId,
+    clientIdx: clientInfo.clientIdx,
+  });
+}
+
+export function shootBulletVec(dx, dy) {
+  console.assert(started, "client.shootBulletVec match not started");
+  console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.shootBulletVec vector not normalized");
+  console.assert(isDef(clientInfo), "client.shootBulletVec clientInfo not defined");
+
+  const tankSprite = currentState.tanks[clientInfo.clientIdx].sprite;
+  shootBullet(tankSprite.x + dx, tankSprite.y + dy);
+}
+
+export function stop() {
+  console.assert(started, "client.stop match not started");
+  console.assert(isDef(clientInfo), "client.stop clientInfo not defined");
+
+  stopTank(currentState, clientInfo.clientIdx);
+  wss.emit("game.stop", {
+    gameId: clientInfo.gameId,
+    clientIdx: clientInfo.clientIdx,
+  })
 }
 
 export function getClientInfo() {

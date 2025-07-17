@@ -10,52 +10,55 @@ declare var webkitSpeechRecognition: any;
 export class SpeechService {
   recognition: any;
   isListening = false;
-  private transcriptSubject = new Subject<{ transcript: string, index: number }>();
-  transcript$ = this.transcriptSubject.asObservable();
+  listener?: (transcript: string) => void;
+  transcript = '';
 
   // Inject the new MicrophoneService
-  constructor(private zone: NgZone, private micService: MicrophoneService) {
+  constructor(private micService: MicrophoneService) {
     const SpeechRecognition = webkitSpeechRecognition;
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
     this.recognition.lang = 'en-US';
-    this.recognition.interimResults = true;
+    this.recognition.interimResults = false;
   }
 
-  async startListening() {
-    if (this.isListening) return;
+  async startRecording(listener: (transcript: string) => void) {
+    if (this.listener) return;
 
     try {
-      // Request the stream from the central service
       await this.micService.getStream('speech');
-      this.isListening = true;
 
-      this.recognition.onresult = (event: any) => {
-        this.zone.run(() => {
-          this.transcriptSubject.next({ transcript: event.results[event.resultIndex][0].transcript, index: event.resultIndex});
-        });
+      this.listener = listener;
+
+      this.recognition.onstart = () => {
+        console.log('speech recognition start');
       };
 
-      this.recognition.onend = () => {
-        if (this.isListening) {
-          this.recognition.start();
+      // https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognitionResult
+      this.recognition.onresult = (event: any) => {
+        this.transcript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          this.transcript += event.results[i][0].transcript;
         }
       };
 
+      this.recognition.onend = () => {
+        if (this.listener) this.listener(this.transcript);
+
+        console.log('speech recognition end');
+        this.listener = undefined;
+        console.log(this.transcript);
+      };
+
       this.recognition.start();
-      console.log("Speech recognition started.");
     } catch (error) {
-      console.error("SpeechService could not acquire microphone:", error);
+      console.error('SpeechService could not acquire microphone:', error);
     }
   }
 
-  stopListening() {
-    if (this.isListening) {
-      this.recognition.stop();
-      this.isListening = false;
-      // Release the stream so other services can use it
-      this.micService.releaseStream('speech');
-      console.log("Speech recognition stopped.");
-    }
+  stopRecording() {
+    if (!this.listener) return;
+    this.recognition.stop();
+    this.micService.releaseStream('speech');
   }
 }

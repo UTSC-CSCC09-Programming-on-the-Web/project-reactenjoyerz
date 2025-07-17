@@ -6,8 +6,6 @@ export type Sprite = {
 };
 
 export type DSprite = {
-  newX: number,
-  newY: number,
   dx: number,
   dy: number,
   rotation: number,
