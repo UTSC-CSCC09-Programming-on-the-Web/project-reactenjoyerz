@@ -196,7 +196,7 @@ export class GameBoard implements OnDestroy {
         action = advCmd[1];
         const radians = (Number.parseInt(advCmd[2]) * Math.PI) / 180;
 
-        dy = advCmd[3] === 'north' ? -1 : 1;
+        dy = 1;
         switch (advCmd[4]) {
           case 'east':
             dx = dy * Math.sin(radians);
@@ -207,6 +207,8 @@ export class GameBoard implements OnDestroy {
             dy = dy * Math.cos(radians);
             break;
         }
+        
+        dy = advCmd[3] === 'north' ? -dy : dy;
       } else if (smpCmd) {
         action = smpCmd[1];
 
