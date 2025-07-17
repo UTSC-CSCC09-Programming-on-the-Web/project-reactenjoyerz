@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    restart: always
+    env_file:
+      - ./backend/.env
+    expose:
+      - "3000"
+
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: cscc09-project
+    ports:
+      - 5432:5432
+
+  nginx:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  frontend_dist:
