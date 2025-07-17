@@ -1,35 +1,52 @@
+# docker-compose.yml
 version: "3.8"
-
 services:
+  postgres:
+    image: postgres:15.3-alpine
+    environment:
+      POSTGRES_DB: cscc09-project
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   backend:
     build:
       context: .
       dockerfile: ./backend/Dockerfile
-    restart: always
-    env_file:
-      - ./backend/.env
-    expose:
-      - "3000"
-
-  postgres:
-    image: postgres:15-alpine
-    restart: always
+    # ports:
+    # - "8000:8000"
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: 123456
-      POSTGRES_DB: cscc09-project
-    ports:
-      - 5432:5432
+      DATABASE_URL: postgres://postgres:123456@postgres:5432/cscc09-project # Connect to 'postgres' service name
+    depends_on:
+      postgres:
+        condition: service_healthy
 
-  nginx:
+  frontend:
     build:
       context: .
       dockerfile: ./frontend/Dockerfile
-    restart: always
-    ports:
-      - "80:80"
     depends_on:
       - backend
 
+  nginx:
+    image: nginx:stable-alpine
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./frontend/dist/project-reactenjoyerz/browser:/usr/share/nginx/html
+    depends_on:
+      - backend
+      - frontend
+
 volumes:
-  frontend_dist:
+  postgres_data:

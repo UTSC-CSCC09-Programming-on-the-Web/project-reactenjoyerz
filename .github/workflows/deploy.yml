@@ -1,0 +1,32 @@
+name: Deploy to VM
+
+on:
+  push:
+    branches: [prod]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.VM_SSH_KEY }}
+          known_hosts: "yes"
+
+      - name: Deploy to VM
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USER }}@${{ secrets.VM_HOST }} '
+            # Navigate to the project directory on the VM
+            cd /root/project-reactenjoyerz &&
+            
+            # Pull the latest changes from the prod branch
+            git pull origin prod &&
+            
+            # Rebuild and restart the Docker containers
+            docker compose up --build -d
+          '

@@ -12,17 +12,18 @@ COPY frontend/ .
 RUN mkdir -p src/app/../../../gamelogic
 COPY ./gamelogic src/app/../../../gamelogic
 
-RUN npm run build
+RUN npm install 
+RUN npm run build --prod
 
-### STAGE 2: Serve the application from NGINX ###
-FROM nginx:stable-alpine
+# ### STAGE 2: Serve the application from NGINX ###
+# FROM nginx:stable-alpine
 
-RUN rm -rf /usr/share/nginx/html/*
+# RUN rm -rf /usr/share/nginx/html/*
 
-# Copy the built files from the 'builder' stage into the NGINX web root
-COPY --from=builder /app/dist/project-reactenjoyerz/browser/. /usr/share/nginx/html
+# # Copy the built files from the 'builder' stage into the NGINX web root
+# COPY --from=builder /app/dist/project-reactenjoyerz/browser/. /usr/share/nginx/html
 
-# Copy the custom NGINX configuration
-COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+# # Copy the custom NGINX configuration
+# COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+# EXPOSE 80
