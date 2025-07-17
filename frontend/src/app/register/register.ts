@@ -17,6 +17,10 @@ export class Register {
 
   constructor(private authService: AuthService, private router: Router) {}
 
+  home() {
+    this.router.navigate(['/home']);
+  }
+
   register() {
     this.authService.register(this.username, this.email, this.password).subscribe({
       next: (res) => {

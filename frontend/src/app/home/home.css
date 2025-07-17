@@ -4,6 +4,16 @@
   margin-top: 20%;
 }
 
+.game-title:hover {
+    opacity: 80%;
+    cursor: pointer;
+}
+
+.game-title:active {
+    opacity: 50%;
+    cursor: pointer;
+}
+
 .container {
   display: flex;
   height: 100vh;
@@ -47,16 +57,16 @@
 }
 
 .buttons-register {
-  background-color: white;
-  opacity: 30%;
+  background-color: Transparent;
+  color: white;
   width: 300px;
-  color: black;
   padding: 15px;
-  border: 2px;
+  border-color: white;
   border-radius: 10px;
   font-weight: 700;
   font-size: large;
 }
+
 
 .buttons-login:hover,
 .buttons-register:hover {

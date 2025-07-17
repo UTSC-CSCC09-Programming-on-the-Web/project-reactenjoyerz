@@ -1,15 +1,34 @@
-<h1>Register</h1>
-<form (ngSubmit)="register()">
-    <label for="username"> Username </label>
-    <input  [(ngModel)]="username" type="text" name="username" placeholder="TankKiller56" >
-    
-    <label for="email"> Email </label>
-    <input [(ngModel)]="email" type="email" name="email" placeholder="example@email.com" >
-    
-    <label for="password"> Password </label>
-    <input [(ngModel)]="password" type="password" name="password" placeholder="********" >
-    <a href="/login">Already Have Account?</a>
-    <button type="submit">Register</button>
-</form>
-<p>{{ message }}</p>
-<p>If you log in an register, cannot go back to home page (havent done logout yet), but can go to /login </p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="register.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap">
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <h1 class="game-title" (click)="home()">WTanks</h1>
+            <div class="register-container">
+                <form class="register-form" (ngSubmit)="register()">
+                    <label for="username"> Username </label>
+                    <input  [(ngModel)]="username" type="text" name="username" placeholder="TankKiller56" >
+                    
+                    <label for="email"> Email </label>
+                    <input [(ngModel)]="email" type="email" name="email" placeholder="example@email.com" >
+                    
+                    <label for="password"> Password </label>
+                    <input [(ngModel)]="password" type="password" name="password" placeholder="********" >
+                    <a href="/login">Already Have Account?</a>
+                    <button type="submit">Register</button>
+                </form>
+                <p>{{ message }}</p>
+            </div>
+        </div>
+        <div class="right-panel image-placeholder"></div>
+    </div>
+</body>
+</html>
+
