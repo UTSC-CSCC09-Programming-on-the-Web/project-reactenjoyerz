@@ -7,15 +7,16 @@ import {
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environments';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthGuard implements CanActivate {
   constructor(private http: HttpClient, private router: Router) {}
-
+  endpoint = environment.apiUrl;
   canActivate(): Observable<boolean | UrlTree> {
-    return this.http.get<any>('http://localhost:8000/api/users/me', { withCredentials: true }).pipe(
+    return this.http.get<any>(`${this.endpoint}/users/me`, { withCredentials: true }).pipe(
       map((res) => {
         if (res.has_subscription) {
           return true;
