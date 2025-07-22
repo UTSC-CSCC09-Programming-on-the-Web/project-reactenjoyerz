@@ -60,7 +60,7 @@ export function bindWSHandlers(io) {
 
       const game = games.get(gameId);
       if (!isDef(game)) return;
-      assert(isDef(game.players[clientIdx]));
+      //assert(isDef(game.players[clientIdx]));
 
       if (game.players.length === 1) {
         games.delete(gameId);
