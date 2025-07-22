@@ -11,7 +11,7 @@ export class WebSocketService {
   handlers: Map<string, Function[]>;
 
   constructor() {
-    this.socket = io("https://api.reactenjoyerz.me/", {
+    this.socket = io(environment.socketUrl, {
       withCredentials: true,
       transports: ['websocket', 'polling']
     });

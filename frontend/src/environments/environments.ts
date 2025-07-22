@@ -1,4 +1,4 @@
 export const environment = {
-  production: false,
-  apiUrl: 'https://api.reactenjoyerz.me/api' 
+  apiUrl: 'http://localhost:8000/api',
+  socketUrl: 'http://localhost:8000/',
 };

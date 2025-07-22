@@ -13,7 +13,7 @@ RUN mkdir -p src/app/../../../gamelogic
 COPY ./gamelogic src/app/../../../gamelogic
 
 RUN npm install
-RUN npm run build --prod
+RUN npx ng build --configuration production
 
 # ### STAGE 2: Serve the application from NGINX ###
 FROM nginx:stable-alpine
