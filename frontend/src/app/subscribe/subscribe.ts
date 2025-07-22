@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router'
+import { environment } from '../../environments/environments';
 
 @Component({
   selector: 'app-subscribe',
@@ -13,8 +14,10 @@ export class Subscribe implements OnInit {
   constructor(private http: HttpClient, private router: Router) {}
 
   ngOnInit() {
+
+    const url = `${environment.apiUrl}`; 
     this.http
-      .get<any>('http://localhost:8000/api/users/me', { withCredentials: true })
+      .get<any>(`${environment.apiUrl}/users/me`, { withCredentials: true })
       .subscribe({
         next: (res) => {
           if (res.hasSubscription) {
@@ -30,7 +33,7 @@ export class Subscribe implements OnInit {
   subscribe() {
     this.http
       .post<{ url: string }>(
-        'http://localhost:8000/api/payments/create-subscription',
+        `${environment.apiUrl}/payments/create-subscription`,
         {},
         { withCredentials: true }
       )

@@ -1,0 +1,28 @@
+.container {
+    display: flex;
+    margin: auto;
+    margin-top: 300px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: white;
+    font-family: sans-serif;
+}
+
+
+button {
+    background-color: white;
+    width: 330px;
+    color: black;
+    padding: 12px;
+    padding-left: 20px;
+    padding-right: 20px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: large;
+}
+
+button:hover {
+    background-color: #ddd;
+}

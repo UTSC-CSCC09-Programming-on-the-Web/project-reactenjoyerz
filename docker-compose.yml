@@ -1,0 +1,75 @@
+# docker-compose.yml
+version: "3.8"
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+
+  nginx-proxy-acme:
+    image: nginxproxy/acme-companion
+    container_name: nginx-proxy-acme
+    depends_on:
+      - nginx-proxy
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+      - ./acme:/etc/acme.sh
+    environment:
+      - DEFAULT_EMAIL=jasongahjun.yee@mail.utoronto.ca
+
+  postgres:
+    image: postgres:15.3-alpine
+    environment:
+      POSTGRES_DB: cscc09-project
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    environment:
+      - DATABASE_URL postgres://postgres:123456@postgres:5432/cscc09-project # Connect to 'postgres' service name
+      - VIRTUAL_HOST=api.reactenjoyerz.me
+      - LETSENCRYPT_HOST=api.reactenjoyerz.me
+    expose:
+      - 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    depends_on:
+      - backend
+    environment:
+      - VIRTUAL_HOST=reactenjoyerz.me
+      - LETSENCRYPT_HOST=reactenjoyerz.me
+    expose:
+      - 80
+
+volumes:
+  postgres_data:
