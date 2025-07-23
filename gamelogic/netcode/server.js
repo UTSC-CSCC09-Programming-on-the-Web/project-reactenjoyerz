@@ -96,7 +96,6 @@ export function bindWSHandlers(io) {
       }
     });
 
-
     socket.on("game.shoot", ({ x, y, gameId, clientIdx, reqNo }) => {
       const game = games.get(gameId);
       if (!game || !game.started) return;
