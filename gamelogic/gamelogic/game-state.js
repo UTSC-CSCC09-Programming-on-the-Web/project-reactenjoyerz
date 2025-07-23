@@ -1,4 +1,5 @@
 import { createWall } from "./wall.js";
+import { maxStepSize } from "../netcode/common.js";
 
 import * as tank from "./tank.js";
 import * as bullet from "./bullet.js";
@@ -111,4 +112,20 @@ export function logState(state) {
 
 export function removeTank(state, idx) {
   state.tanks.splice(idx, 1);
+}
+
+export function updateTimestamp(state, targetTime) {
+  if (!state) {
+    return { tanks: [], bullets: [] };
+  }
+
+  let headTime = state.timestamp;
+  while (targetTime !== headTime) {
+    const delta = Math.min(maxStepSize, targetTime - headTime);
+
+    step(state, delta);
+    headTime += delta;
+  }
+
+  return structuredClone(state);
 }

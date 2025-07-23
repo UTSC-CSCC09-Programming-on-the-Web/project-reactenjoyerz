@@ -1,5 +1,23 @@
-import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize, MAX_PROXIMITY_DISTANCE } from "./common.js";
-import { initialize, step, shoot, move, getWalls, logState, removeTank, stopTank, moveVec } from "../gamelogic/game-state.js";
+import {
+  isDef,
+  serverStepSize,
+  maxStepSize,
+  inputCooldown,
+  matchSize,
+  MAX_PROXIMITY_DISTANCE,
+} from "./common.js";
+import {
+  initialize,
+  step,
+  shoot,
+  move,
+  getWalls,
+  logState,
+  removeTank,
+  stopTank,
+  moveVec,
+  updateTimestamp
+} from "../gamelogic/game-state.js";
 
 import assert from "node:assert";
 const speakingStatus = new Map();
@@ -9,14 +27,39 @@ const games = new Map([]);
 
 export function bindWSHandlers(io) {
   io.on("connection", (socket) => {
-    socket.on("disconnect", () => {});
+    const handlePlayerLeave = ({ clientIdx, gameId }) => {
+      console.log(`Player ${clientIdx} left game-${gameId}`);
+      socket.disconnect();
+
+      const game = games.get(gameId);
+      if (!isDef(game)) return;
+      assert(isDef(game.players[clientIdx]));
+
+      if (game.players.length === 1) {
+        games.delete(gameId);
+        console.log(`Deleting game-${gameId}`);
+        return;
+      }
+
+      if (game.started) {
+        removeTank(game.currentState, clientIdx);
+        io.to(game.name).emit("match.playerChange", { clientIdx });
+      }
+
+      game.players.splice(clientIdx, 1);
+    };
+
+    socket.on("disconnect", () =>
+      console.error("Warning: Unhandled player leave!")
+    );
+
+    socket.on("match.leave", handlePlayerLeave);
 
     socket.on("match.joinRequest", ({}, callback) => {
       let game = games.get(nextGameId);
 
       if (!game) {
         game = {
-          inputs: [],
           players: [],
           name: `game-${nextGameId}`,
           started: false,
@@ -31,7 +74,6 @@ export function bindWSHandlers(io) {
         clientIdx: game.players.length,
       });
 
-      // D:
       game.players.push(socket);
       socket.join(`game-${nextGameId}`);
       console.log(
@@ -54,38 +96,8 @@ export function bindWSHandlers(io) {
       }
     });
 
-    socket.on("match.leave", ({ clientIdx, gameId }) => {
-      console.log(`Player ${clientIdx} left game-${gameId}`);
-      socket.leave(`game-${gameId}`);
 
-      const game = games.get(gameId);
-      if (!isDef(game)) return;
-      assert(isDef(game.players[clientIdx]));
-
-      if (game.players.length === 1) {
-        games.delete(gameId);
-        console.log(`Deleting game-${gameId}`);
-        return;
-      }
-
-      if (game.started) {
-        removeTank(game.currentState, clientIdx);
-        game.inputs = game.inputs.filter((input) => {
-          clientIdx === input.clientIdx && gameId === input.gameId;
-        });
-
-        game.inputs.forEach((input) => {
-          input.clientIdx =
-            input.clientIdx < clientIdx ? clientIdx : clientIdx - 1;
-        });
-
-        io.to(game.name).emit("match.playerChange", { clientIdx });
-      }
-
-      game.players.splice(clientIdx, 1);
-    });
-
-    socket.on("game.shoot", ({ x, y, gameId, clientIdx }) => {
+    socket.on("game.shoot", ({ x, y, gameId, clientIdx, reqNo }) => {
       const game = games.get(gameId);
       if (!game || !game.started) return;
 
@@ -93,40 +105,56 @@ export function bindWSHandlers(io) {
       if (0 > clientIdx || clientIdx >= game.players.length) return;
 
       const now = Date.now();
-
       assert(isDef(clientIdx) && isDef(gameId));
-      game.inputs.push({
-        x,
-        y,
-        timestamp: Date.now(),
-        action: "shoot",
-        clientIdx: clientIdx,
-        gameId: gameId,
-      });
+      updateTimestamp(game.currentState, now);
+      shoot(game.currentState, clientIdx, x, y);
 
-      console.log(`Shoot req @ ${Date.now() - serverStepSize}`);
-    });
-
-    socket.on("game.move", ({ x, y, gameId, clientIdx }) => {
-      const game = games.get(gameId);
-      if (!game || !game.started) return;
-
-      // if clientIdx is out of bounds return
-      if (0 > clientIdx || clientIdx >= game.players.length) return;
-
-      const now = Date.now();
-
-      assert(isDef(clientIdx) && isDef(gameId));
-      game.inputs.push({
-        x,
-        y,
-        timestamp: Date.now(),
-        action: "move",
+      io.to(`game-${gameId}`).emit("match.stateUpdate", {
+        newState: game.currentState,
+        reqNo,
         clientIdx,
-        gameId,
+      });
+    });
+
+    socket.on("game.moveVec", ({ dx, dy, gameId, clientIdx, reqNo }) => {
+      const game = games.get(gameId);
+      if (!game || !game.started) return;
+
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
+
+      const now = Date.now();
+
+      assert(isDef(clientIdx) && isDef(gameId));
+      updateTimestamp(game.currentState, now);
+      moveVec(game.currentState, clientIdx, dx, dy);
+      io.to(`game-${gameId}`).emit("match.stateUpdate", {
+        newState: game.currentState,
+        reqNo,
+        clientIdx,
+      });
+    });
+
+    socket.on("game.stop", ({ gameId, clientIdx, reqNo }) => {
+      const game = games.get(gameId);
+      if (!game || !game.started) return;
+
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
+
+      const now = Date.now();
+
+      assert(isDef(clientIdx) && isDef(gameId));
+
+      updateTimestamp(game.currentState, now);
+      stopTank(game.currentState, clientIdx);
+      io.to(`game-${gameId}`).emit("match.stateUpdate", {
+        newState: game.currentState,
+        reqNo,
+        clientIdx,
       });
 
-      console.log(`Move req @ ${Date.now() - serverStepSize}`);
+      console.log(`Stop req @ ${Date.now() - serverStepSize}`);
     });
 
     socket.on("voice.start", ({ gameId, clientIdx }) => {
@@ -197,123 +225,5 @@ export function bindWSHandlers(io) {
         }
       });
     });
-
-    socket.on("game.moveVec", ({ dx, dy, gameId, clientIdx }) => {
-      const game = games.get(gameId);
-      if (!game || !game.started) return;
-
-      // if clientIdx is out of bounds return
-      if (0 > clientIdx || clientIdx >= game.players.length) return;
-
-      const now = Date.now();
-
-      assert(isDef(clientIdx) && isDef(gameId));
-      game.inputs.push({
-        dx,
-        dy,
-        timestamp: Date.now(),
-        action: "moveVec",
-        clientIdx,
-        gameId,
-      });
-
-      console.log(`Move vec req @ ${Date.now() - serverStepSize}`);
-    });
-
-    socket.on("game.stop", ({ gameId, clientIdx }) => {
-      const game = games.get(gameId);
-      if (!game || !game.started) return;
-
-      // if clientIdx is out of bounds return
-      if (0 > clientIdx || clientIdx >= game.players.length) return;
-
-      const now = Date.now();
-
-      assert(isDef(clientIdx) && isDef(gameId));
-      game.inputs.push({
-        timestamp: Date.now(),
-        action: "stop",
-        clientIdx,
-        gameId,
-      });
-
-      console.log(`Stop req @ ${Date.now() - serverStepSize}`);
-    });
   });
-
-  setInterval(() => {
-    games.forEach((game, gameId) => {
-      if (!game.started) return;
-
-      assert(isDef(game.currentState));
-
-      // don't ship currentState since that was part of the previous shipment
-      const newStates = [];
-
-      // 1. process inputs relative to state (from -100ms ago) to compute new
-      // current state (0 ms) to account for input delay
-
-      // 2 .compute changes in state from -100ms to 0ms
-
-      // 3 .set current state to 0ms state
-
-      let headTime = game.currentState.timestamp;
-      const targetTime = Date.now();
-
-      while (targetTime !== headTime) {
-        let delta = 0;
-
-        const input = game.inputs[0];
-        let push = false;
-
-        // ensure that no elements are going unprocessed
-        assert(
-          !isDef(input) ||
-            (headTime <= input.timestamp && input.timestamp <= targetTime)
-        );
-        assert(headTime <= targetTime);
-
-        delta = Math.min(maxStepSize, targetTime - headTime);
-        if (isDef(input) && input.timestamp - headTime < delta) {
-          assert(input.gameId === gameId);
-
-          push = true;
-          delta = input.timestamp - headTime;
-          game.inputs.shift();
-
-          switch (input.action) {
-            case "shoot":
-              shoot(game.currentState, input.clientIdx, input.x, input.y);
-              break;
-            case "move":
-              move(game.currentState, input.clientIdx, input.x, input.y);
-              break;
-            case "stop":
-              stopTank(game.currentState, input.clientIdx);
-              break;
-            case "moveVec":
-              moveVec(game.currentState, input.clientIdx, input.dx, input.dy);
-              break;
-            default:
-              console.error(`Error: action ${input.action} not found.`);
-          }
-
-          newStates.push(structuredClone(game.currentState));
-        }
-
-        // only ship new state if step isn't a normal one
-        assert(0 <= delta);
-        assert(delta <= maxStepSize);
-
-        step(game.currentState, delta);
-        headTime += delta;
-      }
-
-      // 4. ship it to clients
-      assert(game.currentState.timestamp === targetTime);
-
-      if (newStates.length !== 0)
-        io.to(game.name).emit("match.stateUpdate", { newStates });
-    });
-  }, serverStepSize);
 }

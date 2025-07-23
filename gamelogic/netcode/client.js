@@ -1,38 +1,20 @@
-import { initialize, step, shoot, move, setWalls, removeTank, moveVec, stopTank } from "../gamelogic/game-state";
+import { shoot, move, setWalls, removeTank, moveVec, stopTank, updateTimestamp } from "../gamelogic/game-state";
 import { maxStepSize, serverStepSize, isDef } from "./common";
+import { io } from "socket.io-client";
+import { environment } from "../../frontend/src/environments/environments";
 
 let wss;
 
 let clientInfo;
 let currentState;
-let serverStates;
+let serverState;
 let started = false;
+let nextReqNo = 0;
 
 export function initClient(socketService) {
   console.log("Initializing client.js with shared WebSocketService.");
   wss = socketService;
-}
-
-export function moveTo(x, y) {
-  console.assert(started, "moveTo: not started");
-  wss.emit("game.move", {
-    x,
-    y,
-    gameId: clientInfo.gameId,
-    clientIdx: clientInfo.clientIdx,
-  });
-  move(currentState, clientInfo.clientIdx, x, y);
-}
-
-export function shootBullet(x, y) {
-  console.assert(started, "shootBullet: not started");
-  wss.emit("game.shoot", {
-    x,
-    y,
-    gameId: clientInfo.gameId,
-    clientIdx: clientInfo.clientIdx,
-  });
-  shoot(currentState, clientInfo.clientIdx, x, y);
+  wss.setDelay(0);
 }
 
 export function join(cb) {
@@ -49,17 +31,14 @@ export function join(cb) {
     started = true;
     wss.unbindHandlers("match.join");
     currentState = match.initialState;
-    serverStates = [];
+    serverState = undefined;
 
     setWalls(match.walls);
 
     wss.bindHandler("match.stateUpdate", (res) => {
-      serverStates = res.newStates;
+      currentState = res.newState;
       if (isDef(res.updatedIndices)) {
-        console.log(res);
-        console.log(`old idx: ${clientInfo.clientIdx}`);
         clientInfo.clientIdx = res.updatedIndices[clientInfo.clientIdx];
-        console.log(`new idx: ${clientInfo.clientIdx}`);
         fetchFrame();
       }
     });
@@ -83,31 +62,7 @@ export function fetchFrame() {
   }
 
   const targetTime = Date.now();
-
-  let idx;
-  for (idx = serverStates.length - 1; idx >= 0; idx--) {
-    if (serverStates[idx].timestamp <= targetTime) {
-      currentState = serverStates[idx];
-      break;
-    }
-  }
-
-  let headTime = currentState.timestamp;
-  if (idx !== -1) serverStates = serverStates.slice(idx + 1);
-  else serverStates = [];
-
-  while (targetTime !== headTime) {
-    serverStates.filter((s) => s.timestamp > headTime);
-    let delta = 0;
-
-    delta = Math.min(maxStepSize, targetTime - headTime);
-    console.assert(delta > 0, "negative delta");
-
-    step(currentState, delta);
-    headTime += delta;
-  }
-
-  return structuredClone(currentState);
+  return updateTimestamp(currentState, targetTime);
 }
 
 export function getDistance(idx) {
@@ -147,11 +102,30 @@ export function leave() {
   console.log(started, "client.leave match not started");
   clientInfo = undefined;
   currentState = undefined;
-  serverStates = [];
+  serverState = undefined;
   started = false;
 
   wss.unbindHandlers("match.stateUpdate");
   wss.unbindHandlers("match.playerChange");
+}
+
+export function getClientInfo() {
+  return clientInfo;
+}
+
+
+export function shootBullet(x, y) {
+  console.assert(started, "shootBullet: not started");
+  wss.emit("game.shoot", {
+    x,
+    y,
+    gameId: clientInfo.gameId,
+    clientIdx: clientInfo.clientIdx,
+    reqNo: nextReqNo
+  });
+
+  //shoot(currentState, clientInfo.clientIdx, x, y);
+  nextReqNo++;
 }
 
 export function setDirection(dx, dy) {
@@ -161,13 +135,16 @@ export function setDirection(dx, dy) {
 
   const tankSprite = currentState.tanks[clientInfo.clientIdx].sprite;
 
-  moveVec(currentState, clientInfo.clientIdx, dx, dy);
+  //moveVec(currentState, clientInfo.clientIdx, dx, dy);
   wss.emit("game.moveVec", {
     dx,
     dy,
     gameId: clientInfo.gameId,
     clientIdx: clientInfo.clientIdx,
+    reqNo: nextReqNo 
   });
+
+  nextReqNo++;
 }
 
 export function shootBulletVec(dx, dy) {
@@ -188,8 +165,4 @@ export function stop() {
     gameId: clientInfo.gameId,
     clientIdx: clientInfo.clientIdx,
   })
-}
-
-export function getClientInfo() {
-  return clientInfo;
 }
