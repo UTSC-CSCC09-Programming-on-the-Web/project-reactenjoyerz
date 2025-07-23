@@ -1,7 +1,5 @@
 import { shoot, move, setWalls, removeTank, moveVec, stopTank, updateTimestamp } from "../gamelogic/game-state";
-import { maxStepSize, serverStepSize, isDef } from "./common";
-import { io } from "socket.io-client";
-import { environment } from "../../frontend/src/environments/environments";
+import { isDef } from "./common";
 
 let wss;
 
