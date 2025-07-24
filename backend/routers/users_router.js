@@ -4,6 +4,10 @@ import bcrypt from "bcryptjs";
 import stripe from "../stripe/index.js";
 
 import { OAuth2Client } from "google-auth-library";
+import assert from "node:assert";
+
+import { bindToken, findToken } from "../token.js";
+
 const googleClient = new OAuth2Client(
   "796814869937-0qjv66bls0u5nkgstqdjhvl4tojf42hg.apps.googleusercontent.com"
 );
@@ -46,11 +50,16 @@ usersRouter.post("/register", async (req, res) => {
       [email, username, hashedPassword, customer.id]
     );
 
-    req.session.userId = user.rows[0].id;
+    const userId =  user.rows[0].id;
+    
+    assert(findToken(userId) === undefined);
+    const token = bindToken(user.rows[0].id, username);
+
     return res.status(200).json({
       id: user.rows[0].id,
       email: user.rows[0].email,
       username: user.rows[0].username,
+      token,
     });
   } catch (error) {
     console.error(error);
@@ -85,18 +94,18 @@ usersRouter.post("/login", async (req, res) => {
     );
 
     if (!subQ.rows.length) {
-      console.log("error");
-      return res.status(402).json({
-        error: "Subscription required. Please subscribe to continue.",
-      });
+      console.warn("no subscription");
     }
 
-    console.log("good");
-    req.session.userId = user.rows[0].id;
+    const userId =  user.rows[0].id;
+    const token = bindToken(userId, user.rows[0].username);
+    console.log(user.rows[0].username);
+
     return res.status(200).json({
       id: user.rows[0].id,
       email: user.rows[0].email,
-      has_subscription: true,
+      has_subscription: subQ.rows.length !== 0,
+      token,
     });
   } catch (error) {
     console.error(error);
@@ -160,12 +169,14 @@ usersRouter.post("/google-login", async (req, res) => {
       });
     }
 
-    req.session.userId = user.id;
+    const userId = user.id;
+    const token = createToken(userId);
 
     return res.status(200).json({
       id: user.id,
       email: user.email,
       has_subscription: true,
+      token,
     });
   } catch (error) {
     console.error(error);
@@ -176,34 +187,4 @@ usersRouter.post("/google-login", async (req, res) => {
 usersRouter.get("/logout", (req, res) => {
   req.session.destroy();
   return res.json({ message: "Signed out." });
-});
-
-usersRouter.get("/me", async (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ errors: "Not authenticated" });
-  }
-  const userId = req.session.userId;
-
-  const userQ = await pool.query("SELECT id, email FROM users WHERE id = $1", [
-    userId,
-  ]);
-
-  if (!userQ.rows.length) {
-    return res.status(404).json({ error: "User not found" });
-  }
-
-  const subQ = await pool.query(
-    `SELECT 1
-     FROM subscriptions
-     WHERE user_id = $1
-       AND status = 'active'
-       AND current_period_end > now()`,
-    [userId]
-  );
-
-  return res.json({
-    id: userQ.rows[0].id,
-    email: userQ.rows[0].email,
-    has_subscription: subQ.rows.length > 0,
-  });
 });

@@ -1,5 +1,5 @@
 import { join } from "../../../../gamelogic/netcode/client";
-import { Component, HostListener } from '@angular/core';
+import { inject, Component, HostListener } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { leave } from "../../../../gamelogic/netcode/client";
@@ -14,8 +14,9 @@ import { leave } from "../../../../gamelogic/netcode/client";
 export class MatchQueue {
   dots = "";
   message = '';
+  private authService = inject(AuthService);
 
-  constructor (private authService: AuthService, private router: Router) {
+  constructor (private router: Router) {
     join(() => {
       this.router.navigate(['/game']);
     });

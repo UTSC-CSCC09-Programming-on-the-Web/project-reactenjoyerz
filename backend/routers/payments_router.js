@@ -1,15 +1,18 @@
 import { Router } from "express";
 import stripe from "../stripe/index.js";
 import pool from "../database/index.js";
+import { findPlayerInfo } from "../token.js";
+
+import assert from "node:assert";
 
 export const paymentsRouter = Router();
 
 paymentsRouter.post("/create-subscription", async (req, res) => {
-  console.log("SESSION:", req.session);
-  console.log("userId is ", req.session.userId);
-  const userId = req.session.userId;
+  const token = findPlayerInfo(req.body.token);
 
-  if (!userId) return res.status(400).json({ error: "Missing userId" });
+  if (!token) return res.status(400).json({ error: "Missing token" });
+  const userId = token.userId;
+  assert(userId !== undefined);
 
   try {
     // 1) Create (or retrieve) a Stripe Customer

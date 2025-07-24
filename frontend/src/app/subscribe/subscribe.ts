@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { inject, Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router'
 import { environment } from '../../environments/environments';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-subscribe',
@@ -10,31 +11,21 @@ import { environment } from '../../environments/environments';
 })
 export class Subscribe implements OnInit {
   message = '';
+  private authService = inject(AuthService);
 
   constructor(private http: HttpClient, private router: Router) {}
 
   ngOnInit() {
-
-    const url = `${environment.apiUrl}`; 
-    this.http
-      .get<any>(`${environment.apiUrl}/users/me`, { withCredentials: true })
-      .subscribe({
-        next: (res) => {
-          if (res.hasSubscription) {
-            this.router.navigate(['/match']);
-          }
-        },
-        error: () => {
-          // Optionally handle error, e.g. not logged in
-        },
-      });
+    if (this.authService.hasSubscription())
+      this.router.navigate(["/match"]);
   }
 
   subscribe() {
+    console.assert(this.authService.isLoggedIn(), "subscribe.ts/subscribe: not logged in");
     this.http
       .post<{ url: string }>(
         `${environment.apiUrl}/payments/create-subscription`,
-        {},
+        { token: this.authService.getToken() },
         { withCredentials: true }
       )
       .subscribe({
@@ -45,6 +36,9 @@ export class Subscribe implements OnInit {
         },
         error: (err) => {
           this.message = 'Error creating subscription. Please try again.';
+          setTimeout(() => {
+            this.router.navigate(["/home"]);
+          }, 5000);
           console.error(err);
         },
       });

@@ -7,6 +7,11 @@ let clientInfo;
 let currentState;
 let serverState;
 let started = false;
+let token = "";
+
+export function setToken(_token) {
+  token = _token;
+}
 
 export function initClient(socketService) {
   console.log("Initializing client.js with shared WebSocketService.");
@@ -18,6 +23,7 @@ export function join(cb) {
   console.assert(!started, "join: already started");
   started = false;
 
+  console.assert(token !== "", "join: null token");
   wss.bindHandler("match.join", (match) => {
     cb({
       initialState: match.initialState,

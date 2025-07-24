@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { inject, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
@@ -12,12 +12,12 @@ import { Router } from '@angular/router';
   providers: [AuthService]
 })
 export class Login {
-  
   email = '';
   password = '';
   message = '';
+  private authService = inject(AuthService);
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private router: Router) {}
 
   home() {
     this.router.navigate(['/home']);
@@ -31,18 +31,14 @@ export class Login {
         if (res.has_subscription) {
           this.router.navigate(['/match']);
         } else {
+          this.message = 'Subscription required. Redirecting to subscription page ...';
+          setTimeout(() => this.router.navigate(['/subscribe']), 750);
           this.router.navigate(['/subscribe']);
         }
       },
       error: (err) => {
-        if (err.status === 402) {
-          this.message = err.error?.error || 'Subscription required. Redirecting to subscribe...';
-          setTimeout(() => this.router.navigate(['/subscribe']), 1500);
-        } else {
-          this.message = err.error?.error || 'Login failed';
-        }
-      }
+        this.message = err.error?.error || 'Login failed';
+      },
     });
   }
-  
 }

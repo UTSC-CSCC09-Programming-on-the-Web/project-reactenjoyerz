@@ -2,10 +2,9 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
-import { paymentsRouter } from "./routers/payments_router.js";
 import http from "http";
-import session from "express-session";
 
+import { paymentsRouter } from "./routers/payments_router.js";
 import { usersRouter } from "./routers/users_router.js";
 import { Server } from "socket.io";
 import { bindWSHandlers } from "../gamelogic/netcode/server.js";
@@ -33,23 +32,10 @@ const io = new Server(httpServer, {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-const sessionMiddleware = session({
-  secret: process.env.SECRET_KEY || "test",
-  resave: false,
-  saveUninitialized: true,
-  cookie: {
-    secure: false,
-    httpOnly: true,
-  },
-});
-
-app.use(sessionMiddleware);
-io.engine.use(sessionMiddleware);
-
 app.use("/api/users", usersRouter);
 app.use("/api/payments", paymentsRouter);
 
-bindWSHandlers(io);
+//bindWSHandlers(io);
 
 httpServer.listen(PORT, (err) => {
   if (err) console.log(err);

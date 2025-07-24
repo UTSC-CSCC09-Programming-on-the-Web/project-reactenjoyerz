@@ -13,3 +13,4 @@ export function shootBulletVec(dx: number, dy: number);
 export function stop();
 export function getClientInfo(): { gameId: number, clientIdx: number };
 export function initClient(socketService: WebSocketService): void;
+export function setToken(token: string);
