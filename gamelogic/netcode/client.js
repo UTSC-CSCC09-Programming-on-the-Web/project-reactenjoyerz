@@ -7,7 +7,6 @@ let clientInfo;
 let currentState;
 let serverState;
 let started = false;
-let nextReqNo = 0;
 
 export function initClient(socketService) {
   console.log("Initializing client.js with shared WebSocketService.");
@@ -119,11 +118,7 @@ export function shootBullet(x, y) {
     y,
     gameId: clientInfo.gameId,
     clientIdx: clientInfo.clientIdx,
-    reqNo: nextReqNo
   });
-
-  //shoot(currentState, clientInfo.clientIdx, x, y);
-  nextReqNo++;
 }
 
 export function setDirection(dx, dy) {
@@ -131,18 +126,15 @@ export function setDirection(dx, dy) {
   console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.setDirection direction vector not normalized");
   console.assert(isDef(clientInfo), "client.setDirection clientInfo not defined");
 
-  const tankSprite = currentState.tanks[clientInfo.clientIdx].sprite;
+  const tank = currentState.tanks[clientInfo.clientIdx];
+  if (tank.dx === dx && tank.dy === dy) return;
 
-  //moveVec(currentState, clientInfo.clientIdx, dx, dy);
   wss.emit("game.moveVec", {
     dx,
     dy,
     gameId: clientInfo.gameId,
     clientIdx: clientInfo.clientIdx,
-    reqNo: nextReqNo 
   });
-
-  nextReqNo++;
 }
 
 export function shootBulletVec(dx, dy) {
@@ -158,7 +150,8 @@ export function stop() {
   console.assert(started, "client.stop match not started");
   console.assert(isDef(clientInfo), "client.stop clientInfo not defined");
 
-  stopTank(currentState, clientInfo.clientIdx);
+  const tank = currentState.tanks[clientInfo.clientIdx];
+  if (tank.dx === 0 && tank.dy === 0) return;
   wss.emit("game.stop", {
     gameId: clientInfo.gameId,
     clientIdx: clientInfo.clientIdx,

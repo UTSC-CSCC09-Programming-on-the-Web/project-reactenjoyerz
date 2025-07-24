@@ -96,7 +96,7 @@ export function bindWSHandlers(io) {
       }
     });
 
-    socket.on("game.shoot", ({ x, y, gameId, clientIdx, reqNo }) => {
+    socket.on("game.shoot", ({ x, y, gameId, clientIdx }) => {
       const game = games.get(gameId);
       if (!game || !game.started) return;
 
@@ -110,17 +110,17 @@ export function bindWSHandlers(io) {
 
       io.to(`game-${gameId}`).emit("match.stateUpdate", {
         newState: game.currentState,
-        reqNo,
         clientIdx,
       });
     });
 
-    socket.on("game.moveVec", ({ dx, dy, gameId, clientIdx, reqNo }) => {
+    socket.on("game.moveVec", ({ dx, dy, gameId, clientIdx }) => {
       const game = games.get(gameId);
       if (!game || !game.started) return;
 
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
+      else if (game.currentState.tanks[clientIdx].dx === dx && game.currentState.tanks[clientIdx].dy === dy) return;
 
       const now = Date.now();
 
@@ -129,17 +129,17 @@ export function bindWSHandlers(io) {
       moveVec(game.currentState, clientIdx, dx, dy);
       io.to(`game-${gameId}`).emit("match.stateUpdate", {
         newState: game.currentState,
-        reqNo,
         clientIdx,
       });
     });
 
-    socket.on("game.stop", ({ gameId, clientIdx, reqNo }) => {
+    socket.on("game.stop", ({ gameId, clientIdx }) => {
       const game = games.get(gameId);
       if (!game || !game.started) return;
 
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
+      else if (game.currentState.tanks[clientIdx].dx === 0 && game.currentState.tanks[clientIdx].dy === 0) return;
 
       const now = Date.now();
 
@@ -149,11 +149,8 @@ export function bindWSHandlers(io) {
       stopTank(game.currentState, clientIdx);
       io.to(`game-${gameId}`).emit("match.stateUpdate", {
         newState: game.currentState,
-        reqNo,
         clientIdx,
       });
-
-      console.log(`Stop req @ ${Date.now() - serverStepSize}`);
     });
 
     socket.on("voice.start", ({ gameId, clientIdx }) => {
