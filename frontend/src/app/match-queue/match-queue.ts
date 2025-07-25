@@ -17,9 +17,19 @@ export class MatchQueue {
   private authService = inject(AuthService);
 
   constructor (private router: Router) {
-    join(() => {
-      this.router.navigate(['/game']);
-    });
+    join(
+      () => {
+        this.router.navigate(['/game']);
+      },
+      () => {
+        this.router.navigate(['/home']);
+      },
+      (scores: { name: string, score: number}[]) => {
+        console.log("Game Ended!");
+        console.log(scores);
+        this.router.navigate(["/match"]);
+      }
+    );
 
     setInterval(() => {
       this.dots += ".";

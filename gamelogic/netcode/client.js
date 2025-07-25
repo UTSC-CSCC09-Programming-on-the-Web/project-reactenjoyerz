@@ -1,4 +1,4 @@
-import { shoot, move, setWalls, removeTank, moveVec, stopTank, updateTimestamp } from "../gamelogic/game-state";
+import { setWalls, removeTank, updateTimestamp } from "../gamelogic/game-state";
 import { isDef } from "./common";
 
 let wss;
@@ -19,18 +19,19 @@ export function initClient(socketService) {
   wss.setDelay(0);
 }
 
-export function join(cb) {
+export function join(onJoin, onUnauthorized, onGameEnd) {
   console.assert(!started, "join: already started");
   started = false;
 
   console.assert(token !== "", "join: null token");
   wss.bindHandler("match.join", (match) => {
-    cb({
+    onJoin({
       initialState: match.initialState,
       walls: match.walls,
       clientInfo: clientInfo, // Pass the clientInfo received earlier
     });
 
+    console.assert(started, "match.join: joining started match");
     started = true;
     wss.unbindHandlers("match.join");
     currentState = match.initialState;
@@ -52,7 +53,19 @@ export function join(cb) {
     });
   });
 
-  wss.emit("match.joinRequest", {}, (c) => {
+  wss.bindHandler("Unauthorized", ({}) => {
+    destroyGame();
+    onUnauthorized();
+  });
+
+  wss.bindHandler("match.end", ({ finalState }) => {
+    console.log("Game ended!");
+    console.log(finalState);
+    destroyGame();
+    onGameEnd();
+  })
+
+  wss.emit("match.joinRequest", { token }, (c) => {
     clientInfo = c;
   });
 }
@@ -101,8 +114,11 @@ export function hasStarted() {
 }
 
 export function leave() {
-  wss.emit("match.leave", clientInfo);
-  console.log(started, "client.leave match not started");
+  wss.emit("match.leave", { token });
+  destroyGame();
+}
+
+function destroyGame() {
   clientInfo = undefined;
   currentState = undefined;
   serverState = undefined;
@@ -110,6 +126,8 @@ export function leave() {
 
   wss.unbindHandlers("match.stateUpdate");
   wss.unbindHandlers("match.playerChange");
+  wss.unbindHandlers("Unauthorized");
+  wss.unbindHandlers("game.end");
 }
 
 export function getClientInfo() {
@@ -122,8 +140,7 @@ export function shootBullet(x, y) {
   wss.emit("game.shoot", {
     x,
     y,
-    gameId: clientInfo.gameId,
-    clientIdx: clientInfo.clientIdx,
+    token
   });
 }
 
@@ -138,8 +155,7 @@ export function setDirection(dx, dy) {
   wss.emit("game.moveVec", {
     dx,
     dy,
-    gameId: clientInfo.gameId,
-    clientIdx: clientInfo.clientIdx,
+    token
   });
 }
 
@@ -159,7 +175,6 @@ export function stop() {
   const tank = currentState.tanks[clientInfo.clientIdx];
   if (tank.dx === 0 && tank.dy === 0) return;
   wss.emit("game.stop", {
-    gameId: clientInfo.gameId,
-    clientIdx: clientInfo.clientIdx,
+    token
   })
 }

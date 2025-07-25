@@ -6,7 +6,7 @@ import stripe from "../stripe/index.js";
 import { OAuth2Client } from "google-auth-library";
 import assert from "node:assert";
 
-import { bindToken, findToken } from "../token.js";
+import { bindToken, findToken, deleteToken } from "../token.js";
 
 const googleClient = new OAuth2Client(
   "796814869937-0qjv66bls0u5nkgstqdjhvl4tojf42hg.apps.googleusercontent.com"
@@ -51,7 +51,7 @@ usersRouter.post("/register", async (req, res) => {
     );
 
     const userId =  user.rows[0].id;
-    
+
     assert(findToken(userId) === undefined);
     const token = bindToken(user.rows[0].id, username);
 
@@ -163,19 +163,13 @@ usersRouter.post("/google-login", async (req, res) => {
       [user.id]
     );
 
-    if (!subQ.rows.length) {
-      return res.status(402).json({
-        error: "Subscription required. Please subscribe to continue.",
-      });
-    }
-
     const userId = user.id;
-    const token = createToken(userId);
+    const token = bindToken(userId, name);
 
     return res.status(200).json({
       id: user.id,
       email: user.email,
-      has_subscription: true,
+      hasSubscription: subQ.rows.length !== 0,
       token,
     });
   } catch (error) {
@@ -185,6 +179,8 @@ usersRouter.post("/google-login", async (req, res) => {
 });
 
 usersRouter.get("/logout", (req, res) => {
-  req.session.destroy();
+  if (req.body !== undefined) {
+    deleteToken(req.body.token);
+  }
   return res.json({ message: "Signed out." });
 });

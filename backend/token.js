@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import assert from "node:assert";
 
+"use strict";
+
 // mini token db to replace express-session since that doesn't seem to work
 
 const tokenMap = new Map([]);
@@ -60,23 +62,17 @@ export function updateClientInfo(token, clientInfo) {
   clientInfo.userId = oldInfo.userId;
   clientInfo.name = oldInfo.name;
   tokenMap.set(token, clientInfo);
-}
-
-export function updateClientIdx(token, newClientIdx) {
-  const oldInfo = tokenMap.get(token);
-  assert(oldInfo !== undefined);
-
-  oldInfo.clientIdx = newClientIdx;
+  return clientInfo;
 }
 
 export function findToken(userId) {
   const info = playerMap.get(userId);
   if (info === undefined) return undefined;
 
-  const token = playerMap.get(info.token);
+  const playerInfo = tokenMap.get(info.token);
   assert(info === undefined || token !== undefined);
 
-  if (info !== undefined && token.expires <= Date.now()) {
+  if (isExpired(playerInfo)) {
     deleteUserToken(userId, info.token);
     return undefined;
   }
@@ -85,12 +81,8 @@ export function findToken(userId) {
 }
 
 export function findPlayerInfo(token) {
-  const player = tokenMap.get(token)
-  if (player !== undefined && player.expires <= Date.now()) {
-    deleteUserToken(token.userId, token);
-    return undefined;
-  }
-
+  const playerInfo = tokenMap.get(token)
+  if (isExpired(playerInfo)) deleteToken(token);
   return player;
 }
 
@@ -101,10 +93,10 @@ export function deleteUserToken(userId, token) {
 
 export function deleteToken(token) {
   const t = tokenMap.get(token);
-  assert(t !== undefined);
-  deleteUserToken(t.userId, token);
+  if (t !== undefined) deleteUserToken(t.userId, token);
 }
 
-export function refreshToken(token) {
-
+// Find player info and delete if expired. Return it otherwise
+function isExpired(player) {
+  return player !== undefined && player.expires <= Date.now() && player.gameId === undefined;
 }

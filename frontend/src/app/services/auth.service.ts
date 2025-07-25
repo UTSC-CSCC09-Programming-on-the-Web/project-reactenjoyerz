@@ -3,11 +3,12 @@ import { Observable, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environments';
 import { setToken } from "../../../../gamelogic/netcode/client";
+import { leave } from '../../../../gamelogic/netcode/client';
 
 interface User {
   id: number;
   email: string;
-  hasSubscription: boolean;
+  has_subscription: boolean;
   token: string;
 }
 
@@ -67,6 +68,7 @@ export class AuthService {
 
   logout(): Observable<any> {
     _user = null;
+    leave();
     return this.http.get(`${this.endpoint}/users/logout`, {
       withCredentials: true,
     });
@@ -81,7 +83,7 @@ export class AuthService {
   }
 
   hasSubscription(): boolean {
-    return _user?.hasSubscription ?? false;
+    return _user?.has_subscription ?? false;
   }
 
   getUserId(): number | null {

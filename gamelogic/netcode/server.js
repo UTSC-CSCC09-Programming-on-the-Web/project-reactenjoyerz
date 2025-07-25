@@ -18,6 +18,14 @@ import {
   moveVec,
   updateTimestamp
 } from "../gamelogic/game-state.js";
+import {
+  Router
+} from "express";
+import {
+  findToken,
+  updateClientInfo,
+  findPlayerInfo,
+} from "../../backend/token.js";
 
 import assert from "node:assert";
 const speakingStatus = new Map();
@@ -25,13 +33,115 @@ const speakingStatus = new Map();
 let nextGameId = 0;
 const games = new Map([]);
 
+function blockConnection(socket, reason) {
+  console.error(`Unauthorized: ${reason}`);
+  socket.emit("Unauthorized", {});
+}
+
 export function bindWSHandlers(io) {
   io.on("connection", (socket) => {
-    const handlePlayerLeave = ({ clientIdx, gameId }) => {
-      console.log(`Player ${clientIdx} left game-${gameId}`);
+    socket.use((req, next) => {
+      if (isDef(req[1].token)) {
+        const playerInfo = findPlayerInfo(req[1].token);
+        if (isDef(playerInfo)) {
+          const { clientIdx, gameId, userId, name } = playerInfo;
+
+          socket.clientIdx = clientIdx;
+          socket.gameId = gameId;
+          socket.token = req[1].token;
+          socket.userId = userId;
+          socket.name = name;
+          return next();
+        }
+
+        return blockConnection(socket, "token not mapped to player info");
+      } 
+
+      return blockConnection(socket, "null token");
+    });
+
+    socket.on("disconnect", () =>
+      console.error("Warning: Unhandled player leave!")
+    );
+
+    socket.on("match.joinRequest", ({}, callback) => {
+      assert(isDef(socket.name));
+      if (isDef(socket.gameId)) return blockConnection(socket, "player in game");
+
+      const { token, userId, name } = socket;
+      let game = games.get(nextGameId);
+
+      if (!game) {
+        game = {
+          inputs: [],
+          players: [],
+          name: `game-${nextGameId}`,
+          started: false,
+        };
+
+        games.set(nextGameId, game);
+      }
+
+      // send identification back to client
+      const gameId = nextGameId;
+      const clientIdx = game.players.length;
+      callback({
+        gameId,
+        clientIdx,
+      });
+
+      updateClientInfo(token, {
+        gameId,
+        clientIdx
+      })
+
+      // :D
+      game.players.push({
+        socket,
+        name,
+        userId,
+      });
+
+      socket.join(`game-${gameId}`);
+      console.log(
+        `${name} joined game-${gameId}`
+      );
+
+      if (game.players.length === matchSize) {
+        console.log(`Starting game-${gameId}`);
+        game.started = true;
+
+        game.currentState = initialize(matchSize);
+        game.currentState.timestamp = Date.now();
+
+        io.to(`game-${gameId}`).emit("match.join", {
+          initialState: game.currentState,
+          walls: getWalls(),
+          players: game.players.map((p) => p.name),
+        });
+
+        nextGameId++;
+      }
+    });
+
+    socket.on("match.leave", () => {
+      assert(isDef(socket.gameId));
+      const { clientIdx, gameId, token, name } = socket;
+      const ci = updateClientInfo(token, {});
+      assert(ci.gameId === undefined); // ensure that token is able to be culled if it expires
+
+      console.log(`${name} left game-${gameId}`);
       socket.disconnect();
 
       const game = games.get(gameId);
+      game.players.forEach((player, idx) => {
+        if (idx < clientIdx) return;
+        const tokenInfo = findToken(player.userId);
+        const clientInfo = findPlayerInfo(tokenInfo.token);
+        clientInfo.clientIdx -= 1;
+        updateClientInfo(tokenInfo.token, clientInfo);
+      });
+
       if (!isDef(game)) return;
       assert(isDef(game.players[clientIdx]));
 
@@ -47,56 +157,12 @@ export function bindWSHandlers(io) {
       }
 
       game.players.splice(clientIdx, 1);
-    };
-
-    socket.on("disconnect", () =>
-      console.error("Warning: Unhandled player leave!")
-    );
-
-    socket.on("match.leave", handlePlayerLeave);
-
-    socket.on("match.joinRequest", ({}, callback) => {
-      let game = games.get(nextGameId);
-
-      if (!game) {
-        game = {
-          players: [],
-          name: `game-${nextGameId}`,
-          started: false,
-        };
-
-        games.set(nextGameId, game);
-      }
-
-      // send identification back to client
-      callback({
-        gameId: nextGameId,
-        clientIdx: game.players.length,
-      });
-
-      game.players.push(socket);
-      socket.join(`game-${nextGameId}`);
-      console.log(
-        `Player ${game.players.length} of ${matchSize} joined game-${nextGameId}`
-      );
-
-      if (game.players.length === matchSize) {
-        console.log(`Starting game-${nextGameId}`);
-        game.started = true;
-
-        game.currentState = initialize(matchSize);
-        game.currentState.timestamp = Date.now();
-
-        io.to(`game-${nextGameId}`).emit("match.join", {
-          initialState: game.currentState,
-          walls: getWalls(),
-        });
-
-        nextGameId++;
-      }
     });
 
-    socket.on("game.shoot", ({ x, y, gameId, clientIdx }) => {
+    socket.on("game.shoot", ({ x, y }) => {
+      assert(isDef(socket.gameId));
+      const { clientIdx, gameId } = socket;
+
       const game = games.get(gameId);
       if (!game || !game.started) return;
 
@@ -114,7 +180,10 @@ export function bindWSHandlers(io) {
       });
     });
 
-    socket.on("game.moveVec", ({ dx, dy, gameId, clientIdx }) => {
+    socket.on("game.moveVec", ({ dx, dy }) => {
+      assert(isDef(socket.gameId));
+      const { clientIdx, gameId } = socket;
+
       const game = games.get(gameId);
       if (!game || !game.started) return;
 
@@ -127,13 +196,17 @@ export function bindWSHandlers(io) {
       assert(isDef(clientIdx) && isDef(gameId));
       updateTimestamp(game.currentState, now);
       moveVec(game.currentState, clientIdx, dx, dy);
+
       io.to(`game-${gameId}`).emit("match.stateUpdate", {
         newState: game.currentState,
         clientIdx,
       });
     });
 
-    socket.on("game.stop", ({ gameId, clientIdx }) => {
+    socket.on("game.stop", ({ }) => {
+      assert(isDef(socket.token));
+      const { clientIdx, gameId } = socket;
+
       const game = games.get(gameId);
       if (!game || !game.started) return;
 
@@ -144,17 +217,20 @@ export function bindWSHandlers(io) {
       const now = Date.now();
 
       assert(isDef(clientIdx) && isDef(gameId));
-
       updateTimestamp(game.currentState, now);
       stopTank(game.currentState, clientIdx);
+
       io.to(`game-${gameId}`).emit("match.stateUpdate", {
         newState: game.currentState,
         clientIdx,
       });
     });
 
-    socket.on("voice.start", ({ gameId, clientIdx }) => {
-      console.log(`Player ${clientIdx} in game ${gameId} started talking.`);
+    socket.on("voice.start", ({ }) => {
+      assert(isDef(socket.gameId));
+      const { clientIdx, gameId, name } = socket;
+
+      console.log(`Player ${name} in game ${gameId} started talking.`);
       if (!speakingStatus.has(gameId)) {
         speakingStatus.set(gameId, new Map());
       }
@@ -165,8 +241,11 @@ export function bindWSHandlers(io) {
       });
     });
 
-    socket.on("voice.stop", ({ gameId, clientIdx }) => {
-      console.log(`Player ${clientIdx} in game ${gameId} stopped talking.`);
+    socket.on("voice.stop", ({ }) => {
+      assert(isDef(socket.gameId));
+      const { clientIdx, gameId } = socket;
+
+      console.log(`Player ${name} in game ${gameId} stopped talking.`);
       if (speakingStatus.has(gameId)) {
         speakingStatus.get(gameId).set(clientIdx, false);
       }
@@ -176,7 +255,10 @@ export function bindWSHandlers(io) {
       });
     });
 
-    socket.on("voice.audioChunk", ({ gameId, clientIdx, chunk }) => {
+    socket.on("voice.audioChunk", ({ chunk }) => {
+      assert(isDef(socket.gameId));
+      const { clientIdx, gameId } = socket;
+
       const game = games.get(gameId);
       if (!game || !game.started || !game.currentState) return;
 
@@ -197,11 +279,11 @@ export function bindWSHandlers(io) {
       }
 
       // Iterate through all players in the game to determine proximity
-      game.players.forEach((receiverSocket, receiverIdx) => {
+      game.players.forEach((player, playerIdx) => {
         // Don't send audio back to the person who is talking.
-        if (receiverIdx === clientIdx) return;
+        if (playerIdx === clientIdx) return;
 
-        const receiverTank = game.currentState.tanks[receiverIdx];
+        const receiverTank = game.currentState.tanks[playerIdx];
         if (!receiverTank) return;
 
         // Calculate the distance between the sender and the receiver.
@@ -214,7 +296,7 @@ export function bindWSHandlers(io) {
           console.log(
             `[Game ${gameId}] Distance OK. Sending audio from ${clientIdx} to Receiver ${receiverIdx}.`
           );
-          receiverSocket.emit("voice.playerAudio", {
+          player.socket.emit("voice.playerAudio", {
             senderClientIdx: clientIdx,
             chunk: chunk,
           });

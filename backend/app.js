@@ -35,7 +35,12 @@ app.use(express.json());
 app.use("/api/users", usersRouter);
 app.use("/api/payments", paymentsRouter);
 
-//bindWSHandlers(io);
+app.post("/api/game", (req, res) => {
+  console.log(req.session);
+  return res.status(409).json({ error: "User already in a game" });
+})
+
+bindWSHandlers(io);
 
 httpServer.listen(PORT, (err) => {
   if (err) console.log(err);
