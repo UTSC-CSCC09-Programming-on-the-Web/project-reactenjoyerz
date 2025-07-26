@@ -1,3 +1,4 @@
+import { getScores } from "../gamelogic/game-state";
 import { getWalls, removeTank, updateTimestamp } from "../gamelogic/game-state";
 import { isDef } from "./common";
 
@@ -77,15 +78,14 @@ function startGame(onJoin, onFail, onGameEnd) {
   });
 
   wss.bindHandler("server.error", ({ err }) => {
-    destroyGame();
-    onFail(err);
+    if (onFail(err)) leave();
   });
 
   wss.bindHandler("match.end", ({ finalState }) => {
     console.log("Game ended!");
     console.log(finalState);
     destroyGame();
-    onGameEnd();
+    onGameEnd(getScores(finalState));
   })
 }
 

@@ -74,6 +74,7 @@ export class MatchQueue {
       },
       () => {
         this.router.navigate(['/home']);
+        return true; // fatal error
       },
       (scores: { name: string, score: number}[]) => {
         console.log("Game Ended!");

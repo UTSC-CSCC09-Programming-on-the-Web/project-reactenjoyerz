@@ -11,7 +11,7 @@ export function join(
 ): void;
 export function createRoom(
   onJoin: () => void,
-  onFail: (err: number) => void,
+  onFail: (err: number) => boolean,
   onGameEnd: (score: { name: string; score: number }[]) => void,
   room: { playerLimit: undefined; password: string }
 ): void;
