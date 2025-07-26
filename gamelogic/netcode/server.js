@@ -147,9 +147,9 @@ function authenticateUser(socket, token, endpoint, next) {
 
   let err = ErrorCode.Success;
   if (!whitelist.includes(endpoint)) {
-    if (inGameWhitelist.includes(endpoint) && !isDef(game))
+    if (inGameWhitelist.includes(endpoint) && !isDef(socket.game) && !socket.game.started)
       err = ErrorCode.NotInGame;
-    else if (notInGameWhitelist.includes(endpoint) && isDef(game))
+    else if (notInGameWhitelist.includes(endpoint) && isDef(socket.game))
       err = ErrorCode.SimJoin;
   }
 
@@ -244,10 +244,7 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("game.shoot", ({ x, y }) => {
-      const { clientIdx, gameId } = socket;
-
-      const game = games.get(gameId);
-      if (!game || !game.started) return;
+      const { clientIdx, gameId, game } = socket;
 
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
@@ -264,10 +261,7 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("game.moveVec", ({ dx, dy }) => {
-      const { clientIdx, gameId } = socket;
-
-      const game = games.get(gameId);
-      if (!game || !game.started) return;
+      const { clientIdx, gameId, game } = socket;
 
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
@@ -286,10 +280,7 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("game.stop", ({ }) => {
-      const { clientIdx, gameId } = socket;
-
-      const game = games.get(gameId);
-      if (!game || !game.started) return;
+      const { clientIdx, gameId, game } = socket;
 
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
@@ -308,9 +299,7 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("voice.start", ({ }) => {
-      const { clientIdx, gameId, name } = socket;
-
-      let game = games.get(gameId);
+      const { clientIdx, gameId, name, game } = socket;
 
       console.log(`Player ${name} in game ${gameId} started talking.`);
       if (!speakingStatus.has(gameId)) {
@@ -324,9 +313,7 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("voice.stop", ({ }) => {
-      const { clientIdx, gameId, name } = socket;
-
-      let game = games.get(gameId);
+      const { clientIdx, gameId, name, game } = socket;
 
       console.log(`Player ${name} in game ${gameId} stopped talking.`);
       if (speakingStatus.has(gameId)) {
@@ -339,10 +326,7 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("voice.audioChunk", ({ chunk }) => {
-      const { clientIdx, gameId } = socket;
-
-      const game = games.get(gameId);
-      if (!game || !game.started || !game.currentState) return;
+      const { clientIdx, gameId, game } = socket;
 
       if (
         !speakingStatus.has(gameId) ||
