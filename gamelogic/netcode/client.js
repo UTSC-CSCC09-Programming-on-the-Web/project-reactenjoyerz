@@ -1,4 +1,4 @@
-import { setWalls, removeTank, updateTimestamp } from "../gamelogic/game-state";
+import { getWalls, removeTank, updateTimestamp } from "../gamelogic/game-state";
 import { isDef } from "./common";
 
 let wss;
@@ -54,19 +54,11 @@ function startGame(onJoin, onFail, onGameEnd) {
 
   console.assert(token !== "", "join: null token");
   wss.bindHandler("match.join", (match) => {
-    onJoin({
-      initialState: match.initialState,
-      walls: match.walls,
-      clientInfo: clientInfo, // Pass the clientInfo received earlier
-    });
-
     console.assert(started, "match.join: joining started match");
     started = true;
     wss.unbindHandlers("match.join");
     currentState = match.initialState;
     serverState = undefined;
-
-    setWalls(match.walls);
 
     wss.bindHandler("match.stateUpdate", (res) => {
       currentState = res.newState;
@@ -80,6 +72,8 @@ function startGame(onJoin, onFail, onGameEnd) {
       if (clientIdx < clientInfo.clientIdx) clientInfo.clientIdx -= 1;
       if (started) removeTank(currentState, clientIdx);
     });
+
+    onJoin();
   });
 
   wss.bindHandler("server.error", ({ err }) => {

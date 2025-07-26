@@ -9,11 +9,7 @@ import {
 } from "./common.js";
 import {
   initialize,
-  step,
   shoot,
-  move,
-  getWalls,
-  logState,
   removeTank,
   stopTank,
   moveVec,
@@ -103,7 +99,6 @@ function playerJoin(socket, token, userId, name, gameId, password, callback) {
 
     io.to(`${game.name}`).emit("match.join", {
       initialState: game.currentState,
-      walls: getWalls(),
       players: game.players.map((p) => p.name),
     });
   }
@@ -238,14 +233,14 @@ export function bindWSHandlers(io) {
         games.delete(gameId);
         console.log(`Deleting ${game.name}`);
         return;
+      } else {
+        game.players.splice(clientIdx, 1);
       }
 
       if (game.started) {
         removeTank(game.currentState, clientIdx);
         io.to(game.name).emit("match.playerChange", { clientIdx });
       }
-
-      game.players.splice(clientIdx, 1);
     });
 
     socket.on("game.shoot", ({ x, y }) => {
