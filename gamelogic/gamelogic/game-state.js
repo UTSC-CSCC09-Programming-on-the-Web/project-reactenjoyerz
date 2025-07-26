@@ -68,7 +68,15 @@ function step(state, delta) {
 
   state.tanks.forEach((t) => tank.step(t, delta));
   state.bullets = state.bullets.filter((b) => {
-    return state.tanks.every((t) => !tank.testCollisionBullet(t, b));
+    return state.tanks.every((t) => {
+      if (!tank.testCollisionBullet(t, b)) return true;
+
+      const spawnId = getRand(maps[state.mapId].spawnPoints.length)
+      const [x, y] = maps[state.mapId].spawnPoints[spawnId];
+      tank.dSprite.sprite.x = x;
+      tank.dSprite.sprite.y = y;
+      return false;
+    });
   });
 
   state.timestamp += delta;
@@ -76,7 +84,7 @@ function step(state, delta) {
 
 // shoot a bullet and catch it up to timestamp
 export function shoot(state, tankIdx, x, y) {
-  const b = tank.shootBullet(state.tanks[tankIdx], x, y);
+  const b = tank.shootBullet(state.tanks[tankIdx], tankIdx, x, y);
   state.bullets.push(b);
 }
 
@@ -108,4 +116,13 @@ export function updateTimestamp(state, targetTime) {
   }
 
   return structuredClone(state);
+}
+
+export function getScores(state, playerNames) {
+  return state.tanks.map((t, idx) => {
+    return {
+      score: t.score,
+      name: playerNames[idx],
+    }
+  });
 }

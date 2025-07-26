@@ -271,7 +271,7 @@ export function bindWSHandlers(io) {
 
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
-      else if (game.currentState.tanks[clientIdx].dx === dx && game.currentState.tanks[clientIdx].dy === dy) return;
+      else if (game.currentState.tanks[clientIdx].dSprite.dx === dx && game.currentState.tanks[clientIdx].dSprite.dy === dy) return;
 
       const now = Date.now();
 
@@ -293,7 +293,7 @@ export function bindWSHandlers(io) {
 
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
-      else if (game.currentState.tanks[clientIdx].dx === 0 && game.currentState.tanks[clientIdx].dy === 0) return;
+      else if (game.currentState.tanks[clientIdx].dSprite.dx === 0 && game.currentState.tanks[clientIdx].dSprite.dy === 0) return;
 
       const now = Date.now();
 
@@ -352,7 +352,7 @@ export function bindWSHandlers(io) {
         return;
       }
 
-      const senderTank = game.currentState.tanks[clientIdx];
+      const senderTank = game.currentState.tanks[clientIdx] ? game.currentState.tanks[clientIdx].dSprite : undefined;
       if (!senderTank) {
         console.warn(
           `Sender tank ${clientIdx} not found for audio chunk in game ${gameId}.`
@@ -365,7 +365,7 @@ export function bindWSHandlers(io) {
         // Don't send audio back to the person who is talking.
         if (playerIdx === clientIdx) return;
 
-        const receiverTank = game.currentState.tanks[playerIdx];
+        const receiverTank = game.currentState.tanks[playerIdx].dSprite;
         if (!receiverTank) return;
 
         // Calculate the distance between the sender and the receiver.

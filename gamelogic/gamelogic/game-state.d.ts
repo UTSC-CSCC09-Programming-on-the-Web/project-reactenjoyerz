@@ -10,13 +10,18 @@ export type DSprite = {
   dy: number,
   rotation: number,
   sprite: Sprite,
+  score: number,
 };
 
-export type Tank = DSprite;
+export type Tank = {
+  dSprite: DSprite,
+  score: number
+};
 
 export type Bullet = {
   nBounces: number,
   dSprite: DSprite,
+  ownerIdx: number,
 };
 
 export type GameState = {

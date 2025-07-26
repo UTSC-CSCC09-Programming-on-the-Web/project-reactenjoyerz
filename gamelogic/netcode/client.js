@@ -120,10 +120,10 @@ export function getDistance(idx) {
     return;
   }
 
-  const t1 = currentState.tanks[idx];
+  const t1 = currentState.tanks[idx].dSprite;
 
   // 2. Correctly access the client's tank from the tanks array
-  const t2 = currentState.tanks[clientInfo.clientIdx];
+  const t2 = currentState.tanks[clientInfo.clientIdx].dSprite;
 
   // 3. Add a check to ensure both tank objects exist before using them
   if (!t1 || !t2) {
@@ -168,7 +168,7 @@ export function setDirection(dx, dy) {
   console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.setDirection direction vector not normalized");
   console.assert(isDef(clientInfo), "client.setDirection clientInfo not defined");
 
-  const tank = currentState.tanks[clientInfo.clientIdx];
+  const tank = currentState.tanks[clientInfo.clientIdx].dSprite;
   if (tank.dx === dx && tank.dy === dy) return;
 
   wss.emit("game.moveVec", {
@@ -183,7 +183,7 @@ export function shootBulletVec(dx, dy) {
   console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.shootBulletVec vector not normalized");
   console.assert(isDef(clientInfo), "client.shootBulletVec clientInfo not defined");
 
-  const tankSprite = currentState.tanks[clientInfo.clientIdx].sprite;
+  const tankSprite = currentState.tanks[clientInfo.clientIdx].dSprite.sprite;
   shootBullet(tankSprite.x + dx, tankSprite.y + dy);
 }
 
@@ -193,6 +193,7 @@ export function stop() {
 
   const tank = currentState.tanks[clientInfo.clientIdx];
   if (tank.dx === 0 && tank.dy === 0) return;
+
   wss.emit("game.stop", {
     token
   })
