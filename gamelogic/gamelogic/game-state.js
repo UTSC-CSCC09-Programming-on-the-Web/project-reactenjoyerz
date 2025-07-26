@@ -16,16 +16,29 @@ const maps = [
   }
 ]
 
+function getRand(max) {
+  return Math.floor(Math.random() * max);
+}
+
 export function initialize(playerCount) {
   const tanks = [];
-  for (let i = 0; i < playerCount; i++)
-    tanks.push(tank.createTank(960, 540));
+  const mapId = getRand(maps.length);
+
+  for (let i = 0; i < playerCount; i++) {
+    const t = getRand(maps[mapId].spawnPoints.length);
+    tanks.push(
+      tank.createTank(
+        maps[mapId].spawnPoints[t][0],
+        maps[mapId].spawnPoints[t][1]
+      )
+    );
+  }
 
   return {
     timestamp: 0,
     tanks,
     bullets: [],
-    mapId: Math.floor(Math.random() * maps.length),
+    mapId,
   };
 }
 
@@ -36,7 +49,7 @@ export function getWalls(state) {
 function step(state, delta) {
   if (delta === 0) return;
 
-  walls = maps[state.mapId].walls;
+  walls = structuredClone(maps[state.mapId].walls);
   walls.push(createWall(0, 0, 192, 1, 10));
   walls.push(createWall(0, 950, 192, 1, 10));
   walls.push(createWall(0, 0, 1, 108, 10));
