@@ -5,6 +5,7 @@ import {
   inputCooldown,
   matchSize,
   MAX_PROXIMITY_DISTANCE,
+  ErrorCode,
 } from "./common.js";
 import {
   initialize,
@@ -27,15 +28,85 @@ import {
   findPlayerInfo,
 } from "../../backend/token.js";
 
-import assert from "node:assert";
+import assert, { match } from "node:assert";
+import bcrypt from "bcrypt";
+
 const speakingStatus = new Map();
 
-let nextGameId = 0;
+let nextGameId = 1;
+let nextPublicGameId = 0;
 const games = new Map([]);
 
-function blockConnection(socket, reason) {
-  console.error(`Unauthorized: ${reason}`);
-  socket.emit("Unauthorized", {});
+const SALT_ROUNDS = 10;
+
+function sendError(socket, reason, err) {
+  assert(err !== ErrorCode.Success);
+  console.error(`Error: ${reason}`);
+  socket.emit("server.error", { err });
+}
+
+function createRoom(gameId, password, playerLimit) {
+  let game = games.get(gameId);
+  if (isDef(game)) return ErrorCode.RoomExists;
+  game = {
+    inputs: [],
+    players: [],
+    name: `game-${gameId}`,
+    started: false,
+    playerLimit
+  };
+
+  if (isDef(password)) {
+    const salt = bcrypt.genSaltSync(SALT_ROUNDS);
+    game.password = bcrypt.hashSync(password, salt);
+  }
+
+  games.set(gameId, game);
+  return ErrorCode.Success;
+}
+
+function playerJoin(socket, token, userId, name, gameId, password) {
+  let game = games.get(gameId);
+
+  if (!isDef(game)) return ErrorCode.InvalidRoom; 
+  if (game.started) return ErrorCode.GameStarted;
+  if (isDef(game.password) && bcrypt.compareSync(password, game.password)) return ErrorCode.WrongPassword;
+
+  // send identification back to client
+  const clientIdx = game.players.length;
+  callback({
+    gameId,
+    clientIdx,
+  });
+
+  updateClientInfo(token, {
+    gameId,
+    clientIdx,
+  });
+
+  // :D
+  game.players.push({
+    socket,
+    name,
+    userId,
+  });
+
+  socket.join(`${game.name}`);
+  console.log(`${name} joined ${game.name}`);
+
+  if (game.players.length === matchSize) {
+    console.log(`Starting ${game.name}`);
+    game.started = true;
+
+    game.currentState = initialize(matchSize);
+    game.currentState.timestamp = Date.now();
+
+    io.to(`${game.name}`).emit("match.join", {
+      initialState: game.currentState,
+      walls: getWalls(),
+      players: game.players.map((p) => p.name),
+    });
+  }
 }
 
 export function bindWSHandlers(io) {
@@ -54,74 +125,62 @@ export function bindWSHandlers(io) {
           return next();
         }
 
-        return blockConnection(socket, "token not mapped to player info");
+        return sendError(socket, "token not mapped", ErrorCode.InvalidToken);
       } 
 
-      return blockConnection(socket, "null token");
+      return sendError(socket, "null token", ErrorCode.InvalidToken);
     });
 
     socket.on("disconnect", () =>
       console.error("Warning: Unhandled player leave!")
     );
 
-    socket.on("match.joinRequest", ({}, callback) => {
-      assert(isDef(socket.name));
-      if (isDef(socket.gameId)) return blockConnection(socket, "player in game");
+    socket.on("match.joinRequest", ({ gameId, password }, callback) => {
+      assert(isDef(socket.name)); // assert token is mapped to a valid user
+      if (isDef(socket.gameId)) return sendError(socket, "player in game", ErrorCode.SimJoin);
 
       const { token, userId, name } = socket;
-      let game = games.get(nextGameId);
+      handlePlayerJoin(token, userId, name);
 
-      if (!game) {
-        game = {
-          inputs: [],
-          players: [],
-          name: `game-${nextGameId}`,
-          started: false,
-        };
+      const joinPublic = !isDef(gameId)
+      gameId = joinPublic ? nextPublicGameId : gameId;
+      let game = games.get(gameId);
+      let err;
 
-        games.set(nextGameId, game);
+      if (game.started && joinPublic) {
+        nextPublicGameId = nextGameId++;
+        assert(nextPublicGameId < nextGameId);
+        gameId = nextPublicGameId;
+        assert(createRoom(gameId, undefined, matchSize) === ErrorCode.Success);
       }
 
-      // send identification back to client
-      const gameId = nextGameId;
-      const clientIdx = game.players.length;
-      callback({
+      err = playerJoin(socket, token, userId, name, gameId, password);
+      assert(!joinPublic || err === ErrorCode.Success);
+      if (err !== ErrorCode.Success) 
+        sendError(socket, "unable to join room", err);
+    });
+
+    socket.on("match.createRoom", ({ password, playerLimit }) => {
+      assert(isDef(socket.name));
+
+      if (isDef(socket.gameId)) return sendError(socket, "player in game", ErrorCode.SimJoin);
+      const { token, userId, name } = socket;
+
+      let err;
+      gameId = nextGameId++;
+      assert(nextPublicGameId < nextGameId);
+
+      err = createRoom(
         gameId,
-        clientIdx,
-      });
-
-      updateClientInfo(token, {
-        gameId,
-        clientIdx
-      })
-
-      // :D
-      game.players.push({
-        socket,
-        name,
-        userId,
-      });
-
-      socket.join(`game-${gameId}`);
-      console.log(
-        `${name} joined game-${gameId}`
+        password,
+        playerLimit > 0 && isDef(playerLimit) ? playerLimit : matchSize
       );
 
-      if (game.players.length === matchSize) {
-        console.log(`Starting game-${gameId}`);
-        game.started = true;
-
-        game.currentState = initialize(matchSize);
-        game.currentState.timestamp = Date.now();
-
-        io.to(`game-${gameId}`).emit("match.join", {
-          initialState: game.currentState,
-          walls: getWalls(),
-          players: game.players.map((p) => p.name),
-        });
-
-        nextGameId++;
-      }
+      if (err === ErrorCode.Success)
+        err = playerJoin(socket, token, userId, name, gameId, password);
+      
+      if (err !== ErrorCode.Success)
+        sendError(socket, "unable to create room", err);
     });
 
     socket.on("match.leave", () => {
@@ -130,10 +189,10 @@ export function bindWSHandlers(io) {
       const ci = updateClientInfo(token, {});
       assert(ci.gameId === undefined); // ensure that token is able to be culled if it expires
 
-      console.log(`${name} left game-${gameId}`);
+      const game = games.get(gameId);
+      console.log(`${name} left ${game.name}`);
       socket.disconnect();
 
-      const game = games.get(gameId);
       game.players.forEach((player, idx) => {
         if (idx < clientIdx) return;
         const tokenInfo = findToken(player.userId);
@@ -147,7 +206,7 @@ export function bindWSHandlers(io) {
 
       if (game.players.length === 1) {
         games.delete(gameId);
-        console.log(`Deleting game-${gameId}`);
+        console.log(`Deleting ${game.name}`);
         return;
       }
 
@@ -174,7 +233,7 @@ export function bindWSHandlers(io) {
       updateTimestamp(game.currentState, now);
       shoot(game.currentState, clientIdx, x, y);
 
-      io.to(`game-${gameId}`).emit("match.stateUpdate", {
+      io.to(`${game.name}`).emit("match.stateUpdate", {
         newState: game.currentState,
         clientIdx,
       });
@@ -197,7 +256,7 @@ export function bindWSHandlers(io) {
       updateTimestamp(game.currentState, now);
       moveVec(game.currentState, clientIdx, dx, dy);
 
-      io.to(`game-${gameId}`).emit("match.stateUpdate", {
+      io.to(`${game.name}`).emit("match.stateUpdate", {
         newState: game.currentState,
         clientIdx,
       });
@@ -220,7 +279,7 @@ export function bindWSHandlers(io) {
       updateTimestamp(game.currentState, now);
       stopTank(game.currentState, clientIdx);
 
-      io.to(`game-${gameId}`).emit("match.stateUpdate", {
+      io.to(`${game.name}`).emit("match.stateUpdate", {
         newState: game.currentState,
         clientIdx,
       });
@@ -230,27 +289,33 @@ export function bindWSHandlers(io) {
       assert(isDef(socket.gameId));
       const { clientIdx, gameId, name } = socket;
 
+      let game = games.get(gameId);
+      assert(isDef(game));
+
       console.log(`Player ${name} in game ${gameId} started talking.`);
       if (!speakingStatus.has(gameId)) {
         speakingStatus.set(gameId, new Map());
       }
       speakingStatus.get(gameId).set(clientIdx, true);
       // Notify other clients in the room that this player started talking (for UI)
-      io.to(`game-${gameId}`).emit("voice.playerStartedTalking", {
+      io.to(`${game.name}`).emit("voice.playerStartedTalking", {
         senderClientIdx: clientIdx,
       });
     });
 
     socket.on("voice.stop", ({ }) => {
       assert(isDef(socket.gameId));
-      const { clientIdx, gameId } = socket;
+      const { clientIdx, gameId, name } = socket;
+
+      let game = games.get(gameId);
+      assert(isDef(game));
 
       console.log(`Player ${name} in game ${gameId} stopped talking.`);
       if (speakingStatus.has(gameId)) {
         speakingStatus.get(gameId).set(clientIdx, false);
       }
       // Notify other clients in the room that this player stopped talking (for UI)
-      io.to(`game-${gameId}`).emit("voice.playerStoppedTalking", {
+      io.to(`${game.name}`).emit("voice.playerStoppedTalking", {
         senderClientIdx: clientIdx,
       });
     });

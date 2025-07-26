@@ -19,8 +19,37 @@ export function initClient(socketService) {
   wss.setDelay(0);
 }
 
-export function join(onJoin, onUnauthorized, onGameEnd) {
-  console.assert(!started, "join: already started");
+export function createRoom(onJoin, onFail, onGameEnd, room) {
+  if (!isDef(room.playerLimit) || !isDef(room.password)) return onUnauthorized(ErrorCode.UnauthorizedJoin);
+  const body = {
+    token,
+    playerLimit: room.playerLimit,
+    password: room.password,
+  };
+
+  wss.emit("match.createRoom", body, (c) => {
+    clientInfo = c;
+  })
+
+  startGame(onJoin, onFail, onGameEnd);
+}
+
+export function join(onJoin, onFail, onGameEnd, room) {
+  const body = { token };
+  if (room.roomId !== undefined) {
+    body.roomId = room.roomId;
+    body.password = room.password;
+  }
+
+  wss.emit("match.joinRequest", body, (c) => {
+    clientInfo = c;
+  });
+
+  startGame(onJoin, onFail, onGameEnd);
+}
+
+function startGame(onJoin, onFail, onGameEnd) {
+  console.assert(!started, "startGame: already started");
   started = false;
 
   console.assert(token !== "", "join: null token");
@@ -53,9 +82,9 @@ export function join(onJoin, onUnauthorized, onGameEnd) {
     });
   });
 
-  wss.bindHandler("Unauthorized", ({}) => {
+  wss.bindHandler("server.error", ({ err }) => {
     destroyGame();
-    onUnauthorized();
+    onFail(err);
   });
 
   wss.bindHandler("match.end", ({ finalState }) => {
@@ -64,10 +93,18 @@ export function join(onJoin, onUnauthorized, onGameEnd) {
     destroyGame();
     onGameEnd();
   })
+}
 
-  wss.emit("match.joinRequest", { token }, (c) => {
-    clientInfo = c;
-  });
+function destroyGame() {
+  clientInfo = undefined;
+  currentState = undefined;
+  serverState = undefined;
+  started = false;
+
+  wss.unbindHandlers("match.stateUpdate");
+  wss.unbindHandlers("match.playerChange");
+  wss.unbindHandlers("Unauthorized");
+  wss.unbindHandlers("game.end");
 }
 
 export function fetchFrame() {
@@ -116,18 +153,6 @@ export function hasStarted() {
 export function leave() {
   wss.emit("match.leave", { token });
   destroyGame();
-}
-
-function destroyGame() {
-  clientInfo = undefined;
-  currentState = undefined;
-  serverState = undefined;
-  started = false;
-
-  wss.unbindHandlers("match.stateUpdate");
-  wss.unbindHandlers("match.playerChange");
-  wss.unbindHandlers("Unauthorized");
-  wss.unbindHandlers("game.end");
 }
 
 export function getClientInfo() {

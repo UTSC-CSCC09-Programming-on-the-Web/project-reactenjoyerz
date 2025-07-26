@@ -1,7 +1,45 @@
 <p>loading {{ dots }}</p>
-<p></p>
-<p>
-  tip: open 2 tabs set on the loading screen and reload one of them twice to
-  simulate players joining
-</p>
+<form (ngSubmit)="createGame()" [formGroup]="createForm">
+  <div class="form-title">Sign Up</div>
+  <input
+    type="text"
+    name="playerLimit"
+    formControlName="playerLimit"
+    placeholder="Enter a player limit"
+    required
+  />
+  <input
+    type="text"
+    name="password"
+    class="form-element"
+    formControlName="password"
+    placeholder="Enter a password"
+    required
+  />
+  <div>
+    <button type="submit" name="action">Create Room</button>
+  </div>
+</form>
+
+<form (ngSubmit)="joinGame()" [formGroup]="joinForm">
+  <div class="form-title">Sign Up</div>
+  <input
+    type="text"
+    name="roomId"
+    formControlName="roomId"
+    placeholder="Enter a roomId"
+    required
+  />
+  <input
+    type="text"
+    name="password"
+    class="form-element"
+    formControlName="password"
+    placeholder="Enter a password"
+    required
+  />
+  <div>
+    <button type="submit" name="action">Join Room</button>
+  </div>
+</form>
 <button (click)="logout()">Logout</button>
