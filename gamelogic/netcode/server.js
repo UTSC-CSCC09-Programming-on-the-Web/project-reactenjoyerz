@@ -28,7 +28,7 @@ import {
   findPlayerInfo,
 } from "../../backend/token.js";
 
-import assert, { match } from "node:assert";
+import assert from "node:assert";
 import bcrypt from "bcrypt";
 
 const speakingStatus = new Map();
@@ -65,7 +65,7 @@ function createRoom(gameId, password, playerLimit) {
   return ErrorCode.Success;
 }
 
-function playerJoin(socket, token, userId, name, gameId, password) {
+function playerJoin(socket, token, userId, name, gameId, password, callback) {
   let game = games.get(gameId);
 
   if (!isDef(game)) return ErrorCode.InvalidRoom; 
@@ -109,26 +109,63 @@ function playerJoin(socket, token, userId, name, gameId, password) {
   }
 }
 
+function authenticateUser(socket, token, endpoint, next) {
+  if (!isDef(token)) return sendError(socket, "null token", ErrorCode.InvalidToken);
+
+  const playerInfo = findPlayerInfo(req[1].token);
+  if (isDef(playerInfo)) return sendError(socket, "token not mapped to player", ErrorCode.InvalidToken);
+
+  const { clientIdx, gameId, userId, name } = playerInfo;
+  socket.clientIdx = clientIdx;
+  socket.gameId = gameId;
+  socket.token = req[1].token;
+  socket.userId = userId;
+  socket.name = name;
+
+  const game = games.get(socket.gameId);
+  assert(!isDef(game) || game.players[socket.clientIdx].userId === socket.userId);
+
+  // list of all endpoints where the user must be in a game to access them
+  const inGameWhitelist = [
+    "match.leave",
+    "game.shoot",
+    "game.moveVec",
+    "game.stop",
+    "voice.start",
+    "voice.stop",
+    "voice.audioChunk",
+  ];
+
+  // list of all endpoints where the user must not be in a game to access them
+  const notInGameWhitelist = [
+    "match.joinRequest",
+    "match.createRoom",
+  ];
+
+  // general white list
+  const whitelist = [
+    "disconnect",
+  ];
+
+  // should always be defined
+  assert(socket.name);
+
+  let err = ErrorCode.Success;
+  if (!whitelist.includes(endpoint)) {
+    if (inGameWhitelist.includes(endpoint) && !isDef(game))
+      err = ErrorCode.NotInGame;
+    else if (notInGameWhitelist.includes(endpoint) && isDef(game))
+      err = ErrorCode.SimJoin;
+  }
+
+  if ((err = ErrorCode.Success)) next();
+  else sendError(socket, "", err);
+}
+
 export function bindWSHandlers(io) {
   io.on("connection", (socket) => {
     socket.use((req, next) => {
-      if (isDef(req[1].token)) {
-        const playerInfo = findPlayerInfo(req[1].token);
-        if (isDef(playerInfo)) {
-          const { clientIdx, gameId, userId, name } = playerInfo;
-
-          socket.clientIdx = clientIdx;
-          socket.gameId = gameId;
-          socket.token = req[1].token;
-          socket.userId = userId;
-          socket.name = name;
-          return next();
-        }
-
-        return sendError(socket, "token not mapped", ErrorCode.InvalidToken);
-      } 
-
-      return sendError(socket, "null token", ErrorCode.InvalidToken);
+      authenticateUser(socket, req[1].token, req[0], next);
     });
 
     socket.on("disconnect", () =>
@@ -136,9 +173,6 @@ export function bindWSHandlers(io) {
     );
 
     socket.on("match.joinRequest", ({ gameId, password }, callback) => {
-      assert(isDef(socket.name)); // assert token is mapped to a valid user
-      if (isDef(socket.gameId)) return sendError(socket, "player in game", ErrorCode.SimJoin);
-
       const { token, userId, name } = socket;
       handlePlayerJoin(token, userId, name);
 
@@ -154,16 +188,13 @@ export function bindWSHandlers(io) {
         assert(createRoom(gameId, undefined, matchSize) === ErrorCode.Success);
       }
 
-      err = playerJoin(socket, token, userId, name, gameId, password);
+      err = playerJoin(socket, token, userId, name, gameId, password, callback);
       assert(!joinPublic || err === ErrorCode.Success);
       if (err !== ErrorCode.Success) 
         sendError(socket, "unable to join room", err);
     });
 
-    socket.on("match.createRoom", ({ password, playerLimit }) => {
-      assert(isDef(socket.name));
-
-      if (isDef(socket.gameId)) return sendError(socket, "player in game", ErrorCode.SimJoin);
+    socket.on("match.createRoom", ({ password, playerLimit }, callback) => {
       const { token, userId, name } = socket;
 
       let err;
@@ -177,14 +208,13 @@ export function bindWSHandlers(io) {
       );
 
       if (err === ErrorCode.Success)
-        err = playerJoin(socket, token, userId, name, gameId, password);
+        err = playerJoin(socket, token, userId, name, gameId, password, callback);
       
       if (err !== ErrorCode.Success)
         sendError(socket, "unable to create room", err);
     });
 
     socket.on("match.leave", () => {
-      assert(isDef(socket.gameId));
       const { clientIdx, gameId, token, name } = socket;
       const ci = updateClientInfo(token, {});
       assert(ci.gameId === undefined); // ensure that token is able to be culled if it expires
@@ -219,7 +249,6 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("game.shoot", ({ x, y }) => {
-      assert(isDef(socket.gameId));
       const { clientIdx, gameId } = socket;
 
       const game = games.get(gameId);
@@ -240,7 +269,6 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("game.moveVec", ({ dx, dy }) => {
-      assert(isDef(socket.gameId));
       const { clientIdx, gameId } = socket;
 
       const game = games.get(gameId);
@@ -263,7 +291,6 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("game.stop", ({ }) => {
-      assert(isDef(socket.token));
       const { clientIdx, gameId } = socket;
 
       const game = games.get(gameId);
@@ -286,11 +313,9 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("voice.start", ({ }) => {
-      assert(isDef(socket.gameId));
       const { clientIdx, gameId, name } = socket;
 
       let game = games.get(gameId);
-      assert(isDef(game));
 
       console.log(`Player ${name} in game ${gameId} started talking.`);
       if (!speakingStatus.has(gameId)) {
@@ -304,11 +329,9 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("voice.stop", ({ }) => {
-      assert(isDef(socket.gameId));
       const { clientIdx, gameId, name } = socket;
 
       let game = games.get(gameId);
-      assert(isDef(game));
 
       console.log(`Player ${name} in game ${gameId} stopped talking.`);
       if (speakingStatus.has(gameId)) {
@@ -321,7 +344,6 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("voice.audioChunk", ({ chunk }) => {
-      assert(isDef(socket.gameId));
       const { clientIdx, gameId } = socket;
 
       const game = games.get(gameId);

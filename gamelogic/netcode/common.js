@@ -17,4 +17,5 @@ export const ErrorCode = {
   RoomExists: 4,
   SimJoin: 6, // joining two rooms at once
   WrongPassword: 7, // wrong room password
+  NotInGame: 8,
 }
