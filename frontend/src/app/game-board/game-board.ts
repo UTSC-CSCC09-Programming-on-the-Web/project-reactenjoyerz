@@ -1,5 +1,5 @@
 import { moveTo ,shootBullet, fetchFrame, getClientIdx, hasStarted, leave, setDirection, shootBulletVec, stop, getDistance, getClientInfo} from "../../../../gamelogic/netcode/client";
-import { Sprite, GameState, Tank, Bullet, getWalls } from "../../../../gamelogic/gamelogic/game-state";
+import { Sprite, GameState, Tank, Bullet, getWalls, DSprite } from "../../../../gamelogic/gamelogic/game-state";
 import { MAX_PROXIMITY_DISTANCE, MIN_AUDIBLE_DISTANCE } from "../../../../gamelogic/netcode/common"
 import { signal, Component, HostListener, computed, Host, OnDestroy, OnInit} from "@angular/core";
 import { SpeechService } from '../services/speech';
@@ -20,12 +20,13 @@ export class GameBoard implements OnDestroy {
   clientIdx?: number;
   tanks = signal<Tank[]>([]);
   bullets = signal<Bullet[]>([]);
-  walls: Sprite[];
+  walls: Sprite[] = [];
   isListening = false;
   isVoiceTransmitting = false;
   speakingPlayers: Set<number> = new Set();
   playerVolumes: Map<number, number> = new Map();
   playerMutedStatus: Map<number, boolean> = new Map();
+  keymap = [0, 0, 0, 0];
 
   micAccessStatus: 'idle' | 'granted' | 'denied' | 'error' = 'idle';
   private micStatusSub?: Subscription;
@@ -49,7 +50,6 @@ export class GameBoard implements OnDestroy {
     private wss: WebSocketService
   ) {
     initClient(wss);
-    this.walls = getWalls();
 
     setInterval(() => {
       if (!hasStarted()) {
@@ -60,10 +60,20 @@ export class GameBoard implements OnDestroy {
       }
 
       const res = fetchFrame();
+      this.walls = getWalls(res);
       this.started.set(true);
       this.clientIdx = getClientIdx();
       this.bullets.set(res.bullets);
       this.tanks.set(res.tanks);
+
+      const dx = this.keymap[3] - this.keymap[1];
+      const dy = this.keymap[2] - this.keymap[0];
+      if (dx === 0 && dy === 0) stop();
+      else {
+        console.log(dx, dy);
+        const norm = Math.sqrt(dx ** 2 + dy ** 2);
+        setDirection(dx / norm, dy / norm);
+      }
 
       if (this.clientIdx !== undefined && !this.clientInfoSet) {
         this.voiceChatService.setClient(getClientInfo());
@@ -137,19 +147,16 @@ export class GameBoard implements OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
-    switch (event.key.toLowerCase()) {
-      case 'w':
-        setDirection(0, -1);
-        break;
-      case 'a':
-        setDirection(-1, 0);
-        break;
-      case 's':
-        setDirection(0, 1);
-        break;
-      case 'd':
-        setDirection(1, 0);
-        break;
+    let dx = 0;
+    let dy = 0;
+
+    const key = event.key.toLowerCase();
+    if (key === 'w') this.keymap[0] = 1;
+    if (key === 'a') this.keymap[1] = 1;
+    if (key === 's') this.keymap[2] = 1;
+    if (key === 'd') this.keymap[3] = 1;
+
+    switch (key) {
       case 'v':
         this.startRecording();
         break;
@@ -158,13 +165,13 @@ export class GameBoard implements OnDestroy {
 
   @HostListener('window:keyup', ['$event'])
   handleKeyUp(event: KeyboardEvent) {
-    switch (event.key.toLowerCase()) {
-      case 'w':
-      case 'a':
-      case 's':
-      case 'd':
-        stop();
-        break;
+    const key = event.key.toLowerCase();
+    if (key === 'w') this.keymap[0] = 0;
+    if (key === 'a') this.keymap[1] = 0;
+    if (key === 's') this.keymap[2] = 0;
+    if (key === 'd') this.keymap[3] = 0;
+
+    switch (key) {
       case 'v':
         this.stopRecording();
         break;

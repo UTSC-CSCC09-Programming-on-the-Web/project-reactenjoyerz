@@ -26,7 +26,7 @@ export class GoogleLogin {
       this.auth.googleLogin(idToken).subscribe({
         next: (res) => {
           if (res.hasSubscription) {
-            this.router.navigate(['/game']);
+            this.router.navigate(['/match']);
           } else {
             this.router.navigate(['/subscribe']);
           }

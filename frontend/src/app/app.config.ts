@@ -13,6 +13,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { AppAuthModule } from './app-auth.module';
 import { WebSocketService } from './services/web-socket.service';
 import { initClient } from '../../../gamelogic/netcode/client';
+import { ReactiveFormsModule } from '@angular/forms';
 
 
 export function initializeAppFactory(): () => void {

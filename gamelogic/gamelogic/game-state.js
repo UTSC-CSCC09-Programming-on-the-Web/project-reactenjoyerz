@@ -1,41 +1,60 @@
 import { createWall } from "./wall.js";
+import { maxStepSize } from "../netcode/common.js";
+import { isDef } from "../netcode/common.js";
 
 import * as tank from "./tank.js";
 import * as bullet from "./bullet.js";
 
-let walls;
+const maps = [
+  {
+    walls: [
+      createWall(1000, 500, 10, 2, 48),
+      createWall(500, 50, 3, 15, 48),
+    ],
+    spawnPoints: [
+      [ 960, 540 ],
+    ]
+  }
+]
+
+function getRand(max) {
+  return Math.floor(Math.random() * max);
+}
 
 export function initialize(playerCount) {
-  walls = [
-    createWall(0, 0, 192, 1, 10),
-    createWall(0, 950, 192, 1, 10),
-    createWall(0, 0, 1, 108, 10),
-    createWall(1910, 0, 1, 108, 10),
-    createWall(1000, 500, 10, 2, 48),
-    createWall(500, 50, 3, 15, 48),
-  ];
-
   const tanks = [];
+  const mapId = getRand(maps.length);
+
   for (let i = 0; i < playerCount; i++) {
-    tanks.push(tank.createTank(960, 540));
+    const t = getRand(maps[mapId].spawnPoints.length);
+    tanks.push(
+      tank.createTank(
+        maps[mapId].spawnPoints[t][0],
+        maps[mapId].spawnPoints[t][1]
+      )
+    );
   }
+
   return {
     timestamp: 0,
     tanks,
     bullets: [],
+    mapId,
   };
 }
 
-export function getWalls() {
-  return walls;
+export function getWalls(state) {
+  return maps[state.mapId].walls;
 }
 
-export function setWalls(_walls) {
-  walls = _walls;
-}
-
-export function step(state, delta) {
+function step(state, delta) {
   if (delta === 0) return;
+
+  const walls = structuredClone(maps[state.mapId].walls);
+  walls.push(createWall(0, 0, 192, 1, 10));
+  walls.push(createWall(0, 950, 192, 1, 10));
+  walls.push(createWall(0, 0, 1, 108, 10));
+  walls.push(createWall(1910, 0, 1, 108, 10));
 
   state.bullets = state.bullets.filter((b) => {
     bullet.step(b, delta);
@@ -50,7 +69,15 @@ export function step(state, delta) {
 
   state.tanks.forEach((t) => tank.step(t, delta));
   state.bullets = state.bullets.filter((b) => {
-    return state.tanks.every((t) => !tank.testCollisionBullet(t, b));
+    return state.tanks.every((t) => {
+      if (!tank.testCollisionBullet(t, b)) return true;
+
+      const spawnId = getRand(maps[state.mapId].spawnPoints.length)
+      const [x, y] = maps[state.mapId].spawnPoints[spawnId];
+      tank.dSprite.sprite.x = x;
+      tank.dSprite.sprite.y = y;
+      return false;
+    });
   });
 
   state.timestamp += delta;
@@ -58,19 +85,14 @@ export function step(state, delta) {
 
 // shoot a bullet and catch it up to timestamp
 export function shoot(state, tankIdx, x, y) {
-  const b = tank.shootBullet(state.tanks[tankIdx], x, y);
+  const b = tank.shootBullet(state.tanks[tankIdx], tankIdx, x, y);
   state.bullets.push(b);
-}
-
-export function move(state, tankIdx, x, y) {
-  const t = state.tanks[tankIdx];
-  tank.moveTo(t, x, y);
 }
 
 export function moveVec(state, tankIdx, dx, dy) {
   if (Math.abs(dx ** 2 + dy ** 2 - 1) > 1e-5) return;
-  state.tanks[tankIdx].dx = dx;
-  state.tanks[tankIdx].dy = dy;
+  state.tanks[tankIdx].dSprite.dx = dx;
+  state.tanks[tankIdx].dSprite.dy = dy;
 }
 
 export function stopTank(state, tankIdx) {
@@ -78,37 +100,30 @@ export function stopTank(state, tankIdx) {
   state.tanks[tankIdx].dy = 0;
 }
 
-export function logState(state) {
-  console.log(`TIME: ${state.timestamp}
-  Tanks:`);
-  state.tanks.forEach((t) => {
-    console.log(`    x: ${t.sprite.x}
-    y: ${t.sprite.y}
-    dx: ${t.dy}
-    dx: ${t.dx}
-    rot: ${t.rotation}
-    `);
-  });
-
-  console.log(`
-  Bullets:`);
-  state.bullets.forEach((b) => {
-    const t = b.dSprite;
-    console.log(`    x: ${t.sprite.x}
-    y: ${t.sprite.y}
-    dx: ${t.dy}
-    dx: ${t.dx}
-    rot: ${t.rotation}
-    nBounces: ${b.nBounces};
-    `);
-  });
-
-  console.log(`
-  Leaderboard:
-    TBD
-  `);
-}
-
 export function removeTank(state, idx) {
   state.tanks.splice(idx, 1);
+}
+
+export function updateTimestamp(state, targetTime) {
+  if (!isDef(state))
+    return state;
+
+  let headTime = state.timestamp;
+  while (targetTime !== headTime) {
+    const delta = Math.min(maxStepSize, targetTime - headTime);
+
+    step(state, delta);
+    headTime += delta;
+  }
+
+  return structuredClone(state);
+}
+
+export function getScores(state, playerNames) {
+  return state.tanks.map((t, idx) => {
+    return {
+      score: t.score,
+      name: playerNames[idx],
+    }
+  });
 }

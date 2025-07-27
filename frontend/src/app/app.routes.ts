@@ -16,6 +16,6 @@ export const routes: Routes = [
     { path: 'login', component: Login },
     { path: 'register', component: Register },
     { path: 'google-login', component: GoogleLogin },
-    { path: 'subscribe', component: Subscribe },
+    { path: 'subscribe', component: Subscribe, canActivate: [AuthGuard] },
     { path: '**', redirectTo:'home' }
 ];
