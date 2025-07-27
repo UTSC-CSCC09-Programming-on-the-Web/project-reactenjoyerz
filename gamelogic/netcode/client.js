@@ -58,10 +58,7 @@ function startGame(onJoin, onFail, onGameEnd) {
 
     wss.bindHandler("match.stateUpdate", (res) => {
       currentState = res.newState;
-      if (isDef(res.updatedIndices)) {
-        clientInfo.clientIdx = res.updatedIndices[clientInfo.clientIdx];
-        fetchFrame();
-      }
+      console.assert(!isDef(res.updateIndices), "match.stateUpdate: updateIndices is deprecated");
     });
 
     wss.bindHandler("match.playerChange", ({ clientIdx }) => {
@@ -101,7 +98,9 @@ export function fetchFrame() {
   console.assert(started, "fetchFrame: not started");
 
   const targetTime = Date.now();
-  return updateTimestamp(currentState, targetTime);
+  if (updateTimestamp(currentState, targetTime, true))
+    wss.emit("game.syncReq", {});
+  return currentState;
 }
 
 export function getDistance(idx) {
@@ -137,7 +136,7 @@ export function hasStarted() {
 }
 
 export function leave() {
-  //if (!isDef(clientInfo)) return;
+  if (!isDef(clientInfo)) return;
   wss.emit("match.leave", { });
   destroyGame();
 }

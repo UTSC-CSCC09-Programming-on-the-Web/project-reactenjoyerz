@@ -14,6 +14,20 @@ const maps = [
     spawnPoints: [
       [ 960, 540 ],
     ]
+  },
+  {
+    walls: [],
+    spawnPoints: [
+      [ 1213, 377 ],	
+      [ 1458, 900 ],
+      [ 550, 180 ],
+      [ 871, 845],
+      [ 1134, 657 ],
+      [ 1604, 363 ],
+      [ 1447, 579 ],
+      [ 636, 800 ],
+      [ 324, 513 ],
+    ]
   }
 ]
 
@@ -23,7 +37,8 @@ function getRand(max) {
 
 export function initialize(playerCount) {
   const tanks = [];
-  const mapId = getRand(maps.length);
+  //const mapId = getRand(maps.length);
+  const mapId = 1;
 
   for (let i = 0; i < playerCount; i++) {
     const t = getRand(maps[mapId].spawnPoints.length);
@@ -47,9 +62,11 @@ export function getWalls(state) {
   return maps[state.mapId].walls;
 }
 
-function step(state, delta) {
+function step(state, delta, isClient) {
   if (delta === 0) return;
 
+  let outOfSync = false;
+  console.assert(isDef(isClient), "step: isClient not defined");
   const walls = structuredClone(maps[state.mapId].walls);
   walls.push(createWall(0, 0, 192, 1, 10));
   walls.push(createWall(0, 950, 192, 1, 10));
@@ -72,15 +89,24 @@ function step(state, delta) {
     return state.tanks.every((t) => {
       if (!tank.testCollisionBullet(t, b)) return true;
 
-      const spawnId = getRand(maps[state.mapId].spawnPoints.length)
-      const [x, y] = maps[state.mapId].spawnPoints[spawnId];
-      t.dSprite.sprite.x = x;
-      t.dSprite.sprite.y = y;
+      if (isClient) {
+        // hide player and wait for server response to get new respawn point
+        t.dSprite.sprite.x = -9001;
+        t.dSprite.sprite.y = -9001;
+        outOfSync =  true;
+      } else {
+        const spawnId = getRand(maps[state.mapId].spawnPoints.length);
+        const [x, y] = maps[state.mapId].spawnPoints[spawnId];
+        t.dSprite.sprite.x = x;
+        t.dSprite.sprite.y = y;
+      }
+
       return false;
     });
   });
 
   state.timestamp += delta;
+  return outOfSync;
 }
 
 // shoot a bullet and catch it up to timestamp
@@ -104,19 +130,20 @@ export function removeTank(state, idx) {
   state.tanks.splice(idx, 1);
 }
 
-export function updateTimestamp(state, targetTime) {
+export function updateTimestamp(state, targetTime, isClient) {
   if (!isDef(state))
     return state;
 
+  let outOfSync = false;
   let headTime = state.timestamp;
   while (targetTime !== headTime) {
     const delta = Math.min(maxStepSize, targetTime - headTime);
 
-    step(state, delta);
+    outOfSync = outOfSync || step(state, delta, isClient);
     headTime += delta;
   }
 
-  return structuredClone(state);
+  return outOfSync;
 }
 
 export function getScores(state, playerNames) {

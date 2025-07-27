@@ -133,6 +133,7 @@ function authenticateUser(socket, token, endpoint, next) {
     "game.shoot",
     "game.moveVec",
     "game.stop",
+    "game.syncReq",
     "voice.start",
     "voice.stop",
     "voice.audioChunk",
@@ -262,7 +263,7 @@ export function bindWSHandlers(io) {
 
       const now = Date.now();
       assert(isDef(clientIdx) && isDef(gameId));
-      updateTimestamp(game.currentState, now);
+      updateTimestamp(game.currentState, now, false);
       shoot(game.currentState, clientIdx, x, y);
 
       io.to(`${game.name}`).emit("match.stateUpdate", {
@@ -281,7 +282,7 @@ export function bindWSHandlers(io) {
       const now = Date.now();
 
       assert(isDef(clientIdx) && isDef(gameId));
-      updateTimestamp(game.currentState, now);
+      updateTimestamp(game.currentState, now, false);
       moveVec(game.currentState, clientIdx, dx, dy);
 
       io.to(`${game.name}`).emit("match.stateUpdate", {
@@ -300,7 +301,7 @@ export function bindWSHandlers(io) {
       const now = Date.now();
 
       assert(isDef(clientIdx) && isDef(gameId));
-      updateTimestamp(game.currentState, now);
+      updateTimestamp(game.currentState, now, false);
       stopTank(game.currentState, clientIdx);
 
       io.to(`${game.name}`).emit("match.stateUpdate", {
@@ -308,6 +309,13 @@ export function bindWSHandlers(io) {
         clientIdx,
       });
     });
+
+    socket.on("game.syncReq", ({ }) => {
+      updateTimestamp(socket.game.currentState, Date.now());
+      socket.emit("match.stateUpdate", {
+        newState: socket.game.currentState,
+      })
+    })
 
     socket.on("voice.start", ({ }) => {
       const { clientIdx, gameId, name, game } = socket;
