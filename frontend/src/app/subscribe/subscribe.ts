@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router'
 import { environment } from '../../environments/environments';
 import { AuthService } from '../services/auth.service';
+import { WebSocketService } from '../services/web-socket.service';
 
 @Component({
   selector: 'app-subscribe',
@@ -13,7 +14,7 @@ export class Subscribe implements OnInit {
   message = '';
   private authService = inject(AuthService);
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private wss: WebSocketService, private http: HttpClient, private router: Router) {}
 
   ngOnInit() {
     if (this.authService.hasSubscription())
@@ -25,7 +26,7 @@ export class Subscribe implements OnInit {
     this.http
       .post<{ url: string }>(
         `${environment.apiUrl}/payments/create-subscription`,
-        { token: this.authService.getToken() },
+        { token: this.wss.getToken() },
         { withCredentials: true }
       )
       .subscribe({

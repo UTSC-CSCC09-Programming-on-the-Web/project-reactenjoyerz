@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { Observable, tap, throwError } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environments';
-import { setToken } from "../../../../gamelogic/netcode/client";
 import { leave } from '../../../../gamelogic/netcode/client';
+import { WebSocketService } from './web-socket.service';
 
 interface User {
   id: number;
@@ -20,7 +20,7 @@ let _user: User | null = null
 export class AuthService {
   endpoint = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private wss: WebSocketService) {}
   /**
    * HttpClient has methods for all the CRUD actions: get, post, put, patch, delete, and head.
    * First parameter is the URL, and the second parameter is the body.
@@ -38,7 +38,7 @@ export class AuthService {
       .pipe(
         tap((user) => {
           _user = user;
-          setToken(user.token);
+          this.wss.setToken(user.token);
         })
       );
   }
@@ -53,7 +53,7 @@ export class AuthService {
       .pipe(
         tap((user) => {
           _user = user;
-          setToken(user.token);
+          this.wss.setToken(user.token);
         })
       );
   }
@@ -69,8 +69,10 @@ export class AuthService {
   logout(): Observable<any> {
     if (_user === null) return new Observable((obs) => obs.error("Already subscribed."));
 
-    const token = _user.token;
+    const token = this.wss.getToken();
     _user = null;
+    this.wss.setToken("");
+
     leave();
     return this.http.post(`${this.endpoint}/users/logout`, 
       { token },

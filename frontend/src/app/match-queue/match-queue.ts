@@ -24,7 +24,7 @@ export class MatchQueue {
 
   constructor(private fb: FormBuilder) {
     this.joinForm = this.fb.group({
-      roomId: ['', []],
+      gameId: ['', []],
       password: ['', []],
     });
 
@@ -76,11 +76,11 @@ export class MatchQueue {
   };
 
   joinGame() {
-    let { roomId, password } = this.joinForm.value;
+    let { gameId, password } = this.joinForm.value;
     console.log(this.joinForm.value);
 
-    if (Number.isNaN(roomId)) roomId = undefined;
-    else roomId = Number.parseInt(roomId);
+    if (Number.isNaN(gameId)) gameId = undefined;
+    else gameId = Number.parseInt(gameId);
 
     join(
       () => this.waiting.set(true),
@@ -93,7 +93,7 @@ export class MatchQueue {
         console.log(scores);
         this.router.navigate(['/match']);
       },
-      { roomId, password }
+      { gameId, password }
     );
   }
 

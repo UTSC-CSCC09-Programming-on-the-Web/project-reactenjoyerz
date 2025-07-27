@@ -96,8 +96,8 @@ export function moveVec(state, tankIdx, dx, dy) {
 }
 
 export function stopTank(state, tankIdx) {
-  state.tanks[tankIdx].dx = 0;
-  state.tanks[tankIdx].dy = 0;
+  state.tanks[tankIdx].dSprite.dx = 0;
+  state.tanks[tankIdx].dSprite.dy = 0;
 }
 
 export function removeTank(state, idx) {
