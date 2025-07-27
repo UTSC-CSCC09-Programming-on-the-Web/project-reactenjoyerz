@@ -1,6 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { inject, Component, OnInit } from '@angular/core';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { SpeechService } from '../services/speech';
+import { Subscription } from 'rxjs';
+import { HostListener } from '@angular/core';
 
 @Component({
   selector: 'app-home',
@@ -9,21 +12,14 @@ import { AuthService } from '../services/auth.service';
   styleUrl: './home.css'
 })
 export class Home implements OnInit {
+  private authService = inject(AuthService);
 
-  constructor(private authService: AuthService, private router: Router) {}
-  login() {
-    
+  constructor(private router: Router, private speechService: SpeechService) {}
+  home() {
+    this.router.navigate(['/home']);
   }
-  register() {
 
-  }
   ngOnInit() {
-    this.authService.me().subscribe({
-      next: (res) => {
-        if (res?.id) {
-          this.router.navigate(['/game']);
-        }
-      }
-    });
+    if (this.authService.isLoggedIn()) this.router.navigate(['/game']);
   }
 }

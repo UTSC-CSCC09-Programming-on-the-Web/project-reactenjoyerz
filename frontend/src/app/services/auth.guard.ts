@@ -7,25 +7,17 @@ import {
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environments';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthGuard implements CanActivate {
-  constructor(private http: HttpClient, private router: Router) {}
-
-  canActivate(): Observable<boolean | UrlTree> {
-    return this.http.get<any>('http://localhost:8000/api/users/me', { withCredentials: true }).pipe(
-      map((res) => {
-        if (res.has_subscription) {
-          return true;
-        } else {
-          return this.router.parseUrl('/subscribe');
-        }
-      }),
-      catchError(() => {
-        return of(this.router.parseUrl('/login'));
-      })
-    );
+  constructor(private http: HttpClient, private router: Router, private authService: AuthService) {}
+  canActivate(): boolean {
+    if (this.authService.isLoggedIn()) return true;
+    this.router.navigate(["/home"]);
+    return false;
   }
 }

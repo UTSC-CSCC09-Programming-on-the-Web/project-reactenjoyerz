@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { inject, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
@@ -14,8 +14,13 @@ export class Register {
   email = '';
   password = '';
   message = '';
+  private authService = inject(AuthService);
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private router: Router) {}
+
+  home() {
+    this.router.navigate(['/home']);
+  }
 
   register() {
     this.authService.register(this.username, this.email, this.password).subscribe({

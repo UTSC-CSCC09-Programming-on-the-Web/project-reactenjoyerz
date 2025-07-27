@@ -1,45 +1,139 @@
-import { join } from "../../../../gamelogic/netcode/client";
-import { Component, HostListener } from '@angular/core';
+import { join, createRoom } from "../../../../gamelogic/netcode/client";
+import { inject, Component, HostListener, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { leave } from "../../../../gamelogic/netcode/client";
+import { ErrorCode } from "../../../../gamelogic/netcode/common";
+import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
 
 @Component({
   selector: 'app-match-queue',
-  imports: [],
+  imports: [ReactiveFormsModule],
   templateUrl: './match-queue.html',
   styleUrl: './match-queue.css',
-  providers: []
+  providers: [],
 })
 export class MatchQueue {
-  dots = "";
   message = '';
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  waiting = signal<boolean>(false);
 
-  constructor (private authService: AuthService, private router: Router) {
-    join(() => {
-      this.router.navigate(['/game']);
+  joinForm: FormGroup;
+  createForm: FormGroup;
+
+  constructor(private fb: FormBuilder) {
+    this.joinForm = this.fb.group({
+      roomId: ['', []],
+      password: ['', []],
     });
 
-    setInterval(() => {
-      this.dots += ".";
-    }, 5000);
+    this.createForm = this.fb.group({
+      playerLimit: ['', []],
+      password: ['', []],
+    });
+  }
+
+  private errorHandler = (err: number) => {
+    let msg: string = '';
+    let fatal = true; //change
+
+    switch (err) {
+      case ErrorCode.Success:
+        msg = 'what';
+        break;
+      case ErrorCode.InvalidToken:
+        msg = 'Invalid token';
+        break;
+      case ErrorCode.GameStarted:
+        msg = 'Game already started';
+        break;
+      case ErrorCode.InvalidRoom:
+        msg = 'Entering non-existant room';
+        break;
+      case ErrorCode.RoomExists:
+        msg = 'Creating a room that already exists';
+        break;
+      case ErrorCode.SimJoin:
+        msg = 'Joining 2 rooms at the same time';
+        break;
+      case ErrorCode.WrongPassword:
+        msg = 'Wrong room password';
+        break;
+      case ErrorCode.NotInGame:
+        msg = 'Action made despite not being in game';
+        break;
+      case ErrorCode.GameNotStarted:
+        msg = 'Game not started';
+        break;
+      default:
+        console.error(`Error: unknown error code ${err}`);
+    }
+
+    this.router.navigate(['/home']);
+    console.error(msg);
+    return fatal;
+  };
+
+  joinGame() {
+    let { roomId, password } = this.joinForm.value;
+    console.log(this.joinForm.value);
+
+    if (Number.isNaN(roomId)) roomId = undefined;
+    else roomId = Number.parseInt(roomId);
+
+    join(
+      () => this.waiting.set(true),
+      () => {
+        this.router.navigate(['/game']);
+      },
+      this.errorHandler,
+      (scores: { name: string; score: number }[]) => {
+        console.log('Game Ended!');
+        console.log(scores);
+        this.router.navigate(['/match']);
+      },
+      { roomId, password }
+    );
+  }
+
+  createGame() {
+    let { playerLimit, password } = this.createForm.value;
+
+    if (Number.isNaN(playerLimit)) return;
+
+    playerLimit = Number.parseInt(playerLimit);
+
+    // note: probably should change name
+    createRoom(
+      () => this.waiting.set(true),
+      () => {
+        this.router.navigate(['/game']);
+      },
+      this.errorHandler,
+      (scores: { name: string; score: number }[]) => {
+        console.log('Game Ended!');
+        console.log(scores);
+        this.router.navigate(['/match']);
+      },
+      { playerLimit, password }
+    );
   }
 
   logout() {
+    leave();
     this.authService.logout().subscribe({
       next: () => {
-        leave();
         this.router.navigate(['/home']);
       },
       error: () => {
-        leave();
         this.router.navigate(['/home']);
-      }
+      },
     });
   }
-  
-  @HostListener("window:beforeunload")
+
+  @HostListener('window:beforeunload')
   onUnload() {
-    leave()
+    leave();
   }
 }

@@ -1,0 +1,109 @@
+.game-title {
+    font-family: 'Russo One', sans-serif;
+    font-size: 60px;
+    margin-top: 20%;
+    margin-bottom: 60px;
+}
+
+.game-title:hover {
+    opacity: 80%;
+    cursor: pointer;
+}
+
+.game-title:active {
+    opacity: 50%;
+    cursor: pointer;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+.left-panel {
+    flex: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.right-panel {
+    flex: 1;
+    background-color: #545454;
+    border-radius: 15px;
+    margin: 3%;
+    min-width: 50%;
+}
+
+
+
+.register-container {
+    padding: 40px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    font-family: sans-serif;
+}
+
+.register-form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.register-form label {
+    font-weight: 600;
+}
+
+
+.register-form input {
+    padding: 12px;
+    width: 300px;
+    border-color: white;
+    border-radius: 5px;
+    background-color: #232323;
+    color: white;
+    font-size: 14px;
+    margin-bottom: 40px;
+}
+
+.register-form input::placeholder {
+    color: #847e7e;
+}
+
+.register-form button {
+    background-color: white;
+    width: 330px;
+    color: black;
+    padding: 12px;
+    padding-left: 20px;
+    padding-right: 20px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: large;
+}
+
+.register-form button:hover {
+    background-color: #c1c1c1;
+}
+
+.register-form button:active {
+    background-color: #4f4f4f;
+}
+
+a {
+    color:rgb(225, 221, 208);
+    margin-bottom: 5px;
+}
+
+a:hover {
+    opacity: 80%;
+}
+
+a:active {
+    opacity: 60%;
+}

@@ -1,18 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 
-import { GoogleApiService } from './google-api';
+import { SpeechService } from './speech';
 
-describe('GoogleApi', () => {
-  let service: GoogleApiService;
+describe('Speech', () => {
+  let service: SpeechService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(GoogleApiService);
+    service = TestBed.inject(SpeechService);
   });
 
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
 });
-
-

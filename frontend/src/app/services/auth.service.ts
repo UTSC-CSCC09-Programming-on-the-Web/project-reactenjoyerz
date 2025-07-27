@@ -1,20 +1,24 @@
 import { Injectable } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environments';
+import { setToken } from "../../../../gamelogic/netcode/client";
+import { leave } from '../../../../gamelogic/netcode/client';
 
 interface User {
   id: number;
   email: string;
-  hasSubscription: boolean;
+  has_subscription: boolean;
+  token: string;
 }
+
+let _user: User | null = null
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  apiUrl = 'http://localhost:8000/api/users';
-  //endpoint = environment.apiEndpoint;
-  private _user: User | null = null;
+  endpoint = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
   /**
@@ -26,54 +30,70 @@ export class AuthService {
    */
   login(email: string, password: string): Observable<any> {
     return this.http
-      .post<User>(`${this.apiUrl}/login`, { email, password }, { withCredentials: true })
+      .post<User>(
+        `${this.endpoint}/users/login`,
+        { email, password },
+        { withCredentials: true }
+      )
       .pipe(
         tap((user) => {
-          this._user = user;
+          _user = user;
+          setToken(user.token);
         })
       );
   }
 
   googleLogin(idToken: string): Observable<any> {
-  return this.http
-    .post<User>(`${this.apiUrl}/google-login`, { idToken }, { withCredentials: true })
-    .pipe(
-      tap((user) => {
-        this._user = user;
-      })
-    );
+    return this.http
+      .post<User>(
+        `${this.endpoint}/users/google-login`,
+        { idToken },
+        { withCredentials: true }
+      )
+      .pipe(
+        tap((user) => {
+          _user = user;
+          setToken(user.token);
+        })
+      );
   }
 
   register(username: string, email: string, password: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register`, { username, email, password }, { withCredentials: true });
-  }
-
-  logout(): Observable<any> {
-    this._user = null;
-    return this.http.get(`${this.apiUrl}/logout`, { withCredentials: true });
-  }
-
-  me(): Observable<User> {
-    return this.http.get<User>(`${this.apiUrl}/me`, { withCredentials: true }).pipe(
-      tap((user) => {
-        this._user = user;
-      })
+    return this.http.post(
+      `${this.endpoint}/users/register`,
+      { username, email, password },
+      { withCredentials: true }
     );
   }
 
+  logout(): Observable<any> {
+    if (_user === null) return new Observable((obs) => obs.error("Already subscribed."));
+
+    const token = _user.token;
+    _user = null;
+    leave();
+    return this.http.post(`${this.endpoint}/users/logout`, 
+      { token },
+      { withCredentials: true });
+  }
+
   isLoggedIn(): boolean {
-    return this._user !== null;
+    return _user !== null;
+  }
+
+  getToken(): string {
+    return _user?.token ?? "";
   }
 
   hasSubscription(): boolean {
-    return this._user?.hasSubscription ?? false;
+    return _user?.has_subscription ?? false;
   }
 
   getUserId(): number | null {
-    return this._user?.id ?? null;
+    return _user?.id ?? null;
   }
 
   getEmail(): string | null {
-    return this._user?.email ?? null;
+    return _user?.email ?? null;
   }
 }
