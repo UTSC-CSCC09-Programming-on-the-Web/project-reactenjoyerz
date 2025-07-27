@@ -1,5 +1,5 @@
 import { moveTo ,shootBullet, fetchFrame, getClientIdx, hasStarted, leave, setDirection, shootBulletVec, stop, getDistance, getClientInfo} from "../../../../gamelogic/netcode/client";
-import { Sprite, GameState, Tank, Bullet, getWalls } from "../../../../gamelogic/gamelogic/game-state";
+import { Sprite, GameState, Tank, Bullet, getWalls, DSprite } from "../../../../gamelogic/gamelogic/game-state";
 import { MAX_PROXIMITY_DISTANCE, MIN_AUDIBLE_DISTANCE } from "../../../../gamelogic/netcode/common"
 import { signal, Component, HostListener, computed, Host, OnDestroy, OnInit} from "@angular/core";
 import { SpeechService } from '../services/speech';
@@ -20,7 +20,7 @@ export class GameBoard implements OnDestroy {
   clientIdx?: number;
   tanks = signal<Tank[]>([]);
   bullets = signal<Bullet[]>([]);
-  walls: Sprite[];
+  walls: Sprite[] = [];
   isListening = false;
   isVoiceTransmitting = false;
   speakingPlayers: Set<number> = new Set();
@@ -50,7 +50,6 @@ export class GameBoard implements OnDestroy {
     private wss: WebSocketService
   ) {
     initClient(wss);
-    this.walls = getWalls();
 
     setInterval(() => {
       if (!hasStarted()) {
@@ -61,6 +60,7 @@ export class GameBoard implements OnDestroy {
       }
 
       const res = fetchFrame();
+      this.walls = getWalls(res);
       this.started.set(true);
       this.clientIdx = getClientIdx();
       this.bullets.set(res.bullets);

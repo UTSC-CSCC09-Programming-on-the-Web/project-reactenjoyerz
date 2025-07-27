@@ -4,12 +4,14 @@ import { ErrorCode } from "./common";
 export function moveTo (x: number, y: number): void;
 export function shootBullet (x: number, y: number): void;
 export function join(
+  onWait: () => void,
   onJoin: () => void,
   onFail: (err: number) => void,
   onGameEnd: (score: { name: string; score: number }[]) => void,
   room: { roomId: number | undefined; password: string }
 ): void;
 export function createRoom(
+  onWait: () => void,
   onJoin: () => void,
   onFail: (err: number) => boolean,
   onGameEnd: (score: { name: string; score: number }[]) => void,

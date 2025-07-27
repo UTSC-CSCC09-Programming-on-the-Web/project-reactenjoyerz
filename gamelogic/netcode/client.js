@@ -20,7 +20,7 @@ export function initClient(socketService) {
   wss.setDelay(0);
 }
 
-export function createRoom(onJoin, onFail, onGameEnd, room) {
+export function createRoom(onWait, onJoin, onFail, onGameEnd, room) {
   if (!isDef(room.playerLimit) || !isDef(room.password)) return onUnauthorized(ErrorCode.UnauthorizedJoin);
   const body = {
     token,
@@ -30,12 +30,13 @@ export function createRoom(onJoin, onFail, onGameEnd, room) {
 
   wss.emit("match.createRoom", body, (c) => {
     clientInfo = c;
+    onWait();
   })
 
   startGame(onJoin, onFail, onGameEnd);
 }
 
-export function join(onJoin, onFail, onGameEnd, room) {
+export function join(onWait, onJoin, onFail, onGameEnd, room) {
   const body = { token };
   if (room.roomId !== undefined) {
     body.roomId = room.roomId;
@@ -44,6 +45,7 @@ export function join(onJoin, onFail, onGameEnd, room) {
 
   wss.emit("match.joinRequest", body, (c) => {
     clientInfo = c;
+    onWait();
   });
 
   startGame(onJoin, onFail, onGameEnd);
@@ -55,7 +57,7 @@ function startGame(onJoin, onFail, onGameEnd) {
 
   console.assert(token !== "", "join: null token");
   wss.bindHandler("match.join", (match) => {
-    console.assert(started, "match.join: joining started match");
+    console.assert(!started, "match.join: joining started match");
     started = true;
     wss.unbindHandlers("match.join");
     currentState = match.initialState;
@@ -94,19 +96,17 @@ function destroyGame() {
   currentState = undefined;
   serverState = undefined;
   started = false;
+  token = "";
 
   wss.unbindHandlers("match.stateUpdate");
-  wss.unbindHandlers("match.playerChange");
   wss.unbindHandlers("Unauthorized");
   wss.unbindHandlers("game.end");
+  wss.unbindHandlers("match.end");
+  wss.unbindHandlers("server.error");
 }
 
 export function fetchFrame() {
   console.assert(started, "fetchFrame: not started");
-
-  if (!currentState) {
-    return { tanks: [], bullets: [] };
-  }
 
   const targetTime = Date.now();
   return updateTimestamp(currentState, targetTime);
@@ -145,6 +145,7 @@ export function hasStarted() {
 }
 
 export function leave() {
+  //if (!isDef(clientInfo)) return;
   wss.emit("match.leave", { token });
   destroyGame();
 }
@@ -191,7 +192,7 @@ export function stop() {
   console.assert(started, "client.stop match not started");
   console.assert(isDef(clientInfo), "client.stop clientInfo not defined");
 
-  const tank = currentState.tanks[clientInfo.clientIdx];
+  const tank = currentState.tanks[clientInfo.clientIdx].dSprite;
   if (tank.dx === 0 && tank.dy === 0) return;
 
   wss.emit("game.stop", {

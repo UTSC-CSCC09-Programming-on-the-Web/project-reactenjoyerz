@@ -1,5 +1,6 @@
 import { createWall } from "./wall.js";
 import { maxStepSize } from "../netcode/common.js";
+import { isDef } from "../netcode/common.js";
 
 import * as tank from "./tank.js";
 import * as bullet from "./bullet.js";
@@ -49,7 +50,7 @@ export function getWalls(state) {
 function step(state, delta) {
   if (delta === 0) return;
 
-  walls = structuredClone(maps[state.mapId].walls);
+  const walls = structuredClone(maps[state.mapId].walls);
   walls.push(createWall(0, 0, 192, 1, 10));
   walls.push(createWall(0, 950, 192, 1, 10));
   walls.push(createWall(0, 0, 1, 108, 10));
@@ -90,8 +91,8 @@ export function shoot(state, tankIdx, x, y) {
 
 export function moveVec(state, tankIdx, dx, dy) {
   if (Math.abs(dx ** 2 + dy ** 2 - 1) > 1e-5) return;
-  state.tanks[tankIdx].dx = dx;
-  state.tanks[tankIdx].dy = dy;
+  state.tanks[tankIdx].dSprite.dx = dx;
+  state.tanks[tankIdx].dSprite.dy = dy;
 }
 
 export function stopTank(state, tankIdx) {
@@ -111,7 +112,7 @@ export function updateTimestamp(state, targetTime) {
   while (targetTime !== headTime) {
     const delta = Math.min(maxStepSize, targetTime - headTime);
 
-    step(state, delta, walls);
+    step(state, delta);
     headTime += delta;
   }
 

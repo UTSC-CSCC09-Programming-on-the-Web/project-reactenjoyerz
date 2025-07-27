@@ -18,4 +18,5 @@ export const ErrorCode = {
   SimJoin: 6, // joining two rooms at once
   WrongPassword: 7, // wrong room password
   NotInGame: 8,
+  GameNotStated: 9, // in game but game has not started
 }

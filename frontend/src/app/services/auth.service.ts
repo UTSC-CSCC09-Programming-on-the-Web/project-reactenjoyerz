@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, throwError } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environments';
 import { setToken } from "../../../../gamelogic/netcode/client";
@@ -67,11 +67,14 @@ export class AuthService {
   }
 
   logout(): Observable<any> {
+    if (_user === null) return new Observable((obs) => obs.error("Already subscribed."));
+
+    const token = _user.token;
     _user = null;
     leave();
-    return this.http.get(`${this.endpoint}/users/logout`, {
-      withCredentials: true,
-    });
+    return this.http.post(`${this.endpoint}/users/logout`, 
+      { token },
+      { withCredentials: true });
   }
 
   isLoggedIn(): boolean {

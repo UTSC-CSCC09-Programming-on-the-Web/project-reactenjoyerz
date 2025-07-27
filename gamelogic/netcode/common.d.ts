@@ -9,4 +9,6 @@ export const ErrorCode: {
   RoomExists: number;
   Success: number;
   SimJoin: number;
+  NotInGame: number;
+  GameNotStarted: number;
 };

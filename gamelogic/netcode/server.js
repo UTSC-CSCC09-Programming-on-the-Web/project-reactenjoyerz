@@ -1,3 +1,5 @@
+"use strict";
+
 import {
   isDef,
   serverStepSize,
@@ -42,6 +44,8 @@ function sendError(socket, reason, err) {
 }
 
 function createRoom(gameId, password, playerLimit) {
+  assert(gameId <= nextGameId);
+
   let game = games.get(gameId);
   if (isDef(game)) return ErrorCode.RoomExists;
   game = {
@@ -61,7 +65,7 @@ function createRoom(gameId, password, playerLimit) {
   return ErrorCode.Success;
 }
 
-function playerJoin(socket, token, userId, name, gameId, password, callback) {
+function playerJoin(socket, io, token, userId, name, gameId, password, callback) {
   let game = games.get(gameId);
 
   if (!isDef(game)) return ErrorCode.InvalidRoom; 
@@ -102,27 +106,28 @@ function playerJoin(socket, token, userId, name, gameId, password, callback) {
       players: game.players.map((p) => p.name),
     });
   }
+
+  return ErrorCode.Success;
 }
 
 function authenticateUser(socket, token, endpoint, next) {
   if (!isDef(token)) return sendError(socket, "null token", ErrorCode.InvalidToken);
 
-  const playerInfo = findPlayerInfo(req[1].token);
-  if (isDef(playerInfo)) return sendError(socket, "token not mapped to player", ErrorCode.InvalidToken);
+  const playerInfo = findPlayerInfo(token);
+  if (!isDef(playerInfo)) return sendError(socket, "token not mapped to player", ErrorCode.InvalidToken);
 
   const { clientIdx, gameId, userId, name } = playerInfo;
   socket.clientIdx = clientIdx;
   socket.gameId = gameId;
-  socket.token = req[1].token;
+  socket.token = token;
   socket.userId = userId;
   socket.name = name;
 
-  const game = games.get(socket.gameId);
-  assert(!isDef(game) || game.players[socket.clientIdx].userId === socket.userId);
+  socket.game = games.get(socket.gameId);
+  assert(!isDef(socket.game) || socket.game.players[socket.clientIdx].userId === socket.userId);
 
   // list of all endpoints where the user must be in a game to access them
   const inGameWhitelist = [
-    "match.leave",
     "game.shoot",
     "game.moveVec",
     "game.stop",
@@ -147,19 +152,24 @@ function authenticateUser(socket, token, endpoint, next) {
 
   let err = ErrorCode.Success;
   if (!whitelist.includes(endpoint)) {
-    if (inGameWhitelist.includes(endpoint) && !isDef(socket.game) && !socket.game.started)
+    if (inGameWhitelist.includes(endpoint) && !(isDef(socket.game) && socket.game.started))
+      err = isDef(socket.game) ? ErrorCode.GameNotStarted : ErrorCode.NotInGame;
+    else if (endpoint === "match.leave" && !isDef(socket.game))
       err = ErrorCode.NotInGame;
     else if (notInGameWhitelist.includes(endpoint) && isDef(socket.game))
       err = ErrorCode.SimJoin;
   }
 
-  if ((err = ErrorCode.Success)) next();
-  else sendError(socket, "", err);
+  if ((err === ErrorCode.Success)) {
+    console.log(`Req from ${socket.name} (userId = ${socket.userId}) to ${endpoint}`);
+    next();
+  } else sendError(socket, `unauthorized access from ${socket.name}`, err);
 }
 
 export function bindWSHandlers(io) {
   io.on("connection", (socket) => {
     socket.use((req, next) => {
+      console.log(req);
       authenticateUser(socket, req[1].token, req[0], next);
     });
 
@@ -169,21 +179,21 @@ export function bindWSHandlers(io) {
 
     socket.on("match.joinRequest", ({ gameId, password }, callback) => {
       const { token, userId, name } = socket;
-      handlePlayerJoin(token, userId, name);
 
       const joinPublic = !isDef(gameId)
       gameId = joinPublic ? nextPublicGameId : gameId;
       let game = games.get(gameId);
       let err;
 
-      if (game.started && joinPublic) {
-        nextPublicGameId = nextGameId++;
+      if (joinPublic && (!isDef(game) || game.started)) {
+        if (isDef(game)) nextPublicGameId = nextGameId++;
         assert(nextPublicGameId < nextGameId);
         gameId = nextPublicGameId;
         assert(createRoom(gameId, undefined, matchSize) === ErrorCode.Success);
       }
 
-      err = playerJoin(socket, token, userId, name, gameId, password, callback);
+      err = playerJoin(socket, io, token, userId, name, gameId, password, callback);
+      console.log(err);
       assert(!joinPublic || err === ErrorCode.Success);
       if (err !== ErrorCode.Success) 
         sendError(socket, "unable to join room", err);
@@ -203,20 +213,20 @@ export function bindWSHandlers(io) {
       );
 
       if (err === ErrorCode.Success)
-        err = playerJoin(socket, token, userId, name, gameId, password, callback);
+        err = playerJoin(socket, io, token, userId, name, gameId, password, callback);
       
       if (err !== ErrorCode.Success)
         sendError(socket, "unable to create room", err);
     });
 
     socket.on("match.leave", () => {
-      const { clientIdx, gameId, token, name } = socket;
+      const { clientIdx, gameId, token, name, game } = socket;
+      console.log(token, name);
       const ci = updateClientInfo(token, {});
       assert(ci.gameId === undefined); // ensure that token is able to be culled if it expires
 
-      const game = games.get(gameId);
       console.log(`${name} left ${game.name}`);
-      socket.disconnect();
+      socket.leave(game.name);
 
       game.players.forEach((player, idx) => {
         if (idx < clientIdx) return;

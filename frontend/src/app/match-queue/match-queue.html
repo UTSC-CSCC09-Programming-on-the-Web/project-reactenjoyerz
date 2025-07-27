@@ -1,6 +1,10 @@
-<p>loading {{ dots }}</p>
+@if (waiting()) {
+<div>
+<p>loading ....</p>
+</div>
+} @else {
 <form (ngSubmit)="createGame()" [formGroup]="createForm">
-  <div class="form-title">Sign Up</div>
+  <div class="form-title">Create Room</div>
   <input
     type="text"
     name="playerLimit"
@@ -22,7 +26,7 @@
 </form>
 
 <form (ngSubmit)="joinGame()" [formGroup]="joinForm">
-  <div class="form-title">Sign Up</div>
+  <div class="form-title">Join Game</div>
   <input
     type="text"
     name="roomId"
@@ -42,4 +46,6 @@
     <button type="submit" name="action">Join Room</button>
   </div>
 </form>
+}
+
 <button (click)="logout()">Logout</button>

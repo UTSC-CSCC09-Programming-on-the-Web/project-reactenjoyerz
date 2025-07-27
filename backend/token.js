@@ -1,8 +1,6 @@
 import crypto from "node:crypto";
 import assert from "node:assert";
 
-"use strict";
-
 // mini token db to replace express-session since that doesn't seem to work
 
 const tokenMap = new Map([]);
@@ -70,7 +68,7 @@ export function findToken(userId) {
   if (info === undefined) return undefined;
 
   const playerInfo = tokenMap.get(info.token);
-  assert(info === undefined || token !== undefined);
+  assert(info === undefined || playerInfo !== undefined);
 
   if (isExpired(playerInfo)) {
     deleteUserToken(userId, info.token);
@@ -83,12 +81,15 @@ export function findToken(userId) {
 export function findPlayerInfo(token) {
   const playerInfo = tokenMap.get(token)
   if (isExpired(playerInfo)) deleteToken(token);
-  return player;
+  return playerInfo;
 }
 
 export function deleteUserToken(userId, token) {
-  assert(playerMap.delete(userId));
-  assert(playerMap.delete(token));
+  if (!playerMap.delete(userId) || !tokenMap.delete(token)) {
+    // for some reason assert fails to fire
+    console.error("FATAL ERROR: UNABLE TO DELETE TOKEN");
+    process.exit(1);
+  }
 }
 
 export function deleteToken(token) {

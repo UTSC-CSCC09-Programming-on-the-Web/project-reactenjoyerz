@@ -113,7 +113,7 @@ export function testCollisionWall(tank, wall) {
 }
 
 export function testCollisionBullet(tank, bullet) {
-  if (collidesWith(tank.sprite, bullet.dSprite.sprite))
+  if (collidesWith(tank.dSprite.sprite, bullet.dSprite.sprite))
     return true;
 
   return false;

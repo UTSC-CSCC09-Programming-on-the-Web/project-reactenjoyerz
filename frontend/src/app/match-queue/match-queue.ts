@@ -1,105 +1,139 @@
 import { join, createRoom } from "../../../../gamelogic/netcode/client";
-import { inject, Component, HostListener } from '@angular/core';
+import { inject, Component, HostListener, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { leave } from "../../../../gamelogic/netcode/client";
+import { ErrorCode } from "../../../../gamelogic/netcode/common";
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
-
 
 @Component({
   selector: 'app-match-queue',
   imports: [ReactiveFormsModule],
   templateUrl: './match-queue.html',
   styleUrl: './match-queue.css',
-  providers: []
+  providers: [],
 })
 export class MatchQueue {
-  dots = "";
   message = '';
   private authService = inject(AuthService);
+  private router = inject(Router);
+  waiting = signal<boolean>(false);
 
   joinForm: FormGroup;
   createForm: FormGroup;
 
-  constructor (private fb: FormBuilder, private router: Router) {
+  constructor(private fb: FormBuilder) {
     this.joinForm = this.fb.group({
-      room: ['', [Validators.pattern('^\d?$')]],
-      password: ['', [Validators.required]]
-    })
+      roomId: ['', []],
+      password: ['', []],
+    });
 
     this.createForm = this.fb.group({
-      playerLimit: ['', [Validators.required, Validators.pattern('^\d+$')]],
-      password: ['', [Validators.required]]
-    })
+      playerLimit: ['', []],
+      password: ['', []],
+    });
   }
 
-  joinGame() {
-    if (!this.joinForm.valid) return;
-    let { roomId, password } = this.joinForm.value;
+  private errorHandler = (err: number) => {
+    let msg: string = '';
+    let fatal = true; //change
 
-    if (Number.isNaN(roomId))
-      roomId = undefined
-    else
-      roomId = Number.parseInt(roomId);
+    switch (err) {
+      case ErrorCode.Success:
+        msg = 'what';
+        break;
+      case ErrorCode.InvalidToken:
+        msg = 'Invalid token';
+        break;
+      case ErrorCode.GameStarted:
+        msg = 'Game already started';
+        break;
+      case ErrorCode.InvalidRoom:
+        msg = 'Entering non-existant room';
+        break;
+      case ErrorCode.RoomExists:
+        msg = 'Creating a room that already exists';
+        break;
+      case ErrorCode.SimJoin:
+        msg = 'Joining 2 rooms at the same time';
+        break;
+      case ErrorCode.WrongPassword:
+        msg = 'Wrong room password';
+        break;
+      case ErrorCode.NotInGame:
+        msg = 'Action made despite not being in game';
+        break;
+      case ErrorCode.GameNotStarted:
+        msg = 'Game not started';
+        break;
+      default:
+        console.error(`Error: unknown error code ${err}`);
+    }
+
+    this.router.navigate(['/home']);
+    console.error(msg);
+    return fatal;
+  };
+
+  joinGame() {
+    let { roomId, password } = this.joinForm.value;
+    console.log(this.joinForm.value);
+
+    if (Number.isNaN(roomId)) roomId = undefined;
+    else roomId = Number.parseInt(roomId);
 
     join(
+      () => this.waiting.set(true),
       () => {
         this.router.navigate(['/game']);
       },
-      () => {
-        this.router.navigate(['/home']);
-      },
-      (scores: { name: string, score: number}[]) => {
-        console.log("Game Ended!");
+      this.errorHandler,
+      (scores: { name: string; score: number }[]) => {
+        console.log('Game Ended!');
         console.log(scores);
-        this.router.navigate(["/match"]);
+        this.router.navigate(['/match']);
       },
       { roomId, password }
     );
   }
 
   createGame() {
-    if (!this.createForm.valid) return;
     let { playerLimit, password } = this.createForm.value;
 
-    if (Number.isNaN(playerLimit))
-      return;
+    if (Number.isNaN(playerLimit)) return;
 
     playerLimit = Number.parseInt(playerLimit);
 
     // note: probably should change name
     createRoom(
+      () => this.waiting.set(true),
       () => {
         this.router.navigate(['/game']);
       },
-      () => {
-        this.router.navigate(['/home']);
-        return true; // fatal error
-      },
-      (scores: { name: string, score: number}[]) => {
-        console.log("Game Ended!");
+      this.errorHandler,
+      (scores: { name: string; score: number }[]) => {
+        console.log('Game Ended!');
         console.log(scores);
-        this.router.navigate(["/match"]);
+        this.router.navigate(['/match']);
       },
       { playerLimit, password }
     );
   }
 
   logout() {
+    leave();
     this.authService.logout().subscribe({
       next: () => {
-        leave();
         this.router.navigate(['/home']);
       },
       error: () => {
-        leave();
         this.router.navigate(['/home']);
-      }
+      },
     });
   }
-  
-  @HostListener("window:beforeunload")
+
+  @HostListener('window:beforeunload')
   onUnload() {
-    leave()
+    leave();
   }
 }

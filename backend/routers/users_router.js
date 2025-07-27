@@ -178,9 +178,9 @@ usersRouter.post("/google-login", async (req, res) => {
   }
 });
 
-usersRouter.get("/logout", (req, res) => {
+usersRouter.post("/logout", (req, res) => {
   if (req.body !== undefined) {
     deleteToken(req.body.token);
-  }
-  return res.json({ message: "Signed out." });
+    return res.json({ message: "Signed out." });
+  } 
 });
