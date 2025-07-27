@@ -8,11 +8,6 @@ let clientInfo;
 let currentState;
 let serverState;
 let started = false;
-let token = "";
-
-export function setToken(_token) {
-  token = _token;
-}
 
 export function initClient(socketService) {
   console.log("Initializing client.js with shared WebSocketService.");
@@ -23,39 +18,37 @@ export function initClient(socketService) {
 export function createRoom(onWait, onJoin, onFail, onGameEnd, room) {
   if (!isDef(room.playerLimit) || !isDef(room.password)) return onUnauthorized(ErrorCode.UnauthorizedJoin);
   const body = {
-    token,
     playerLimit: room.playerLimit,
     password: room.password,
   };
 
+  startGame(onJoin, onFail, onGameEnd);
+  
   wss.emit("match.createRoom", body, (c) => {
     clientInfo = c;
     onWait();
   })
-
-  startGame(onJoin, onFail, onGameEnd);
 }
 
 export function join(onWait, onJoin, onFail, onGameEnd, room) {
-  const body = { token };
-  if (room.roomId !== undefined) {
-    body.roomId = room.roomId;
+  const body = { };
+  if (room.gameId!== undefined) {
+    body.gameId= room.gameId;
     body.password = room.password;
   }
+
+  startGame(onJoin, onFail, onGameEnd);
 
   wss.emit("match.joinRequest", body, (c) => {
     clientInfo = c;
     onWait();
   });
-
-  startGame(onJoin, onFail, onGameEnd);
 }
 
 function startGame(onJoin, onFail, onGameEnd) {
   console.assert(!started, "startGame: already started");
   started = false;
 
-  console.assert(token !== "", "join: null token");
   wss.bindHandler("match.join", (match) => {
     console.assert(!started, "match.join: joining started match");
     started = true;
@@ -96,7 +89,6 @@ function destroyGame() {
   currentState = undefined;
   serverState = undefined;
   started = false;
-  token = "";
 
   wss.unbindHandlers("match.stateUpdate");
   wss.unbindHandlers("Unauthorized");
@@ -146,7 +138,7 @@ export function hasStarted() {
 
 export function leave() {
   //if (!isDef(clientInfo)) return;
-  wss.emit("match.leave", { token });
+  wss.emit("match.leave", { });
   destroyGame();
 }
 
@@ -160,7 +152,6 @@ export function shootBullet(x, y) {
   wss.emit("game.shoot", {
     x,
     y,
-    token
   });
 }
 
@@ -175,7 +166,6 @@ export function setDirection(dx, dy) {
   wss.emit("game.moveVec", {
     dx,
     dy,
-    token
   });
 }
 
@@ -195,7 +185,5 @@ export function stop() {
   const tank = currentState.tanks[clientInfo.clientIdx].dSprite;
   if (tank.dx === 0 && tank.dy === 0) return;
 
-  wss.emit("game.stop", {
-    token
-  })
+  wss.emit("game.stop", { })
 }

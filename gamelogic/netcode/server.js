@@ -45,6 +45,7 @@ function sendError(socket, reason, err) {
 
 function createRoom(gameId, password, playerLimit) {
   assert(gameId <= nextGameId);
+  console.log(`createRoom: ${gameId}`);
 
   let game = games.get(gameId);
   if (isDef(game)) return ErrorCode.RoomExists;
@@ -67,10 +68,11 @@ function createRoom(gameId, password, playerLimit) {
 
 function playerJoin(socket, io, token, userId, name, gameId, password, callback) {
   let game = games.get(gameId);
+  console.log(`joinRoom: ${gameId}`);
 
   if (!isDef(game)) return ErrorCode.InvalidRoom; 
   if (game.started) return ErrorCode.GameStarted;
-  if (isDef(game.password) && bcrypt.compareSync(password, game.password)) return ErrorCode.WrongPassword;
+  if (isDef(game.password) && !bcrypt.compareSync(password, game.password)) return ErrorCode.WrongPassword;
 
   // send identification back to client
   const clientIdx = game.players.length;
@@ -189,11 +191,10 @@ export function bindWSHandlers(io) {
         if (isDef(game)) nextPublicGameId = nextGameId++;
         assert(nextPublicGameId < nextGameId);
         gameId = nextPublicGameId;
-        assert(createRoom(gameId, undefined, matchSize) === ErrorCode.Success);
+        assert(createRoom(gameId, undefined, matchSize, true) === ErrorCode.Success);
       }
 
       err = playerJoin(socket, io, token, userId, name, gameId, password, callback);
-      console.log(err);
       assert(!joinPublic || err === ErrorCode.Success);
       if (err !== ErrorCode.Success) 
         sendError(socket, "unable to join room", err);
@@ -203,7 +204,7 @@ export function bindWSHandlers(io) {
       const { token, userId, name } = socket;
 
       let err;
-      gameId = nextGameId++;
+      let gameId = nextGameId++;
       assert(nextPublicGameId < nextGameId);
 
       err = createRoom(
@@ -214,7 +215,7 @@ export function bindWSHandlers(io) {
 
       if (err === ErrorCode.Success)
         err = playerJoin(socket, io, token, userId, name, gameId, password, callback);
-      
+
       if (err !== ErrorCode.Success)
         sendError(socket, "unable to create room", err);
     });
