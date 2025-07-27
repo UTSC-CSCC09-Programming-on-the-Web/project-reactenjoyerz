@@ -74,8 +74,8 @@ function step(state, delta) {
 
       const spawnId = getRand(maps[state.mapId].spawnPoints.length)
       const [x, y] = maps[state.mapId].spawnPoints[spawnId];
-      tank.dSprite.sprite.x = x;
-      tank.dSprite.sprite.y = y;
+      t.dSprite.sprite.x = x;
+      t.dSprite.sprite.y = y;
       return false;
     });
   });
