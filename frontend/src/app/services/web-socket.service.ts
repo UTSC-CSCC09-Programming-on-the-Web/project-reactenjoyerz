@@ -45,6 +45,7 @@ export class WebSocketService {
 
   unbindHandlers(event: string) {
     this.socket.off(event);
+    this.handlers.delete(event);
   }
 
   emit(event: string, v: any, callback?: (response: any) => void) {
