@@ -76,9 +76,9 @@ function step(state, delta, isClient) {
 
   state.tanks.forEach((t) => tank.step(t, delta));
   state.bullets = state.bullets.filter((b) => {
-    return state.tanks.every((t) => {
+    return state.tanks.every((t, idx) => {
+      if (idx === b.ownerIdx) return true;
       if (!tank.testCollisionBullet(t, b)) return true;
-
       if (isClient) {
         // hide player and wait for server response to get new respawn point
         t.dSprite.sprite.x = -9001;
@@ -89,6 +89,7 @@ function step(state, delta, isClient) {
         const [x, y] = maps[state.mapId].spawnPoints[spawnId];
         t.dSprite.sprite.x = x;
         t.dSprite.sprite.y = y;
+        state.tanks[b.ownerIdx].score += 1;
       }
 
       return false;
@@ -141,6 +142,7 @@ export function getScores(state, playerNames) {
     return {
       score: t.score,
       name: playerNames[idx],
+      clientIdx: idx,
     }
   });
 }

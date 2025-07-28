@@ -1,4 +1,4 @@
-import { moveTo ,shootBullet, fetchFrame, getClientIdx, hasStarted, leave, setDirection, shootBulletVec, stop, getDistance, getClientInfo} from "../../../../gamelogic/netcode/client";
+import { Scores, fetchScores,shootBullet, fetchFrame, getClientIdx, hasStarted, leave, setDirection, shootBulletVec, stop, getDistance, getClientInfo, getTimeLeft} from "../../../../gamelogic/netcode/client";
 import { Sprite, GameState, Tank, Bullet, getWalls, DSprite } from "../../../../gamelogic/gamelogic/game-state";
 import { MAX_PROXIMITY_DISTANCE, MIN_AUDIBLE_DISTANCE } from "../../../../gamelogic/netcode/common"
 import { signal, Component, HostListener, computed, Host, OnDestroy, OnInit} from "@angular/core";
@@ -20,6 +20,7 @@ export class GameBoard implements OnDestroy {
   clientIdx?: number;
   tanks = signal<Tank[]>([]);
   bullets = signal<Bullet[]>([]);
+
   walls: Sprite[] = [];
   isListening = false;
   isVoiceTransmitting = false;
@@ -42,6 +43,9 @@ export class GameBoard implements OnDestroy {
     return idx !== undefined ? tanks[idx] : undefined;
   });
 
+  timeLeft = signal("+inf");
+  scores = signal<Scores[]>([]);
+
   private clientInfoSet = false;
 
   constructor(
@@ -60,6 +64,14 @@ export class GameBoard implements OnDestroy {
       }
 
       const res = fetchFrame();
+      
+      const secondsLeft = getTimeLeft();
+      if (secondsLeft >= 60)
+        this.timeLeft.set(`${Math.floor(secondsLeft / 60)}m ${secondsLeft % 60}s`);
+      else 
+        this.timeLeft.set(`${secondsLeft}s`);
+
+      this.scores.set(fetchScores().sort((a, b) => b.score - a.score));
       this.walls = getWalls(res);
       this.started.set(true);
       this.clientIdx = getClientIdx();
@@ -70,7 +82,6 @@ export class GameBoard implements OnDestroy {
       const dy = this.keymap[2] - this.keymap[0];
       if (dx === 0 && dy === 0) stop();
       else {
-        console.log(dx, dy);
         const norm = Math.sqrt(dx ** 2 + dy ** 2);
         setDirection(dx / norm, dy / norm);
       }

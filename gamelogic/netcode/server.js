@@ -28,6 +28,7 @@ import {
 
 import assert from "node:assert";
 import bcrypt from "bcrypt";
+import { matchLength } from "./common.js";
 
 const speakingStatus = new Map();
 
@@ -102,10 +103,12 @@ function playerJoin(socket, io, token, userId, name, gameId, password, callback)
 
     game.currentState = initialize(game.playerLimit);
     game.currentState.timestamp = Date.now();
+    game.ends = Date.now() + matchLength;
 
     io.to(`${game.name}`).emit("match.join", {
-      initialState: game.currentState,
+      initialState: structuredClone(game.currentState),
       players: game.players.map((p) => p.name),
+      ends: game.ends,
     });
   }
 
@@ -183,7 +186,7 @@ export function bindWSHandlers(io) {
     socket.on("match.joinRequest", ({ gameId, password }, callback) => {
       const { token, userId, name } = socket;
 
-      const joinPublic = !isDef(gameId)
+      const joinPublic = !isDef(gameId);
       gameId = joinPublic ? nextPublicGameId : gameId;
       let game = games.get(gameId);
       let err;
@@ -192,12 +195,23 @@ export function bindWSHandlers(io) {
         if (isDef(game)) nextPublicGameId = nextGameId++;
         assert(nextPublicGameId < nextGameId);
         gameId = nextPublicGameId;
-        assert(createRoom(gameId, undefined, matchSize, true) === ErrorCode.Success);
+        assert(
+          createRoom(gameId, undefined, matchSize, true) === ErrorCode.Success
+        );
       }
 
-      err = playerJoin(socket, io, token, userId, name, gameId, password, callback);
+      err = playerJoin(
+        socket,
+        io,
+        token,
+        userId,
+        name,
+        gameId,
+        password,
+        callback
+      );
       assert(!joinPublic || err === ErrorCode.Success);
-      if (err !== ErrorCode.Success) 
+      if (err !== ErrorCode.Success)
         sendError(socket, "unable to join room", err);
     });
 
@@ -215,7 +229,16 @@ export function bindWSHandlers(io) {
       );
 
       if (err === ErrorCode.Success)
-        err = playerJoin(socket, io, token, userId, name, gameId, password, callback);
+        err = playerJoin(
+          socket,
+          io,
+          token,
+          userId,
+          name,
+          gameId,
+          password,
+          callback
+        );
 
       if (err !== ErrorCode.Success)
         sendError(socket, "unable to create room", err);
@@ -267,7 +290,7 @@ export function bindWSHandlers(io) {
       shoot(game.currentState, clientIdx, x, y);
 
       io.to(`${game.name}`).emit("match.stateUpdate", {
-        newState: game.currentState,
+        newState: structuredClone(game.currentState),
         clientIdx,
       });
     });
@@ -277,7 +300,11 @@ export function bindWSHandlers(io) {
 
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
-      else if (game.currentState.tanks[clientIdx].dSprite.dx === dx && game.currentState.tanks[clientIdx].dSprite.dy === dy) return;
+      else if (
+        game.currentState.tanks[clientIdx].dSprite.dx === dx &&
+        game.currentState.tanks[clientIdx].dSprite.dy === dy
+      )
+        return;
 
       const now = Date.now();
 
@@ -286,17 +313,21 @@ export function bindWSHandlers(io) {
       moveVec(game.currentState, clientIdx, dx, dy);
 
       io.to(`${game.name}`).emit("match.stateUpdate", {
-        newState: game.currentState,
+        newState: structuredClone(game.currentState),
         clientIdx,
       });
     });
 
-    socket.on("game.stop", ({ }) => {
+    socket.on("game.stop", ({}) => {
       const { clientIdx, gameId, game } = socket;
 
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
-      else if (game.currentState.tanks[clientIdx].dSprite.dx === 0 && game.currentState.tanks[clientIdx].dSprite.dy === 0) return;
+      else if (
+        game.currentState.tanks[clientIdx].dSprite.dx === 0 &&
+        game.currentState.tanks[clientIdx].dSprite.dy === 0
+      )
+        return;
 
       const now = Date.now();
 
@@ -305,19 +336,19 @@ export function bindWSHandlers(io) {
       stopTank(game.currentState, clientIdx);
 
       io.to(`${game.name}`).emit("match.stateUpdate", {
-        newState: game.currentState,
+        newState: structuredClone(game.currentState),
         clientIdx,
       });
     });
 
-    socket.on("game.syncReq", ({ }) => {
-      updateTimestamp(socket.game.currentState, Date.now());
+    socket.on("game.syncReq", ({}) => {
+      updateTimestamp(socket.game.currentState, Date.now(), false);
       socket.emit("match.stateUpdate", {
         newState: socket.game.currentState,
-      })
-    })
+      });
+    });
 
-    socket.on("voice.start", ({ }) => {
+    socket.on("voice.start", ({}) => {
       const { clientIdx, gameId, name, game } = socket;
 
       console.log(`Player ${name} in game ${gameId} started talking.`);
@@ -331,7 +362,7 @@ export function bindWSHandlers(io) {
       });
     });
 
-    socket.on("voice.stop", ({ }) => {
+    socket.on("voice.stop", ({}) => {
       const { clientIdx, gameId, name, game } = socket;
 
       console.log(`Player ${name} in game ${gameId} stopped talking.`);
@@ -355,7 +386,9 @@ export function bindWSHandlers(io) {
         return;
       }
 
-      const senderTank = game.currentState.tanks[clientIdx] ? game.currentState.tanks[clientIdx].dSprite : undefined;
+      const senderTank = game.currentState.tanks[clientIdx]
+        ? game.currentState.tanks[clientIdx].dSprite
+        : undefined;
       if (!senderTank) {
         console.warn(
           `Sender tank ${clientIdx} not found for audio chunk in game ${gameId}.`
@@ -389,4 +422,29 @@ export function bindWSHandlers(io) {
       });
     });
   });
+
+  setInterval(() => {
+    games.forEach((game, gameId) => {
+      const now = Date.now();
+      if (isDef(game.ends) && game.ends < now) {
+        assert(game.started);
+        updateTimestamp(game.currentState, now, false);
+        game.started = false;
+
+        io.to(game.name).emit("match.end", {
+          finalState: structuredClone(game.currentState),
+        });
+
+        game.players.forEach((player) => {
+          player.socket.leave();
+          const tokenInfo = findToken(player.userId);
+          updateClientInfo(tokenInfo.token, {});
+          console.log(`${player.name} has left ${game.name}`);
+        })
+
+        console.log(`${game.name} has ended`);
+        games.delete(gameId);
+      }
+    });
+  }, 1000);
 }

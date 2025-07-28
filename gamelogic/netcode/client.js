@@ -8,11 +8,12 @@ let clientInfo;
 let currentState;
 let serverState;
 let started = false;
+let gameEnds;
+let players;
 
 export function initClient(socketService) {
   console.log("Initializing client.js with shared WebSocketService.");
   wss = socketService;
-  wss.setDelay(0);
 }
 
 export function createRoom(onWait, onJoin, onFail, onGameEnd, room) {
@@ -52,9 +53,11 @@ function startGame(onJoin, onFail, onGameEnd) {
   wss.bindHandler("match.join", (match) => {
     console.assert(!started, "match.join: joining started match");
     started = true;
+    gameEnds = match.ends;
     wss.unbindHandlers("match.join");
     currentState = match.initialState;
     serverState = undefined;
+    players = match.players;
 
     wss.bindHandler("match.stateUpdate", (res) => {
       currentState = res.newState;
@@ -64,6 +67,7 @@ function startGame(onJoin, onFail, onGameEnd) {
     wss.bindHandler("match.playerChange", ({ clientIdx }) => {
       if (clientIdx < clientInfo.clientIdx) clientInfo.clientIdx -= 1;
       if (started) removeTank(currentState, clientIdx);
+      players.splice(clientIdx, 1);
     });
 
     onJoin();
@@ -74,10 +78,10 @@ function startGame(onJoin, onFail, onGameEnd) {
   });
 
   wss.bindHandler("match.end", ({ finalState }) => {
-    console.log("Game ended!");
-    console.log(finalState);
+    console.assert(!finalState.started)
+    const scores = getScores(finalState, players);
     destroyGame();
-    onGameEnd(getScores(finalState));
+    onGameEnd(scores);
   })
 }
 
@@ -85,6 +89,8 @@ function destroyGame() {
   clientInfo = undefined;
   currentState = undefined;
   serverState = undefined;
+  gameEnds = undefined;
+  players = undefined;
   started = false;
 
   wss.unbindHandlers("match.stateUpdate");
@@ -185,4 +191,12 @@ export function stop() {
   if (tank.dx === 0 && tank.dy === 0) return;
 
   wss.emit("game.stop", { })
+}
+
+export function getTimeLeft() {
+  return Math.max(Math.ceil((gameEnds - Date.now()) / 1000), 0)
+}
+
+export function fetchScores() {
+  return getScores(currentState, players);
 }

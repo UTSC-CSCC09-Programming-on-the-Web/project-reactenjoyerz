@@ -4,6 +4,7 @@ export const inputCooldown = 100;
 export const matchSize = 1;
 export const MAX_PROXIMITY_DISTANCE = 500;
 export const MIN_AUDIBLE_DISTANCE = 50;
+export const matchLength = 1000 * 60 * 1; // 1m
 
 export function isDef(x) {
   return x !== undefined && x !== null;

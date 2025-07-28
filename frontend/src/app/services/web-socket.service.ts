@@ -28,11 +28,6 @@ export class WebSocketService {
     return this.token;
   }
 
-  setDelay(d: number) {
-    console.log(`setting delay = ${d}.`);
-    this.delay = d;
-  }
-
   bindHandler(event: string, handler: (data: any) => void) {
     const h = this.handlers.get(event);
     if (!h) {

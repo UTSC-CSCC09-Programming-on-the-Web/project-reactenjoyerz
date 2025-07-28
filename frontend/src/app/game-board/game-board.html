@@ -58,24 +58,24 @@
         <div class="coffin"></div>
       </div>
 
-      @for (tank of tanks(); track $index; let idx = $index) {
+      @for (player of scores(); track $index) {
         <div class="player-container">
           <div
             class="player-voice-control"
-            [style.opacity]="idx !== clientIdx ? 0 : 1"
+            [style.opacity]="player.clientIdx === clientIdx ? 0 : 1"
           >
-            <button (click)="togglePlayerMute(idx)">
-              {{ isPlayerMuted(idx) ? '🔇 Unmute' : '🔊 Mute' }}
+            <button (click)="togglePlayerMute(player.clientIdx)">
+              {{ isPlayerMuted(player.clientIdx) ? '🔇 Unmute' : '🔊 Mute' }}
             </button>
           </div>
-          <div class="player-name">PLAYER NAME</div>
-          <div class="player-score">999</div>
+          <div class="player-name">{{ player.name }}</div>
+          <div class="player-score">{{ player.score }}</div>
         </div>
       }
       </div>
 
     <div class="bottom-bar">
-      <div class="time-left">TIME LEFT: 1m 30s</div>
+      <div class="time-left">TIME LEFT: {{ timeLeft() }}</div>
       <div class="voice-chat-controls">
         <button
           (click)="toggleVoiceTransmission()"
