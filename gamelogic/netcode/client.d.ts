@@ -5,7 +5,7 @@ export type Scores = {
   score: number, 
   name: string, 
   clientIdx: number 
-}
+}[];
 
 export function moveTo (x: number, y: number): void;
 export function shootBullet (x: number, y: number): void;
@@ -13,14 +13,14 @@ export function join(
   onWait: () => void,
   onJoin: () => void,
   onFail: (err: number) => void,
-  onGameEnd: (score: { name: string; score: number, clientIdx: number }[]) => void,
+  onGameEnd: () => void,
   room: { gameId: number | undefined, password: string }
 ): void;
 export function createRoom(
   onWait: () => void,
   onJoin: () => void,
   onFail: (err: number) => boolean,
-  onGameEnd: (score: { name: string; score: number, clientIdx: number }[]) => void,
+  onGameEnd: () => void,
   room: { playerLimit: number | undefined, password: string }
 ): void;
 export function fetchFrame () : GameState;
@@ -34,4 +34,5 @@ export function stop();
 export function getClientInfo(): { gameId: number, clientIdx: number };
 export function initClient(socketService: WebSocketService): void;
 export function getTimeLeft(): number;
-export function fetchScores(): Scores[];
+export function fetchScores(): Scores;
+export function fetchOldScores(): Scores;

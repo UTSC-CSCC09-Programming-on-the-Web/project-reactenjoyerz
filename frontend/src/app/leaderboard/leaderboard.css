@@ -1,0 +1,65 @@
+.leaderboard {
+  width: 68vw;
+  height: 68vh;
+  position: fixed;
+  left: 0px;
+  right: 0px;
+  top: 0px;
+  bottom: 0px;
+  margin: auto;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Russo One', sans-serif;
+  font-weight: bold;
+  box-shadow: -0.35em 0.35em 0em #404040;
+  background: #202020;
+  padding: 1em;
+  border-radius: 0.5em;
+  font-size: 1.5vw;
+}
+
+.player-container {
+  display: grid;
+  grid-template-columns: 20em 7em;
+  width: 100%;
+  height: 1.5em;
+  justify-content: center;
+  margin: auto;
+  border-bottom: white solid 0.05em;
+}
+
+.player-score {
+  overflow-x: hidden;
+  margin: auto;
+  padding: 0em 3em;
+  padding-left: 1em;
+  padding-right: 3em;
+  width: 2em;
+}
+
+.player-name {
+  overflow-x: hidden;
+  margin: auto;
+  border-right: white solid 0.2em;
+  width: 18em;
+  padding: 0.15em 1em;
+}
+
+.title {
+  justify-content: center;
+  z-index: 1;
+  margin: auto;
+}
+
+.scoreboard {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75em;
+  overflow-y: hidden;
+}
+
+.back-button {
+
+}

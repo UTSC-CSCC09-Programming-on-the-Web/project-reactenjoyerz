@@ -88,11 +88,9 @@ export class MatchQueue {
         this.router.navigate(['/game']);
       },
       this.errorHandler,
-      (scores: { name: string; score: number }[]) => {
-        console.log('Game Ended!');
-        console.log(scores);
+      () => {
         this.waiting.set(false);
-        this.router.navigate(['/match']);
+        this.router.navigate(['/leaderboard']);
       },
       { gameId, password }
     );
@@ -112,11 +110,9 @@ export class MatchQueue {
         this.router.navigate(['/game']);
       },
       this.errorHandler,
-      (scores: { name: string; score: number }[]) => {
-        console.log('Game Ended!');
-        console.log(scores);
+      () => {
         this.waiting.set(false);
-        this.router.navigate(['/match']);
+        this.router.navigate(['/leaderboard']);
       },
       { playerLimit, password }
     );

@@ -44,7 +44,7 @@ export class GameBoard implements OnDestroy {
   });
 
   timeLeft = signal("+inf");
-  scores = signal<Scores[]>([]);
+  scores = signal<Scores>([]);
 
   private clientInfoSet = false;
 
