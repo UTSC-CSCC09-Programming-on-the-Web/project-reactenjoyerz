@@ -96,11 +96,11 @@ function playerJoin(socket, io, token, userId, name, gameId, password, callback)
   socket.join(`${game.name}`);
   console.log(`${name} joined ${game.name}`);
 
-  if (game.players.length === matchSize) {
+  if (game.players.length === game.playerLimit) {
     console.log(`Starting ${game.name}`);
     game.started = true;
 
-    game.currentState = initialize(matchSize);
+    game.currentState = initialize(game.playerLimit);
     game.currentState.timestamp = Date.now();
 
     io.to(`${game.name}`).emit("match.join", {
@@ -364,11 +364,11 @@ export function bindWSHandlers(io) {
       }
 
       // Iterate through all players in the game to determine proximity
-      game.players.forEach((player, playerIdx) => {
+      game.players.forEach((player, receiverIdx) => {
         // Don't send audio back to the person who is talking.
-        if (playerIdx === clientIdx) return;
+        if (receiverIdx === clientIdx) return;
 
-        const receiverTank = game.currentState.tanks[playerIdx].dSprite;
+        const receiverTank = game.currentState.tanks[receiverIdx].dSprite;
         if (!receiverTank) return;
 
         // Calculate the distance between the sender and the receiver.

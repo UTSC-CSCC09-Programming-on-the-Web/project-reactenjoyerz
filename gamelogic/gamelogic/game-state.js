@@ -7,15 +7,6 @@ import * as bullet from "./bullet.js";
 
 const maps = [
   {
-    walls: [
-      createWall(1000, 500, 10, 2, 48),
-      createWall(500, 50, 3, 15, 48),
-    ],
-    spawnPoints: [
-      [ 960, 540 ],
-    ]
-  },
-  {
     walls: [],
     spawnPoints: [
       [ 1213, 377 ],	
@@ -37,8 +28,7 @@ function getRand(max) {
 
 export function initialize(playerCount) {
   const tanks = [];
-  //const mapId = getRand(maps.length);
-  const mapId = 1;
+  const mapId = getRand(maps.length);
 
   for (let i = 0; i < playerCount; i++) {
     const t = getRand(maps[mapId].spawnPoints.length);
