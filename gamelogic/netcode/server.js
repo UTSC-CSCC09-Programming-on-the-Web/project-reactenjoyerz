@@ -426,6 +426,22 @@ export function bindWSHandlers(io) {
   setInterval(() => {
     games.forEach((game, gameId) => {
       const now = Date.now();
+
+      // assert each is game is started or is not full
+      assert(game.started || game.players.length < game.playerLimit);
+
+      // assert each player is mapped to the correct clientIdx and are in the correct room
+      game.players.forEach((player, clientIdx) => {
+        const playerToken = findToken(player.userId);
+        const playerInfo = findPlayerInfo(playerToken.token);
+
+        assert(playerToken.name === playerInfo.name);
+        assert(playerInfo.userId === player.userId);
+        assert(playerInfo.clientIdx === clientIdx);
+        assert(playerInfo.gameId === gameId);
+      })
+
+      // check if game has ended
       if (isDef(game.ends) && game.ends < now) {
         assert(game.started);
         updateTimestamp(game.currentState, now, false);
