@@ -31,9 +31,7 @@
       style.left="{{ bullet.dSprite.sprite.x }}px"
       style.top="{{ bullet.dSprite.sprite.y }}px"
       style.transform="rotate({{ bullet.dSprite.rotation }}rad)"
-      src="bullet.png"
-      width="11px"
-      height="21px"
+      src="{{ bullet.ownerIdx === clientIdx ? 'blueBullet.png' : 'redBullet.png' }}"
       (click)="onClick($event)"
     />
   }

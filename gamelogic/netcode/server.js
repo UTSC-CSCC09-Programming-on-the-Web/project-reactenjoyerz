@@ -18,9 +18,6 @@ import {
   updateTimestamp
 } from "../gamelogic/game-state.js";
 import {
-  Router
-} from "express";
-import {
   findToken,
   updateClientInfo,
   findPlayerInfo,
@@ -32,8 +29,8 @@ import { matchLength } from "./common.js";
 
 const speakingStatus = new Map();
 
-let nextGameId = 1;
-let nextPublicGameId = 0;
+let nextPublicGameId = 1;
+let nextPrivateGameId = 0;
 const games = new Map([]);
 
 const SALT_ROUNDS = 10;
@@ -45,7 +42,6 @@ function sendError(socket, reason, err) {
 }
 
 function createRoom(gameId, password, playerLimit) {
-  assert(gameId <= nextGameId);
   console.log(`createRoom: ${gameId}`);
 
   let game = games.get(gameId);
@@ -87,7 +83,6 @@ function playerJoin(socket, io, token, userId, name, gameId, password, callback)
     clientIdx,
   });
 
-  // :D
   game.players.push({
     socket,
     name,
@@ -167,7 +162,6 @@ function authenticateUser(socket, token, endpoint, next) {
   }
 
   if ((err === ErrorCode.Success)) {
-    console.log(`Req from ${socket.name} (userId = ${socket.userId}) to ${endpoint}`);
     next();
   } else sendError(socket, `unauthorized access from ${socket.name}`, err);
 }
@@ -175,7 +169,6 @@ function authenticateUser(socket, token, endpoint, next) {
 export function bindWSHandlers(io) {
   io.on("connection", (socket) => {
     socket.use((req, next) => {
-      console.log(req);
       authenticateUser(socket, req[1].token, req[0], next);
     });
 
@@ -189,18 +182,20 @@ export function bindWSHandlers(io) {
       const joinPublic = !isDef(gameId);
       gameId = joinPublic ? nextPublicGameId : gameId;
       let game = games.get(gameId);
-      let err;
 
       if (joinPublic && (!isDef(game) || game.started)) {
-        if (isDef(game)) nextPublicGameId = nextGameId++;
-        assert(nextPublicGameId < nextGameId);
-        gameId = nextPublicGameId;
+        if (isDef(game)) {
+          assert(game.started);
+          gameId = nextPublicGameId;
+          nextPublicGameId += 2;
+        }
+
         assert(
           createRoom(gameId, undefined, matchSize, true) === ErrorCode.Success
         );
       }
 
-      err = playerJoin(
+      const err = playerJoin(
         socket,
         io,
         token,
@@ -211,6 +206,7 @@ export function bindWSHandlers(io) {
         callback
       );
       assert(!joinPublic || err === ErrorCode.Success);
+
       if (err !== ErrorCode.Success)
         sendError(socket, "unable to join room", err);
     });
@@ -219,7 +215,9 @@ export function bindWSHandlers(io) {
       const { token, userId, name } = socket;
 
       let err;
-      let gameId = nextGameId++;
+      let gameId = nextPrivateGameId;
+      nextPrivateGameId += 2;
+
       assert(nextPublicGameId < nextGameId);
 
       err = createRoom(
@@ -246,7 +244,6 @@ export function bindWSHandlers(io) {
 
     socket.on("match.leave", () => {
       const { clientIdx, gameId, token, name, game } = socket;
-      console.log(token, name);
       const ci = updateClientInfo(token, {});
       assert(ci.gameId === undefined); // ensure that token is able to be culled if it expires
 
@@ -316,6 +313,8 @@ export function bindWSHandlers(io) {
         newState: structuredClone(game.currentState),
         clientIdx,
       });
+
+      console.log("move req");
     });
 
     socket.on("game.stop", ({}) => {
@@ -339,6 +338,8 @@ export function bindWSHandlers(io) {
         newState: structuredClone(game.currentState),
         clientIdx,
       });
+
+      console.log("stop req");
     });
 
     socket.on("game.syncReq", ({}) => {
@@ -426,6 +427,22 @@ export function bindWSHandlers(io) {
   setInterval(() => {
     games.forEach((game, gameId) => {
       const now = Date.now();
+
+      // assert each is game is started or is not full
+      assert(game.started || game.players.length < game.playerLimit);
+
+      // assert each player is mapped to the correct clientIdx and are in the correct room
+      game.players.forEach((player, clientIdx) => {
+        const playerToken = findToken(player.userId);
+        const playerInfo = findPlayerInfo(playerToken.token);
+
+        assert(playerToken.name === playerInfo.name);
+        assert(playerInfo.userId === player.userId);
+        assert(playerInfo.clientIdx === clientIdx);
+        assert(playerInfo.gameId === gameId);
+      })
+
+      // check if game has ended
       if (isDef(game.ends) && game.ends < now) {
         assert(game.started);
         updateTimestamp(game.currentState, now, false);

@@ -9,6 +9,8 @@ import { CommonModule } from '@angular/common';
 import { WebSocketService } from '../services/web-socket.service';
 import {initClient} from "../../../../gamelogic/netcode/client"; 
 
+let keymap = [ 0, 0, 0, 0 ];
+
 @Component({
   selector: 'game-board',
   imports: [CommonModule],
@@ -27,7 +29,6 @@ export class GameBoard implements OnDestroy {
   speakingPlayers: Set<number> = new Set();
   playerVolumes: Map<number, number> = new Map();
   playerMutedStatus: Map<number, boolean> = new Map();
-  keymap = [0, 0, 0, 0];
 
   micAccessStatus: 'idle' | 'granted' | 'denied' | 'error' = 'idle';
   private micStatusSub?: Subscription;
@@ -44,7 +45,7 @@ export class GameBoard implements OnDestroy {
   });
 
   timeLeft = signal("+inf");
-  scores = signal<Scores[]>([]);
+  scores = signal<Scores>([]);
 
   private clientInfoSet = false;
 
@@ -57,6 +58,7 @@ export class GameBoard implements OnDestroy {
 
     setInterval(() => {
       if (!hasStarted()) {
+        keymap = [0, 0, 0, 0];
         if (this.started()) {
           this.started.set(false);
         }
@@ -73,15 +75,25 @@ export class GameBoard implements OnDestroy {
 
       this.scores.set(fetchScores().sort((a, b) => b.score - a.score));
       this.walls = getWalls(res);
+
+      if (!this.started()) {
+        console.log("reset");
+      }
+
       this.started.set(true);
       this.clientIdx = getClientIdx();
       this.bullets.set(res.bullets);
       this.tanks.set(res.tanks);
 
-      const dx = this.keymap[3] - this.keymap[1];
-      const dy = this.keymap[2] - this.keymap[0];
-      if (dx === 0 && dy === 0) stop();
-      else {
+      const dx = keymap[3] - keymap[1];
+      const dy = keymap[2] - keymap[0];
+      console.log(keymap);
+
+      if (dx === 0 && dy === 0) {
+        //console.log("stop", keymap);
+        stop();
+      } else {
+        //console.log("move", keymap);
         const norm = Math.sqrt(dx ** 2 + dy ** 2);
         setDirection(dx / norm, dy / norm);
       }
@@ -158,29 +170,33 @@ export class GameBoard implements OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
+    console.log('down');
     let dx = 0;
     let dy = 0;
 
     const key = event.key.toLowerCase();
-    if (key === 'w') this.keymap[0] = 1;
-    if (key === 'a') this.keymap[1] = 1;
-    if (key === 's') this.keymap[2] = 1;
-    if (key === 'd') this.keymap[3] = 1;
+    if (key === 'w') keymap[0] = 2;
+    if (key === 'a') keymap[1] = 2;
+    if (key === 's') keymap[2] = 2;
+    if (key === 'd') keymap[3] = 2;
 
     switch (key) {
       case 'v':
         this.startRecording();
         break;
     }
+
+    console.log(keymap);
   }
 
   @HostListener('window:keyup', ['$event'])
   handleKeyUp(event: KeyboardEvent) {
+    console.log('up');
     const key = event.key.toLowerCase();
-    if (key === 'w') this.keymap[0] = 0;
-    if (key === 'a') this.keymap[1] = 0;
-    if (key === 's') this.keymap[2] = 0;
-    if (key === 'd') this.keymap[3] = 0;
+    if (key === 'w') keymap[0] = 0;
+    if (key === 'a') keymap[1] = 0;
+    if (key === 's') keymap[2] = 0;
+    if (key === 'd') keymap[3] = 0;
 
     switch (key) {
       case 'v':
