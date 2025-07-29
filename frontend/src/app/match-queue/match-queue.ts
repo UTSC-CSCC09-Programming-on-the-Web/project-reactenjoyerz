@@ -19,7 +19,7 @@ export class MatchQueue {
   private router = inject(Router);
   waiting = signal<boolean>(false);
 
-  gameCode = signal<string>('12345');
+  gameCode = signal<string>('');
   playerCount = signal<number>(1);
   playerLimit = signal<number>(4);
 
