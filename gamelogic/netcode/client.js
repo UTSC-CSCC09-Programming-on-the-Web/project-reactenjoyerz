@@ -170,7 +170,6 @@ export function setDirection(dx, dy) {
 
   const tank = currentState.tanks[clientInfo.clientIdx].dSprite;
   if (tank.dx === dx && tank.dy === dy) return;
-
   wss.emit("game.moveVec", {
     dx,
     dy,
