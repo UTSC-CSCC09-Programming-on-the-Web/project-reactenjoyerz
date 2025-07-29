@@ -16,19 +16,26 @@ export class GoogleApiService {
 
   constructor(private readonly oAuthService: OAuthService) {
     oAuthService.configure(oAuthConfig)
-    oAuthService.loadDiscoveryDocumentAndTryLogin().then(() => {
-      if (!oAuthService.hasValidAccessToken()) {
-        oAuthService.initLoginFlow();
-      } else {
-        oAuthService.loadUserProfile().then(profile => {
-          console.log(profile);
-        });
-      }
-    });
+  }
+
+  async login(): Promise<void> {
+    await this.oAuthService.loadDiscoveryDocumentAndTryLogin();
+  }
+
+  hasValidAccessToken() {
+    return this.oAuthService.hasValidAccessToken();
+  }
+
+  initLoginFlow() {
+    this.oAuthService.initLoginFlow();
   }
 
   getIdToken() {
     return this.oAuthService.getIdToken();
   }
-  
+
+  logout() {
+    this.oAuthService.logOut();
+    window.location.href = window.location.origin + '/home';
+  }
 }
