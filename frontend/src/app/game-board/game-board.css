@@ -9,6 +9,8 @@
 .bullet {
   position: fixed;
   z-index: 1;
+  width: 11px;
+  height: 21px;
 }
 
 .tank {
