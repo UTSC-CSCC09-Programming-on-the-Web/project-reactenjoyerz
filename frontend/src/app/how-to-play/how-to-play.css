@@ -1,0 +1,171 @@
+/* --- Centering Rule for the Whole Page --- */
+:host {
+  font-family: "Russo One", sans-serif;
+}
+
+.instructions-container {
+  padding: 20px 40px;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-family: "Russo One", sans-serif;
+  font-size: 1.5rem;
+  cursor: pointer;
+  position: absolute;
+  top: 20px;
+  left: 40px;
+}
+
+.main-title {
+  text-align: center;
+  font-size: 4rem;
+  margin-bottom: 50px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  text-align: center;
+  align-items: stretch; /* Ensures columns stretch to the same height */
+}
+
+.control-column h2 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+}
+
+/* --- NEW Universal Container Style --- */
+.control-box {
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 15px;
+  padding: 20px;
+  height: 100%; /* Makes all boxes the same height as the tallest one */
+
+  /* Centers the content inside the box */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* --- Move Keys Styles --- */
+.keys-layout {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.key-row {
+  display: flex;
+  gap: 5px;
+}
+
+.key {
+  background-color: #222;
+  color: #fff;
+  border-radius: 8px;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  box-shadow: none;
+  border: 1px solid #444;
+}
+
+/* --- Mouse Styles --- */
+.mouse {
+  width: 150px;
+  height: 270px;
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.buttons {
+  display: flex;
+  width: 100%;
+  height: 100px;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.button-left,
+.button-right {
+  width: 50%;
+  height: 108%;
+}
+
+.button-left {
+  background-color: #999;
+  border-top-left-radius: 75px;
+}
+
+.button-right {
+  background-color: #d9d9d9;
+  border-top-right-radius: 75px;
+}
+
+.body {
+  width: 100%;
+  height: 160px;
+  background-color: #d9d9d9;
+  border-bottom-left-radius: 75px;
+  border-bottom-right-radius: 75px;
+}
+
+.split {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 100px;
+  background-color: #111;
+  transform: translateX(-1px);
+}
+
+/* --- Voice Controls Styles --- */
+.voice-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-flow .key.small {
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+}
+
+.plus-sign {
+  font-size: 2rem;
+}
+
+.command-box {
+  border: none;
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  padding: 15px;
+  margin: 10px 0;
+  width: 90%;
+  text-align: left;
+}
+
+.command-box p {
+  margin: 5px 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.command-box hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  margin: 10px 0;
+}

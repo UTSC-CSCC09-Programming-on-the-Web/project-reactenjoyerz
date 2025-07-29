@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>How To Play</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="how-to-play.css" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap"
+    />
+  </head>
+  <body>
+    <div class="instructions-container">
+      <button (click)="goHome()" class="back-button">&lt;Back</button>
+
+      <h1 class="main-title">WTanks</h1>
+
+      <div class="controls-grid">
+        <div class="control-column">
+          <h2>To Move:</h2>
+          <div class="control-box">
+            <div class="keys-layout">
+              <div class="key">W</div>
+              <div class="key-row">
+                <div class="key">A</div>
+                <div class="key">S</div>
+                <div class="key">D</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-column">
+          <h2>To Shoot:</h2>
+          <div class="control-box">
+            <div class="mouse-action">
+              <div class="mouse">
+                <div class="buttons">
+                  <div class="button-left"></div>
+                  <div class="button-right"></div>
+                </div>
+                <div class="body"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-column">
+          <h2>Voice Controls:</h2>
+          <div class="control-box">
+            <div class="voice-flow">
+              <span>Hold</span>
+              <div class="key small">V</div>
+              <span class="plus-sign">+</span>
+              <div class="command-box">
+                <p>
+                  <strong>Simple Command:</strong><br />Move/Shoot +
+                  North/East/South/West
+                </p>
+                <hr />
+                <p>
+                  <strong>Advanced Command:</strong><br />Move/Shoot + X degrees
+                  + North/South + West/East
+                </p>
+              </div>
+              <span class="plus-sign">+</span>
+              <span>Release</span>
+              <div class="key small">V</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

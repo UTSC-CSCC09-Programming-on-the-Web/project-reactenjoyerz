@@ -20,7 +20,7 @@ app.use("/webhook", webhookRouter);
 app.use(bodyParser.json());
 
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || "http://localhost:4200",
+  origin: "http://localhost:4200",
   credentials: true,
 };
 
@@ -38,7 +38,7 @@ app.use("/api/payments", paymentsRouter);
 app.post("/api/game", (req, res) => {
   console.log(req.session);
   return res.status(409).json({ error: "User already in a game" });
-})
+});
 
 bindWSHandlers(io);
 
