@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { GoogleApiService } from '../services/google-api';
 import { AuthService } from '../services/auth.service';
 import { Router, NavigationEnd } from '@angular/router';
@@ -9,15 +9,18 @@ import { filter } from 'rxjs/operators';
   templateUrl: './google-login.html',
   styleUrl: './google-login.css'
 })
-export class GoogleLogin {
+export class GoogleLogin implements OnInit {
   message = '';
 
-  constructor(private readonly google: GoogleApiService, private readonly auth: AuthService, private readonly router: Router) {
-    this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe(() => {
-        this.handleGoogleLogin();
-      });
+  constructor(private readonly google: GoogleApiService, private readonly auth: AuthService, private readonly router: Router) {}
+
+  async ngOnInit() {
+    await this.google.login();
+    if (!this.google.hasValidAccessToken()) {
+      this.google.initLoginFlow();
+      return;
+    }
+    this.handleGoogleLogin();
   }
 
   handleGoogleLogin() {

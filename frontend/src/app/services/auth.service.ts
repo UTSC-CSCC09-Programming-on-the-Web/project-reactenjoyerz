@@ -4,12 +4,14 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environments';
 import { leave } from '../../../../gamelogic/netcode/client';
 import { WebSocketService } from './web-socket.service';
+import { GoogleApiService } from './google-api';
 
 interface User {
   id: number;
   email: string;
   has_subscription: boolean;
   token: string;
+  isGoogle: boolean;
 }
 
 let _user: User | null = null
@@ -20,7 +22,7 @@ let _user: User | null = null
 export class AuthService {
   endpoint = environment.apiUrl;
 
-  constructor(private http: HttpClient, private wss: WebSocketService) {}
+  constructor(private http: HttpClient, private wss: WebSocketService, private google: GoogleApiService) {}
   /**
    * HttpClient has methods for all the CRUD actions: get, post, put, patch, delete, and head.
    * First parameter is the URL, and the second parameter is the body.
@@ -70,10 +72,17 @@ export class AuthService {
     if (_user === null) return new Observable((obs) => obs.error("Already subscribed."));
 
     const token = this.wss.getToken();
+    const isGoogle = _user.isGoogle;
+  
     _user = null;
     this.wss.setToken("");
 
     leave();
+    if (isGoogle) {
+      this.google.logout();
+      return new Observable();
+    }
+
     return this.http.post(`${this.endpoint}/users/logout`, 
       { token },
       { withCredentials: true });
@@ -83,6 +92,10 @@ export class AuthService {
     return _user !== null;
   }
 
+  isGoogleUser(): boolean {
+    return _user?.isGoogle ?? false;
+  }
+  
   getToken(): string {
     return _user?.token ?? "";
   }

@@ -171,6 +171,7 @@ usersRouter.post("/google-login", async (req, res) => {
       email: user.email,
       hasSubscription: subQ.rows.length !== 0,
       token,
+      isGoogle: true,
     });
   } catch (error) {
     console.error(error);
