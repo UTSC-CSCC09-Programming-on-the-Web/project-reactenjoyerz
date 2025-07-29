@@ -17,7 +17,7 @@ const maps = [
       [ 1604, 363 ],
       [ 1447, 579 ],
       [ 636, 800 ],
-      [ 324, 513 ],
+      [ 500, 513 ],
     ]
   }
 ]
@@ -58,10 +58,11 @@ function step(state, delta, isClient) {
   let outOfSync = false;
   console.assert(isDef(isClient), "step: isClient not defined");
   const walls = structuredClone(maps[state.mapId].walls);
-  walls.push(createWall(0, 0, 192, 1, 10));
-  walls.push(createWall(0, 950, 192, 1, 10));
-  walls.push(createWall(0, 0, 1, 108, 10));
-  walls.push(createWall(1910, 0, 1, 108, 10));
+  
+  walls.push({ x: 0, y: -50, width: 3000, height: 50 }); // top
+  walls.push({ x: 0, y: 953, width: 3000, height: 50 }); // bottom
+  walls.push({ x: 325, y: 0, width: 50, height: 3000 }); // left
+  walls.push({ x: 1920, y: 0, width: 50, height: 3000 }); // right
 
   state.bullets = state.bullets.filter((b) => {
     bullet.step(b, delta);

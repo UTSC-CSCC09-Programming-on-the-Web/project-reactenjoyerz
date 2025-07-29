@@ -38,7 +38,7 @@ app.use("/api/payments", paymentsRouter);
 app.post("/api/game", (req, res) => {
   console.log(req.session);
   return res.status(409).json({ error: "User already in a game" });
-})
+});
 
 bindWSHandlers(io);
 

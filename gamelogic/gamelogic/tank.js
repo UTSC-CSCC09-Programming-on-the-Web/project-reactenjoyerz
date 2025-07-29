@@ -13,8 +13,8 @@ export function createTank(x, y) {
       sprite: {
         x,
         y,
-        width: 20,
-        height: 32,
+        width: 27,
+        height: 43,
       },
     },
   };

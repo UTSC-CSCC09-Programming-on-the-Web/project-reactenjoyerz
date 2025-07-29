@@ -101,3 +101,14 @@ export function deleteToken(token) {
 function isExpired(player) {
   return player !== undefined && player.expires <= Date.now() && player.gameId === undefined;
 }
+
+setInterval(() => {
+  assert(tokenMap.size === playerMap.size);
+
+  tokenMap.forEach((playerInfo, token) => {
+    const tokenInfo = playerMap.get(playerInfo.userId);
+    assert(token === tokenInfo.token);
+    assert(tokenInfo.name === playerInfo.name);
+    assert(!isExpired(playerInfo));
+  });
+}, 1000);

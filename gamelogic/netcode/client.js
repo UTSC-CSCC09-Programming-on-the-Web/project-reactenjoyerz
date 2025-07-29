@@ -10,6 +10,7 @@ let serverState;
 let started = false;
 let gameEnds;
 let players;
+let prevScores = [];
 
 export function initClient(socketService) {
   console.log("Initializing client.js with shared WebSocketService.");
@@ -49,6 +50,7 @@ export function join(onWait, onJoin, onFail, onGameEnd, room) {
 function startGame(onJoin, onFail, onGameEnd) {
   console.assert(!started, "startGame: already started");
   started = false;
+  prevScores = undefined;
 
   wss.bindHandler("match.join", (match) => {
     console.assert(!started, "match.join: joining started match");
@@ -79,13 +81,14 @@ function startGame(onJoin, onFail, onGameEnd) {
 
   wss.bindHandler("match.end", ({ finalState }) => {
     console.assert(!finalState.started)
-    const scores = getScores(finalState, players);
+    prevScores = getScores(finalState, players);
     destroyGame();
-    onGameEnd(scores);
+    onGameEnd();
   })
 }
 
 function destroyGame() {
+  prevScores = getScores(currentState, players);
   clientInfo = undefined;
   currentState = undefined;
   serverState = undefined;
@@ -199,4 +202,8 @@ export function getTimeLeft() {
 
 export function fetchScores() {
   return getScores(currentState, players);
+}
+
+export function fetchOldScores() {
+  return prevScores;
 }

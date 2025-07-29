@@ -1,24 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-    <link rel="stylesheet" href="home.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap">
-</head>
-<body>
+    <link rel="stylesheet" href="home.css" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap"
+    />
+  </head>
   <body>
-  <div class="container">
-    <div class="left-panel">
-      <h1 class="game-title" (click)="home()">WTanks</h1>
-      <div class="buttons">
-        <button routerLink="/login" class="buttons-login">Login</button>
-        <button routerLink="/register" class="buttons-register">Register</button>
-        <button routerLink="/google-login" class="google-sign-in-button">Play Using Google</button>
+    <body>
+      <div class="container">
+        <div class="left-panel">
+          <h1 class="game-title" (click)="home()">WTanks</h1>
+          <div class="buttons">
+            <button routerLink="/login" class="buttons-login">Login</button>
+            <button routerLink="/register" class="buttons-register">
+              Register
+            </button>
+            <button routerLink="/how-to-play" class="buttons-login">
+              How to Play
+            </button>
+          </div>
+        </div>
+        <div class="right-panel image-placeholder"></div>
       </div>
-    </div>
-  </div>
-</body>
-</body>
+    </body>
+  </body>
 </html>
