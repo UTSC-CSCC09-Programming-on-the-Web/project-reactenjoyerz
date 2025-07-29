@@ -1,4 +1,4 @@
-import { join, createRoom } from "../../../../gamelogic/netcode/client";
+import { join, createRoom, getClientInfo, getClientIdx } from "../../../../gamelogic/netcode/client";
 import { inject, Component, HostListener, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
@@ -18,6 +18,11 @@ export class MatchQueue {
   private authService = inject(AuthService);
   private router = inject(Router);
   waiting = signal<boolean>(false);
+
+  gameCode = signal<string>('');
+  playerCount = signal<number>(1);
+  playerLimit = signal<number>(4);
+
 
   joinForm: FormGroup;
   createForm: FormGroup;
@@ -83,7 +88,10 @@ export class MatchQueue {
     else gameId = Number.parseInt(gameId);
 
     join(
-      () => this.waiting.set(true),
+      () => {
+        this.gameCode.set(getClientInfo().gameId.toString());
+        this.waiting.set(true);
+      },
       () => {
         this.router.navigate(['/game']);
       },
@@ -105,7 +113,11 @@ export class MatchQueue {
 
     // note: probably should change name
     createRoom(
-      () => this.waiting.set(true),
+      () => {
+        this.gameCode.set(getClientInfo().gameId.toString());
+        this.playerLimit.set(playerLimit);
+        this.waiting.set(true);
+      },
       () => {
         this.router.navigate(['/game']);
       },
@@ -117,6 +129,17 @@ export class MatchQueue {
       { playerLimit, password }
     );
   }
+
+  leaveRoom() {
+    leave();
+    this.waiting.set(false);
+  }
+
+  refreshStatus() {
+    // Placeholder for logic to refresh room status
+    console.log('Refreshing status...');
+  }
+
 
   logout() {
     leave();
