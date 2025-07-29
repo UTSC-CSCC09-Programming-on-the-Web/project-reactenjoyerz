@@ -218,8 +218,6 @@ export function bindWSHandlers(io) {
       let gameId = nextPrivateGameId;
       nextPrivateGameId += 2;
 
-      assert(nextPublicGameId < nextGameId);
-
       err = createRoom(
         gameId,
         password,
