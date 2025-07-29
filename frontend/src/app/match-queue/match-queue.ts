@@ -99,6 +99,7 @@ export class MatchQueue {
       (scores: { name: string; score: number }[]) => {
         console.log('Game Ended!');
         console.log(scores);
+        this.waiting.set(false);
         this.router.navigate(['/match']);
       },
       { gameId, password }
@@ -126,6 +127,7 @@ export class MatchQueue {
       (scores: { name: string; score: number }[]) => {
         console.log('Game Ended!');
         console.log(scores);
+        this.waiting.set(false);
         this.router.navigate(['/match']);
       },
       { playerLimit, password }

@@ -7,12 +7,17 @@ import * as bullet from "./bullet.js";
 
 const maps = [
   {
-    walls: [
-      createWall(1000, 500, 10, 2, 48),
-      createWall(500, 50, 3, 15, 48),
-    ],
+    walls: [],
     spawnPoints: [
-      [ 960, 540 ],
+      [ 1213, 377 ],	
+      [ 1458, 900 ],
+      [ 550, 180 ],
+      [ 871, 845],
+      [ 1134, 657 ],
+      [ 1604, 363 ],
+      [ 1447, 579 ],
+      [ 636, 800 ],
+      [ 324, 513 ],
     ]
   }
 ]
@@ -47,9 +52,11 @@ export function getWalls(state) {
   return maps[state.mapId].walls;
 }
 
-function step(state, delta) {
+function step(state, delta, isClient) {
   if (delta === 0) return;
 
+  let outOfSync = false;
+  console.assert(isDef(isClient), "step: isClient not defined");
   const walls = structuredClone(maps[state.mapId].walls);
   walls.push(createWall(0, 0, 192, 1, 10));
   walls.push(createWall(0, 950, 192, 1, 10));
@@ -69,18 +76,28 @@ function step(state, delta) {
 
   state.tanks.forEach((t) => tank.step(t, delta));
   state.bullets = state.bullets.filter((b) => {
-    return state.tanks.every((t) => {
+    return state.tanks.every((t, idx) => {
+      if (idx === b.ownerIdx) return true;
       if (!tank.testCollisionBullet(t, b)) return true;
+      if (isClient) {
+        // hide player and wait for server response to get new respawn point
+        t.dSprite.sprite.x = -9001;
+        t.dSprite.sprite.y = -9001;
+        outOfSync =  true;
+      } else {
+        const spawnId = getRand(maps[state.mapId].spawnPoints.length);
+        const [x, y] = maps[state.mapId].spawnPoints[spawnId];
+        t.dSprite.sprite.x = x;
+        t.dSprite.sprite.y = y;
+        state.tanks[b.ownerIdx].score += 1;
+      }
 
-      const spawnId = getRand(maps[state.mapId].spawnPoints.length)
-      const [x, y] = maps[state.mapId].spawnPoints[spawnId];
-      tank.dSprite.sprite.x = x;
-      tank.dSprite.sprite.y = y;
       return false;
     });
   });
 
   state.timestamp += delta;
+  return outOfSync;
 }
 
 // shoot a bullet and catch it up to timestamp
@@ -104,19 +121,20 @@ export function removeTank(state, idx) {
   state.tanks.splice(idx, 1);
 }
 
-export function updateTimestamp(state, targetTime) {
+export function updateTimestamp(state, targetTime, isClient) {
   if (!isDef(state))
     return state;
 
+  let outOfSync = false;
   let headTime = state.timestamp;
   while (targetTime !== headTime) {
     const delta = Math.min(maxStepSize, targetTime - headTime);
 
-    step(state, delta);
+    outOfSync = outOfSync || step(state, delta, isClient);
     headTime += delta;
   }
 
-  return structuredClone(state);
+  return outOfSync;
 }
 
 export function getScores(state, playerNames) {
@@ -124,6 +142,7 @@ export function getScores(state, playerNames) {
     return {
       score: t.score,
       name: playerNames[idx],
+      clientIdx: idx,
     }
   });
 }

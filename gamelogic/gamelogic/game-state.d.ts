@@ -32,9 +32,7 @@ export type GameState = {
 
 export declare function getWalls(): Sprite[];
 export declare function initialize(matchSize: number): GameState;
-export declare function step(gameState: GameState, delta: number): void;
 export declare function shoot(gameState: GameState, clientIdx: number, x: number, y: number): void;
 export declare function move(gameState: GameState, clientIdx: number, x: number, y: number): void;
 export declare function getWalls(state: GameState): Sprite[];
-export declare function logState(gameState: GameState): void; // Assuming logState exists
 export declare function removeTank(gameState: GameState, clientIdx: number): void;
