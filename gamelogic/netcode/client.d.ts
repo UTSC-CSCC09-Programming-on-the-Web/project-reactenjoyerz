@@ -35,4 +35,4 @@ export function getClientInfo(): { gameId: number, clientIdx: number };
 export function initClient(socketService: WebSocketService): void;
 export function getTimeLeft(): number;
 export function fetchScores(): Scores;
-export function fetchOldScores(): Scores;
+export function fetchOldScores(): Scores | undefined;

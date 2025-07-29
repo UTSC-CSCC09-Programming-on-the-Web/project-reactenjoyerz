@@ -18,7 +18,9 @@ export class Leaderboard {
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
         this.started.set(hasStarted());
-        this.scores.set(fetchOldScores().sort((a, b) => b.score - a.score))
+        const oldScores = fetchOldScores() ?? [];
+        this.scores.set(oldScores.sort((a, b) => b.score - a.score));
+
         console.log("Game ended!")
       });
   }
