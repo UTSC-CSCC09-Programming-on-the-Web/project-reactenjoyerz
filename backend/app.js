@@ -20,7 +20,7 @@ app.use("/webhook", webhookRouter);
 app.use(bodyParser.json());
 
 const corsOptions = {
-  origin: "http://localhost:4200",
+  origin: process.env.CORS_ORIGIN || "http://localhost:4200",
   credentials: true,
 };
 
