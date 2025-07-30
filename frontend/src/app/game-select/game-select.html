@@ -10,13 +10,14 @@
   />
 </head>
   <body>
+    <p class="error-message">{{ message() }}</p>
     <div class="container">
       <h1>WTanks</h1>
       <button (click)="navJoinPub()">Join A Public Game</button>
       <button (click)="navJoin()">Join A Game</button>
       <button (click)="navCreate()">Create A Game</button>
       <button (click)="navInstruct()">How To Play</button>
-      <button (click)="logout()">Logout</button>
+      <button class="logout-btn" (click)="logout()">Logout</button>
     </div>
   </body>
 </html>

@@ -22,7 +22,7 @@ export class Create {
       password: ['', [Validators.required]],
     });
 
-    this.rs.attachListener((err) => this.message.set(err))
+    this.rs.attachListener("create", (err) => this.message.set(err))
 
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))

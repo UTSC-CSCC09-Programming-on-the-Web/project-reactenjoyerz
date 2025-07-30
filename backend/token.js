@@ -13,7 +13,7 @@ export function bindToken(userId, name) {
   assert(userId);
   assert(name);
 
-  const player = playerMap.get(userId);
+  const player = findToken(userId);
   if (player !== undefined) {
     assert(name === player.name);
     assert(tokenMap.get(player.token) !== undefined);
@@ -53,8 +53,8 @@ export function bindToken(userId, name) {
 }
 
 export function updateClientInfo(token, clientInfo) {
-  const oldInfo = tokenMap.get(token);
-  assert(oldInfo !== undefined);
+  const oldInfo = findPlayerInfo(token);
+  if (oldInfo === undefined) return undefined;
 
   clientInfo.expires = oldInfo.expires;
   clientInfo.userId = oldInfo.userId;
@@ -109,6 +109,8 @@ setInterval(() => {
     const tokenInfo = playerMap.get(playerInfo.userId);
     assert(token === tokenInfo.token);
     assert(tokenInfo.name === playerInfo.name);
-    assert(!isExpired(playerInfo));
+    if (isExpired(playerInfo)){
+      console.log(`${tokenInfo.name} is expired`);
+    }
   });
 }, 1000);

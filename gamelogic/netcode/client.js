@@ -83,7 +83,10 @@ function startGame(onJoin, onFail, onGameEnd) {
 }
 
 function destroyGame() {
-  prevScores = getScores(currentState, players);
+  if (currentState === undefined)
+    prevScores = undefined;
+  else
+    prevScores = getScores(currentState, players);
   clientInfo = undefined;
   currentState = undefined;
   serverState = undefined;

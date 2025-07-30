@@ -1,4 +1,3 @@
-/* --- Apply styles to the component's host element --- */
 :host {
   font-family: "Russo One", sans-serif;
 }
@@ -79,4 +78,14 @@
   color: #aaa;
 }
 
-/* Add styles for your form sections here if needed */
+.error-message {
+  margin: 1em;
+  font-size: 1.5em;
+  color: red;
+  font-family: "Russo One", sans-serif;
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 20em;
+  text-align: right;
+}

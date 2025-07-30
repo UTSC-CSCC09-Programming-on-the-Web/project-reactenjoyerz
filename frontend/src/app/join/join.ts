@@ -22,7 +22,7 @@ export class Join {
       password: ['', [Validators.required]],
     });
 
-    this.rs.attachListener((err) => this.message.set(err))
+    this.rs.attachListener("join", (err) => this.message.set(err));
 
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))

@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, signal } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
 import { RoomService } from '../services/room-service';
 import { AuthService } from '../services/auth.service';
 import { leave } from '../../../../gamelogic/netcode/client';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-game-select',
@@ -11,7 +12,15 @@ import { leave } from '../../../../gamelogic/netcode/client';
   styleUrl: './game-select.css'
 })
 export class GameSelect {
-  constructor(private router: Router, private rs: RoomService, private authService: AuthService) {}
+  message = signal('');
+  constructor(private router: Router, private rs: RoomService, private authService: AuthService) {
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.message.set('');
+        this.rs.attachListener("game-select", (err) => this.message.set(err));
+      });
+  }
 
   navJoinPub() {
     this.rs.joinPublicGame();
@@ -31,7 +40,8 @@ export class GameSelect {
 
   logout() {
     leave();
-    this.authService.logout();
-    this.router.navigate(["/"])
+    this.authService.logout().subscribe({
+      next: () => this.router.navigate(["/"]),
+    });
   }
 }

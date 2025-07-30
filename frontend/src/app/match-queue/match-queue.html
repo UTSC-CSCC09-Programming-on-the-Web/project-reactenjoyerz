@@ -9,18 +9,22 @@
 
 <div class="waiting-room-container">
   <div class="header">
-    <button class="back-button" (click)="leaveRoom()">&lt;Back</button>
+    <button class="back-button" (click)="leaveRoom()">&lt; Go Back</button>
   </div>
 
+  <p class="error-message">{{ message() }}</p>
   <div class="content-body">
     <h1 class="main-title">WTanks</h1>
     <div class="game-code-container">
-      <h2>Game Code: {{ gameCode() }}</h2>
+      @if (isPrivate) {
+        <h2>Game Code: {{ gameCode() }}</h2>
+      } @else {
+        <h2 style="opacity: 0;">SUPER DUPER SECRET SECRET HUSH HUSH</h2>
+      }
     </div>
   </div>
 
   <div class="footer">
-    <p>{{ playerCount() }}/{{ playerLimit() }} players currently in room</p>
     <p class="waiting-text">Waiting for more players to join ...</p>
   </div>
 </div>

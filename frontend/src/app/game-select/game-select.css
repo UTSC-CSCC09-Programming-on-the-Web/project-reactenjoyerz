@@ -32,3 +32,25 @@ h1 {
   flex-direction: column;
   font-family: "Russo One", sans-serif;
 }
+
+.logout-btn {
+  background: none;
+  border: solid white 2px;
+  color: white;
+}
+
+.logout-btn:hover {
+  background: black;
+}
+
+.error-message {
+  margin: 1em;
+  font-size: 1.5em;
+  color: red;
+  font-family: "Russo One", sans-serif;
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 20em;
+  text-align: right;
+}

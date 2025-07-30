@@ -10,12 +10,15 @@ type errorListener = (err: string) => void;
   providedIn: 'root'
 })
 export class RoomService {
-  private onErrorListeners: errorListener[] = [];
+  private onErrorListeners: Map<string, errorListener>;
+  private isPrivate = true;
 
-  constructor(private router: Router, private authService: AuthService) { }
+  constructor(private router: Router, private authService: AuthService) { 
+    this.onErrorListeners = new Map<string, errorListener>;
+  }
 
-  attachListener(listener: errorListener) {
-    this.onErrorListeners.push(listener);
+  attachListener(key: string, listener: errorListener) {
+    this.onErrorListeners.set(key, listener);
   }
 
   private notifyListeners(err: string) {
@@ -31,7 +34,7 @@ export class RoomService {
         message = 'Succesfully joined match';
         break;
       case ErrorCode.InvalidToken:
-        message = 'Invalid token';
+        message = 'Not signed in';
         fatal = true;
         break;
       case ErrorCode.GameStarted:
@@ -94,6 +97,7 @@ export class RoomService {
   }
 
   createGame(playerLimit: string, password: string) {
+    this.isPrivate = true;
     let _playerLimit: number;
     if (Number.isNaN(playerLimit)) {
       this.notifyListeners("Invalid player limit");
@@ -112,6 +116,7 @@ export class RoomService {
   }
 
   joinPrivateGame(gameId: string, password: string) {
+    this.isPrivate = true;
     let _gameId: number;
     if (Number.isNaN(gameId)) {
       this.notifyListeners("Invalid player limit");
@@ -129,6 +134,7 @@ export class RoomService {
   }
 
   joinPublicGame() {
+    this.isPrivate = false;
     join(
       this.onWait,
       this.onJoin,
@@ -136,5 +142,9 @@ export class RoomService {
       this.onEnd,
       { gameId: undefined, password: undefined }
     );
+  }
+
+  gameIsPrivate() {
+    return this.isPrivate;
   }
 }
