@@ -63,6 +63,7 @@ form button {
   font-size: large;
 }
 
+.join-pub,
 form button:hover {
   background-color: #c1c1c1;
 }

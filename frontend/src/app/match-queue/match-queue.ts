@@ -39,66 +39,9 @@ export class MatchQueue {
     });
   }
 
-  /*
-  joinGame() {
-    let { gameId, password } = this.joinForm.value;
-    console.log(this.joinForm.value);
-
-    if (Number.isNaN(gameId)) gameId = undefined;
-    else gameId = Number.parseInt(gameId);
-
-    join(
-      () => {
-        this.gameCode.set(getClientInfo().gameId.toString());
-        this.waiting.set(true);
-      },
-      () => {
-        this.router.navigate(['/game']);
-      },
-      this.errorHandler,
-      () => {
-        this.waiting.set(false);
-        this.router.navigate(['/leaderboard']);
-      },
-      { gameId, password }
-    );
-  }
-
-  createGame() {
-    let { playerLimit, password } = this.createForm.value;
-
-    if (Number.isNaN(playerLimit)) return;
-
-    playerLimit = Number.parseInt(playerLimit);
-
-    // note: probably should change name
-    createRoom(
-      () => {
-        this.gameCode.set(getClientInfo().gameId.toString());
-        this.playerLimit.set(playerLimit);
-        this.waiting.set(true);
-      },
-      () => {
-        this.router.navigate(['/game']);
-      },
-      this.errorHandler,
-      () => {
-        this.waiting.set(false);
-        this.router.navigate(['/leaderboard']);
-      },
-      { playerLimit, password }
-    );
-  }
-  */
-
   leaveRoom() {
     leave();
     this.waiting.set(false);
-  }
-
-  refreshStatus() {
-    // Placeholder for logic to refresh room status
-    console.log('Refreshing status...');
   }
 
   logout() {

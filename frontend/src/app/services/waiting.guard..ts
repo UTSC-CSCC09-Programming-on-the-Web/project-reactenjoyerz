@@ -1,17 +1,17 @@
 import { Injectable } from '@angular/core';
 import { Router, CanActivate } from '@angular/router';
-import { hasStarted } from '../../../../gamelogic/netcode/client';
+import { isWaiting } from '../../../../gamelogic/netcode/client';
 import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root',
 })
-export class GameGuard implements CanActivate {
+export class WaitingGuard implements CanActivate {
   constructor(private router: Router, private auth: AuthService) {}
 
   // only activate iff game has started
   canActivate(): boolean {
-    if(hasStarted()) return true;
+    if(isWaiting()) return true;
     else if (this.auth.isLoggedIn()) this.router.navigate(["/game-select"]);
     else this.router.navigate(["/home"]);
     return false;

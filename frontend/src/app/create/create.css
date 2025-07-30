@@ -93,3 +93,7 @@ form button:active {
   width: 20em;
   text-align: right;
 }
+
+form input::placeholder {
+  color: #847e7e;
+}

@@ -12,10 +12,12 @@ import { HowToPlay } from './how-to-play/how-to-play';
 import { Leaderboard } from './leaderboard/leaderboard';
 import { Create } from './create/create';
 import { Join } from './join/join';
+import { WaitingGuard } from './services/waiting.guard.';
+import { GameSelect } from './game-select/game-select';
 
 export const routes: Routes = [
     { path: 'game', component: GameBoard, canActivate: [AuthGuard, GameGuard] },
-    { path: 'match', component: MatchQueue, canActivate: [AuthGuard] },
+    { path: 'match', component: MatchQueue, canActivate: [AuthGuard, WaitingGuard] },
     { path: 'home', component: Home },
     { path: 'login', component: Login },
     { path: 'register', component: Register },
@@ -25,5 +27,6 @@ export const routes: Routes = [
     { path: 'leaderboard', component: Leaderboard, canActivate: [AuthGuard] },
     { path: 'create', component: Create, canActivate: [AuthGuard] },
     { path: 'join', component: Join, canActivate: [AuthGuard] },
-    { path: '**', redirectTo:'home' }
+    { path: 'game-select', component: GameSelect, canActivate: [AuthGuard] },
+    { path: '**', redirectTo: 'home' }
 ];

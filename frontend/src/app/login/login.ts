@@ -29,7 +29,7 @@ export class Login {
     this.authService.login(this.email, this.password).subscribe({
       next: (res) => {
         if (res.has_subscription) {
-          this.router.navigate(['/match']);
+          this.router.navigate(['/game-select']);
         } else {
           this.message = 'Subscription required. Redirecting to subscription page ...';
           setTimeout(() => this.router.navigate(['/subscribe']), 750);

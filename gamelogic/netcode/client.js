@@ -201,3 +201,7 @@ export function fetchScores() {
 export function fetchOldScores() {
   return prevScores;
 }
+
+export function isWaiting() {
+  return isDef(clientInfo);
+}
