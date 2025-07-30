@@ -11,9 +11,16 @@ export class GameGuard implements CanActivate {
 
   // only activate iff game has started
   canActivate(): boolean {
-    if(hasStarted()) return true;
-    else if (this.auth.isLoggedIn()) this.router.navigate(["/game-select"]);
-    else this.router.navigate(["/home"]);
+    const isAuth = this.auth.isLoggedIn();
+    const started = hasStarted();
+    if (isAuth) {
+      if (started)
+        return true;
+      else
+        this.router.navigate(["/game-select"]);
+    } else
+      this.router.navigate(["/home"]);
+
     return false;
   }
 }

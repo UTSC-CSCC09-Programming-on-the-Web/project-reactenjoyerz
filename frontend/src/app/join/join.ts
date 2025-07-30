@@ -51,6 +51,6 @@ export class Join {
   }
 
   goBack() {
-    //this.router.navigate(['/main'])
+    this.router.navigate(['/game-select']);
   }
 }

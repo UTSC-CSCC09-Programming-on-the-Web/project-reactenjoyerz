@@ -26,6 +26,6 @@ export class Leaderboard {
   }
 
   backButton() {
-    this.router.navigate(["/match"]);
+    this.router.navigate(["/game-select"]);
   }
 }

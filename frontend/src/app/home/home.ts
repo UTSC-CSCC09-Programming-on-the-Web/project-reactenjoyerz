@@ -2,8 +2,6 @@ import { inject, Component, OnInit } from '@angular/core';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { SpeechService } from '../services/speech';
-import { Subscription } from 'rxjs';
-import { HostListener } from '@angular/core';
 
 @Component({
   selector: 'app-home',

@@ -27,7 +27,7 @@ export class Register {
       next: (res) => {
         console.log('Registration successful:', res);
         this.message = 'Success!';
-        this.router.navigate(['/login']);
+        this.router.navigate(['/subscribe']);
       },
       error: (err) => {
         this.message = err.error?.error || 'Registration failed';

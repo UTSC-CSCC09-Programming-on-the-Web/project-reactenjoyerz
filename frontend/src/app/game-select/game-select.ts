@@ -31,15 +31,7 @@ export class GameSelect {
 
   logout() {
     leave();
-    this.authService.logout().subscribe({
-      next: () => {
-        this.router.navigate(['/home']);
-      },
-      error: () => {
-        this.router.navigate(['/home']);
-      },
-    });
-
+    this.authService.logout();
     this.router.navigate(["/"])
   }
 }

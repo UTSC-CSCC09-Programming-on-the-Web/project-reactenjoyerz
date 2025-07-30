@@ -11,9 +11,16 @@ export class WaitingGuard implements CanActivate {
 
   // only activate iff game has started
   canActivate(): boolean {
-    if(isWaiting()) return true;
-    else if (this.auth.isLoggedIn()) this.router.navigate(["/game-select"]);
-    else this.router.navigate(["/home"]);
+    const isAuth = this.auth.isLoggedIn();
+    const waiting = isWaiting();
+    if (isAuth) {
+      if (waiting)
+        return true;
+      else
+        this.router.navigate(["/game-select"]);
+    } else
+      this.router.navigate(["/home"]);
+
     return false;
   }
 }
