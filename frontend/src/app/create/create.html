@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap">
 </head>
   <body>
+    <button (click)="goBack()" class="back-button">&lt; Go Back</button>
     <p class="error-message">{{ message() }}</p>
 
     <form (ngSubmit)="createGame()" [formGroup]="createForm" class="create-form">
@@ -19,7 +20,7 @@
         required
       />
       <input
-        type="text"
+        type="password"
         name="password"
         class="form-element"
         formControlName="password"
