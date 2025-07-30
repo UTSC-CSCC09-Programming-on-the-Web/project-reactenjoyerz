@@ -42,8 +42,8 @@ export class Join {
       return;
     }
 
-    let { playerLimit, password } = this.joinForm.value;
-    this.rs.joinPrivateGame(playerLimit, password);
+    let { gameId, password } = this.joinForm.value;
+    this.rs.joinPrivateGame(gameId, password);
   }
 
   joinPublicGame() {
