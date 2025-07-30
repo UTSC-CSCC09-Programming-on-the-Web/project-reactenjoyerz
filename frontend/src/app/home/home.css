@@ -5,13 +5,13 @@
 }
 
 .game-title:hover {
-    opacity: 80%;
-    cursor: pointer;
+  opacity: 80%;
+  cursor: pointer;
 }
 
 .game-title:active {
-    opacity: 50%;
-    cursor: pointer;
+  opacity: 50%;
+  cursor: pointer;
 }
 
 .container {
@@ -34,7 +34,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 35px;
+  gap: 10px;
 }
 
 .buttons-login {
@@ -59,8 +59,11 @@
   font-size: large;
 }
 
-.buttons-login:hover,
 .buttons-register:hover {
+  background: black;
+}
+
+.buttons-login:hover {
   background-color: #c1c1c1;
 }
 

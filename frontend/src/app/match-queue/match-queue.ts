@@ -1,10 +1,11 @@
 import { join, createRoom, getClientInfo, getClientIdx } from "../../../../gamelogic/netcode/client";
 import { inject, Component, HostListener, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { leave } from "../../../../gamelogic/netcode/client";
 import { ErrorCode } from "../../../../gamelogic/netcode/common";
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
+import { filter } from "rxjs";
 
 @Component({
   selector: 'app-match-queue',
@@ -17,12 +18,8 @@ export class MatchQueue {
   message = '';
   private authService = inject(AuthService);
   private router = inject(Router);
-  waiting = signal<boolean>(false);
 
   gameCode = signal<string>('');
-  playerCount = signal<number>(1);
-  playerLimit = signal<number>(4);
-
 
   joinForm: FormGroup;
   createForm: FormGroup;
@@ -37,11 +34,16 @@ export class MatchQueue {
       playerLimit: ['', []],
       password: ['', []],
     });
+
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.gameCode.set(getClientInfo()?.gameId.toString() ?? '');
+      });
   }
 
   leaveRoom() {
     leave();
-    this.waiting.set(false);
   }
 
   logout() {

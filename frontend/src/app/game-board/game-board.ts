@@ -57,7 +57,8 @@ export class GameBoard implements OnDestroy {
     initClient(wss);
 
     setInterval(() => {
-      if (!hasStarted()) {
+      const clientInfo = getClientInfo();
+      if (!hasStarted() || clientInfo === undefined) {
         keymap = [0, 0, 0, 0];
         if (this.started()) {
           this.started.set(false);
@@ -94,7 +95,7 @@ export class GameBoard implements OnDestroy {
       }
 
       if (this.clientIdx !== undefined && !this.clientInfoSet) {
-        this.voiceChatService.setClient(getClientInfo());
+        this.voiceChatService.setClient(clientInfo);
         this.clientInfoSet = true;
       }
 
