@@ -141,20 +141,34 @@ usersRouter.post("/google-login", async (req, res) => {
     ]);
 
     let user;
+    let username = name;
     if (userExists.rows.length === 0) {
+      let usernameExists = true;
+      while (usernameExists) {
+        const usernameCheck = await pool.query("SELECT 1 FROM users WHERE username = $1", [username]);
+        if (usernameCheck.rows.length === 0) {
+          usernameExists = false; 
+        }
+        else {
+          const num = Math.floor(Math.random() * 1000);
+          const numStr = num.toString();
+          username = name + numStr;
+        }
+      }
+
       const customer = await stripe.customers.create({
         email,
         name,
         metadata: {
           email,
-          username: name,
+          username: username,
         },
       });
       const insertUser = await pool.query(
         `INSERT INTO users (email, username, stripe_customer_id, password)
          VALUES ($1, $2, $3, $4)
          RETURNING *`,
-        [email, name, customer.id, "to satisfy not null"]
+        [email, username, customer.id, "to satisfy not null"]
       );
 
       user = insertUser.rows[0];
