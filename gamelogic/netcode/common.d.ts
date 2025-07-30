@@ -11,4 +11,5 @@ export const ErrorCode: {
   SimJoin: number;
   NotInGame: number;
   GameNotStarted: number;
+  InvalidArgs: number;
 };

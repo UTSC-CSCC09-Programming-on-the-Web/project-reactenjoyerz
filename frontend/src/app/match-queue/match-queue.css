@@ -11,6 +11,18 @@
   box-sizing: border-box;
 }
 
+.error-message {
+  margin: 1em;
+  font-size: 1.5em;
+  color: red;
+  font-family: "Russo One", sans-serif;
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 20em;
+  text-align: right;
+}
+
 .header {
   display: flex;
   justify-content: space-between;

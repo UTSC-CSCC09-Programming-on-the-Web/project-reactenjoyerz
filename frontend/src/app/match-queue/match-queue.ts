@@ -37,46 +37,60 @@ export class MatchQueue {
       playerLimit: ['', []],
       password: ['', []],
     });
+
+    this.errorHandler(ErrorCode.GameStarted);
   }
 
   private errorHandler = (err: number) => {
-    let msg: string = '';
-    let fatal = true; //change
+    let fatal = false; //change
 
     switch (err) {
       case ErrorCode.Success:
-        msg = 'what';
+        this.message = 'Succesfully joined match';
         break;
       case ErrorCode.InvalidToken:
-        msg = 'Invalid token';
+        this.message = 'Invalid token';
+        fatal = true;
         break;
       case ErrorCode.GameStarted:
-        msg = 'Game already started';
+        this.message = 'Game already started';
         break;
       case ErrorCode.InvalidRoom:
-        msg = 'Entering non-existant room';
+        this.message = 'Entering non-existant room';
         break;
       case ErrorCode.RoomExists:
-        msg = 'Creating a room that already exists';
+        this.message = 'Creating a room that already exists';
         break;
       case ErrorCode.SimJoin:
-        msg = 'Joining 2 rooms at the same time';
+        this.message = 'Joining 2 rooms at the same time';
         break;
       case ErrorCode.WrongPassword:
-        msg = 'Wrong room password';
+        this.message = 'Wrong room password';
         break;
       case ErrorCode.NotInGame:
-        msg = 'Action made despite not being in game';
+        this.message = 'Action made despite not being in game';
         break;
       case ErrorCode.GameNotStarted:
-        msg = 'Game not started';
+        this.message = 'Game not started';
         break;
       default:
         console.error(`Error: unknown error code ${err}`);
     }
 
-    this.router.navigate(['/home']);
-    console.error(msg);
+    if (fatal) {
+      setTimeout(() => {
+        this.authService.logout().subscribe({
+          next: () => {
+            this.router.navigate(['/home']);
+          },
+        });
+      }, 5000);
+
+    } else {
+      setTimeout(() => {
+        this.message = '';
+      }, 20000);
+    }
     return fatal;
   };
 

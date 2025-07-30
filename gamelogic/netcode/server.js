@@ -22,6 +22,10 @@ import {
   updateClientInfo,
   findPlayerInfo,
 } from "../../backend/token.js";
+import {
+  validateString,
+  validateNumber
+} from "../../backend/utils/validateInput.js";
 
 import assert from "node:assert";
 import bcrypt from "bcrypt";
@@ -111,7 +115,7 @@ function playerJoin(socket, io, token, userId, name, gameId, password, callback)
 }
 
 function authenticateUser(socket, token, endpoint, next) {
-  if (!isDef(token)) return sendError(socket, "null token", ErrorCode.InvalidToken);
+  if (!validateString(token)) return sendError(socket, "invalid token", ErrorCode.InvalidToken);
 
   const playerInfo = findPlayerInfo(token);
   if (!isDef(playerInfo)) return sendError(socket, "token not mapped to player", ErrorCode.InvalidToken);
@@ -177,6 +181,9 @@ export function bindWSHandlers(io) {
     );
 
     socket.on("match.joinRequest", ({ gameId, password }, callback) => {
+      if (!validateNumber(gameId)) return sendError(socket, "Invalid gameId", ErrorCode.InvalidArgs);
+      if (!validateString(password)) return sendError(socket, "Incorrect password", ErrorCode.InvalidArgs);
+
       const { token, userId, name } = socket;
 
       const joinPublic = !isDef(gameId);
@@ -212,6 +219,8 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("match.createRoom", ({ password, playerLimit }, callback) => {
+      if (!validateNumber(playerLimit)) return sendError(socket, "Invalid player limit", ErrorCode.InvalidArgs);
+      if (!validateString(password)) return sendError(socket, "Incorrect password", ErrorCode.InvalidArgs);
       const { token, userId, name } = socket;
 
       let err;
@@ -274,6 +283,7 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("game.shoot", ({ x, y }) => {
+      if (!validateNumber(x) || !validateNumber(y)) return sendError(socket, "game.shoot: invalid args", ErrorCode.InvalidArgs);;
       const { clientIdx, gameId, game } = socket;
 
       // if clientIdx is out of bounds return
@@ -291,6 +301,7 @@ export function bindWSHandlers(io) {
     });
 
     socket.on("game.moveVec", ({ dx, dy }) => {
+      if (!validateNumber(dx) || !validateNumber(dy)) return sendError(socket, "game.moveVec: invalid args", ErrorCode.InvalidArgs);;
       const { clientIdx, gameId, game } = socket;
 
       // if clientIdx is out of bounds return

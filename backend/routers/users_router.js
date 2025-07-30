@@ -7,6 +7,7 @@ import { OAuth2Client } from "google-auth-library";
 import assert from "node:assert";
 
 import { bindToken, findToken, deleteToken } from "../token.js";
+import { validateString } from "../utils/validateInput.js";
 
 const googleClient = new OAuth2Client(
   "796814869937-0qjv66bls0u5nkgstqdjhvl4tojf42hg.apps.googleusercontent.com"
@@ -16,6 +17,10 @@ export const usersRouter = Router();
 
 usersRouter.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
+  if (!validateString(username)) return res.status(422).json({ error: "Invalid or missing username" });
+  if (!validateString(email)) return res.status(422).json({ error: "Invalid or missing email" });
+  if (!validateString(password)) return res.status(422).json({ error: "Invalid or missing password" });
+
   try {
     const emailExists = await pool.query(
       "SELECT * FROM users WHERE email = $1",
@@ -69,18 +74,21 @@ usersRouter.post("/register", async (req, res) => {
 
 usersRouter.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  if (!validateString(password)) return res.status(401).json({ error: "Invalid or missing email or password" });
+  if (!validateString(email)) return res.status(401).json({ error: "Invalid or missing email or password" });
+
   try {
     const user = await pool.query("SELECT * FROM users WHERE email = $1", [
       email,
     ]);
     if (user.rows.length === 0) {
-      return res.status(400).json({ error: "No such email" });
+      return res.status(401).json({ error: "Invalid or missing email or password" });
     }
 
     const hashedPassword = user.rows[0].password;
     const isSame = await bcrypt.compare(password, hashedPassword);
     if (!isSame) {
-      return res.status(400).json({ error: "wrong password" });
+      return res.status(401).json({ error: "Invalid or missing email or password" });
     }
 
     // Check for active subscription
@@ -115,6 +123,7 @@ usersRouter.post("/login", async (req, res) => {
 
 usersRouter.post("/google-login", async (req, res) => {
   const { idToken } = req.body;
+  if (!validateString(idToken)) return res.status(422).json({ error:  "Invalid or missing idToken" });
 
   try {
     const ticket = await googleClient.verifyIdToken({
@@ -180,8 +189,9 @@ usersRouter.post("/google-login", async (req, res) => {
 });
 
 usersRouter.post("/logout", (req, res) => {
-  if (req.body !== undefined) {
+  console.log("signing out ", req.body.token);
+  if (validateString(req.body.token))
     deleteToken(req.body.token);
-    return res.json({ message: "Signed out." });
-  } 
+
+  return res.json({ message: "Signed out." });
 });

@@ -40,6 +40,9 @@ export class GoogleLogin implements OnInit {
             this.router.navigate(['/subscribe']);
           } else {
             this.message = err.error?.error || 'Login failed';
+            setTimeout(() => {
+              this.router.navigate(["/home"]);
+            }, 2000)
           }
         }
       });
