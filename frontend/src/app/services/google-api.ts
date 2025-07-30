@@ -6,7 +6,9 @@ const oAuthConfig: AuthConfig = {
   strictDiscoveryDocumentValidation: false,
   redirectUri: window.location.origin + '/google-login',
   clientId: '796814869937-0qjv66bls0u5nkgstqdjhvl4tojf42hg.apps.googleusercontent.com',
-  scope: 'openid profile email'
+  silentRefreshRedirectUri: window.location.origin + '/silent-refresh.html',
+  useSilentRefresh: true,
+  scope: 'openid profile email',
 }
 
 @Injectable({
@@ -15,7 +17,8 @@ const oAuthConfig: AuthConfig = {
 export class GoogleApiService {
 
   constructor(private readonly oAuthService: OAuthService) {
-    oAuthService.configure(oAuthConfig)
+    oAuthService.configure(oAuthConfig);
+    oAuthService.setupAutomaticSilentRefresh();
   }
 
   async login(): Promise<void> {

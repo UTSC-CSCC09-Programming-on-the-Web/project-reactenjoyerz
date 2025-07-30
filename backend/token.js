@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import assert from "node:assert";
 
 // mini token db to replace express-session since that doesn't seem to work
 
@@ -10,13 +9,9 @@ const TOKEN_SIZE = 32;
 const TOKEN_LIFETIME = 1000 * 60 * 60 * 24;
 
 export function bindToken(userId, name) {
-  assert(userId);
-  assert(name);
 
   const player = findToken(userId);
   if (player !== undefined) {
-    assert(name === player.name);
-    assert(tokenMap.get(player.token) !== undefined);
     return player.token;
   }
 
@@ -68,7 +63,6 @@ export function findToken(userId) {
   if (info === undefined) return undefined;
 
   const playerInfo = tokenMap.get(info.token);
-  assert(info === undefined || playerInfo !== undefined);
 
   if (isExpired(playerInfo)) {
     deleteUserToken(userId, info.token);
@@ -101,16 +95,3 @@ export function deleteToken(token) {
 function isExpired(player) {
   return player !== undefined && player.expires <= Date.now() && player.gameId === undefined;
 }
-
-setInterval(() => {
-  assert(tokenMap.size === playerMap.size);
-
-  tokenMap.forEach((playerInfo, token) => {
-    const tokenInfo = playerMap.get(playerInfo.userId);
-    assert(token === tokenInfo.token);
-    assert(tokenInfo.name === playerInfo.name);
-    if (isExpired(playerInfo)){
-      console.log(`${tokenInfo.name} is expired`);
-    }
-  });
-}, 1000);
