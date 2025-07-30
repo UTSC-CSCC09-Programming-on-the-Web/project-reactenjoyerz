@@ -20,8 +20,6 @@ export class Leaderboard {
         this.started.set(hasStarted());
         const oldScores = fetchOldScores() ?? [];
         this.scores.set(oldScores.sort((a, b) => b.score - a.score));
-
-        console.log("Game ended!")
       });
   }
 

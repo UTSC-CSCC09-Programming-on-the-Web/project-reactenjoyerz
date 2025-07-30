@@ -61,5 +61,13 @@
 }
 
 .back-button {
-
+  background: none;
+  border: none;
+  color: #fff;
+  font-family: "Russo One", sans-serif;
+  font-size: 1.5rem;
+  cursor: pointer;
+  position: absolute;
+  top: 20px;
+  left: 40px;
 }
