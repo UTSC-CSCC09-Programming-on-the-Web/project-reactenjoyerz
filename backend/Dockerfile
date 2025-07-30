@@ -9,7 +9,9 @@ COPY ./backend/package*.json ./
 RUN npm install
 
 # Copy the rest of the app
-COPY ./backend .
+COPY ./backend /backend
+
+COPY ./backend/.env .
 
 RUN mkdir -p /gamelogic
 COPY ./gamelogic /gamelogic
@@ -21,4 +23,4 @@ COPY ./gamelogic /gamelogic
 #EXPOSE 8000
 
 # Start the server
-CMD ["npm", "start"]
+CMD ["node", "/backend/app.js"]
