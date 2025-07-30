@@ -181,13 +181,19 @@ export function bindWSHandlers(io) {
     );
 
     socket.on("match.joinRequest", ({ gameId, password }, callback) => {
-      if (!validateNumber(gameId)) return sendError(socket, "Invalid gameId", ErrorCode.InvalidArgs);
-      if (!validateString(password)) return sendError(socket, "Incorrect password", ErrorCode.InvalidArgs);
+      const joinPublic = !isDef(gameId);
+      console.log("paswrd", {gameId, password, joinPublic});
+      
+      if (!joinPublic) {
+        if (!validateNumber(gameId)) return sendError(socket, "Invalid gameId", ErrorCode.InvalidArgs);
+        if (!validateString(password)) return sendError(socket, "Incorrect password", ErrorCode.InvalidArgs);
+
+      } else {
+        gameId = nextPublicGameId;
+      }
 
       const { token, userId, name } = socket;
 
-      const joinPublic = !isDef(gameId);
-      gameId = joinPublic ? nextPublicGameId : gameId;
       let game = games.get(gameId);
 
       if (joinPublic && (!isDef(game) || game.started)) {
@@ -221,6 +227,7 @@ export function bindWSHandlers(io) {
     socket.on("match.createRoom", ({ password, playerLimit }, callback) => {
       if (!validateNumber(playerLimit)) return sendError(socket, "Invalid player limit", ErrorCode.InvalidArgs);
       if (!validateString(password)) return sendError(socket, "Incorrect password", ErrorCode.InvalidArgs);
+      console.log(validateNumber(playerLimit));
       const { token, userId, name } = socket;
 
       let err;
@@ -247,6 +254,8 @@ export function bindWSHandlers(io) {
 
       if (err !== ErrorCode.Success)
         sendError(socket, "unable to create room", err);
+
+      console.log(games.get(gameId));
     });
 
     socket.on("match.leave", () => {

@@ -37,63 +37,9 @@ export class MatchQueue {
       playerLimit: ['', []],
       password: ['', []],
     });
-
-    this.errorHandler(ErrorCode.GameStarted);
   }
 
-  private errorHandler = (err: number) => {
-    let fatal = false; //change
-
-    switch (err) {
-      case ErrorCode.Success:
-        this.message = 'Succesfully joined match';
-        break;
-      case ErrorCode.InvalidToken:
-        this.message = 'Invalid token';
-        fatal = true;
-        break;
-      case ErrorCode.GameStarted:
-        this.message = 'Game already started';
-        break;
-      case ErrorCode.InvalidRoom:
-        this.message = 'Entering non-existant room';
-        break;
-      case ErrorCode.RoomExists:
-        this.message = 'Creating a room that already exists';
-        break;
-      case ErrorCode.SimJoin:
-        this.message = 'Joining 2 rooms at the same time';
-        break;
-      case ErrorCode.WrongPassword:
-        this.message = 'Wrong room password';
-        break;
-      case ErrorCode.NotInGame:
-        this.message = 'Action made despite not being in game';
-        break;
-      case ErrorCode.GameNotStarted:
-        this.message = 'Game not started';
-        break;
-      default:
-        console.error(`Error: unknown error code ${err}`);
-    }
-
-    if (fatal) {
-      setTimeout(() => {
-        this.authService.logout().subscribe({
-          next: () => {
-            this.router.navigate(['/home']);
-          },
-        });
-      }, 5000);
-
-    } else {
-      setTimeout(() => {
-        this.message = '';
-      }, 20000);
-    }
-    return fatal;
-  };
-
+  /*
   joinGame() {
     let { gameId, password } = this.joinForm.value;
     console.log(this.joinForm.value);
@@ -143,6 +89,7 @@ export class MatchQueue {
       { playerLimit, password }
     );
   }
+  */
 
   leaveRoom() {
     leave();
@@ -153,7 +100,6 @@ export class MatchQueue {
     // Placeholder for logic to refresh room status
     console.log('Refreshing status...');
   }
-
 
   logout() {
     leave();

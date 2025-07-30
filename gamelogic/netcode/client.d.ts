@@ -14,14 +14,14 @@ export function join(
   onJoin: () => void,
   onFail: (err: number) => void,
   onGameEnd: () => void,
-  room: { gameId: number | undefined, password: string }
+  room: { gameId: number | undefined, password: string | undefined }
 ): void;
 export function createRoom(
   onWait: () => void,
   onJoin: () => void,
   onFail: (err: number) => boolean,
   onGameEnd: () => void,
-  room: { playerLimit: number | undefined, password: string }
+  room: { playerLimit: number, password: string | undefined }
 ): void;
 export function fetchFrame () : GameState;
 export function getDistance(idx1: number) : number;

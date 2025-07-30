@@ -10,6 +10,8 @@ import { GoogleLogin } from './google-login/google-login';
 import { GameGuard } from './services/game.guard';
 import { HowToPlay } from './how-to-play/how-to-play';
 import { Leaderboard } from './leaderboard/leaderboard';
+import { Create } from './create/create';
+import { Join } from './join/join';
 
 export const routes: Routes = [
     { path: 'game', component: GameBoard, canActivate: [AuthGuard, GameGuard] },
@@ -21,5 +23,7 @@ export const routes: Routes = [
     { path: 'how-to-play', component: HowToPlay },
     { path: 'subscribe', component: Subscribe, canActivate: [AuthGuard] },
     { path: 'leaderboard', component: Leaderboard, canActivate: [AuthGuard] },
+    { path: 'create', component: Create, canActivate: [AuthGuard] },
+    { path: 'join', component: Join, canActivate: [AuthGuard] },
     { path: '**', redirectTo:'home' }
 ];

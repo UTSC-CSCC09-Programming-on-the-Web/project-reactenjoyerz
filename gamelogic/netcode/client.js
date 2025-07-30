@@ -18,15 +18,10 @@ export function initClient(socketService) {
 }
 
 export function createRoom(onWait, onJoin, onFail, onGameEnd, room) {
-  if (!isDef(room.playerLimit) || !isDef(room.password)) return onUnauthorized(ErrorCode.UnauthorizedJoin);
-  const body = {
-    playerLimit: room.playerLimit,
-    password: room.password,
-  };
-
+  if (!isDef(room.playerLimit) || !isDef(room.password)) return onFail(ErrorCode.UnauthorizedJoin);
   startGame(onJoin, onFail, onGameEnd);
   
-  wss.emit("match.createRoom", body, (c) => {
+  wss.emit("match.createRoom", room, (c) => {
     clientInfo = c;
     onWait();
   })
@@ -34,7 +29,7 @@ export function createRoom(onWait, onJoin, onFail, onGameEnd, room) {
 
 export function join(onWait, onJoin, onFail, onGameEnd, room) {
   const body = { };
-  if (room.gameId!== undefined) {
+  if (room.gameId !== undefined) {
     body.gameId= room.gameId;
     body.password = room.password;
   }
