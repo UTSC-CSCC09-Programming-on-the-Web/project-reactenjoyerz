@@ -1,26 +1,27 @@
 import { collidesWith } from "./sprite.js";
 
 export const animationSpeed = 0.125;
-export const enemySprite = "redTank.png";
-export const playerSprite = "blueTank.png";
 
 export function createTank(x, y) {
   return {
-    dx: 0,
-    dy: 0,
-    rotation: 0,
+    score: 0,
+    dSprite: {
+      dx: 0,
+      dy: 0,
+      rotation: 0,
 
-    sprite: {
-      x,
-      y,
-      width: 20,
-      height: 32,
-    }
-  }
+      sprite: {
+        x,
+        y,
+        width: 27,
+        height: 43,
+      },
+    },
+  };
 }
 
-export function shootBullet(tank, x, y) {
-  const sprite = tank.sprite;
+export function shootBullet(tank, tankIdx, x, y) {
+  const sprite = tank.dSprite.sprite;
 
   const px = sprite.x;
   const py = sprite.y;
@@ -34,13 +35,14 @@ export function shootBullet(tank, x, y) {
   const norm = Math.sqrt(vx ** 2 + vy ** 2);
   let angle = Math.acos(vy / norm);
   angle = vx > 0 ? 2 * Math.PI - angle : angle;
-  tank.rotation = angle;
+  tank.dSprite.rotation = angle;
 
   // compute end of muzzle accounting for rotation of sprite
   const muzX = -Math.sin(Math.PI + angle) * (height);
   const muzY = Math.cos(Math.PI + angle) * (height);
   return {
     nBounces: 0,
+    ownerIdx: tankIdx,
 
     dSprite: {
       dx: Math.sin(angle),
@@ -60,9 +62,9 @@ export function shootBullet(tank, x, y) {
 }
 
 export function testCollisionWall(tank, wall) {
-  const dx = tank.dx;
-  const dy = tank.dy;
-  const tankSprite = tank.sprite;
+  const dx = tank.dSprite.dx;
+  const dy = tank.dSprite.dy;
+  const tankSprite = tank.dSprite.sprite;
 
   if (!collidesWith(tankSprite, wall) || (dx === 0 && dy === 0)) return;
 
@@ -104,18 +106,15 @@ export function testCollisionWall(tank, wall) {
       cx = x;
   }
 
-  tank.sprite.x = cx;
-  tank.sprite.y = cy;
-  tank.dx = 0;
-  tank.dy = 0;
+  tankSprite.x = cx;
+  tankSprite.y = cy;
+  tank.dSprite.dx = 0;
+  tank.dSprite.dy = 0;
 }
 
 export function testCollisionBullet(tank, bullet) {
-  if (collidesWith(tank.sprite, bullet.dSprite.sprite)) {
-    tank.sprite.x = 960;
-    tank.sprite.y = 540;
+  if (collidesWith(tank.dSprite.sprite, bullet.dSprite.sprite))
     return true;
-  }
 
   return false;
 }
@@ -135,26 +134,27 @@ export function moveTo(tank, newX, newY) {
     Math.pow(newX - x, 2) + Math.pow(newY - y, 2),
   );
 
-  tank.dx = (newX - x) / norm;
-  tank.dy = (newY - y) / norm;
+  tank.dSprite.dx = (newX - x) / norm;
+  tank.dSprite.dy = (newY - y) / norm;
 }
 
 // COPILOT USED: autocomplete
 export function step(tank, delta) {
-  if (tank.dx === 0 && tank.dy === 0) return;
+  if (tank.dSprite.dx === 0 && tank.dSprite.dy === 0) return;
 
-  const x = tank.sprite.x;
-  const y = tank.sprite.y;
+  const tankSprite = tank.dSprite.sprite;
+  const x = tankSprite.x;
+  const y = tankSprite.y;
 
   const distance = animationSpeed * delta;
-  const dx = tank.dx * distance;
-  const dy = tank.dy * distance;
+  const dx = tank.dSprite.dx * distance;
+  const dy = tank.dSprite.dy * distance;
 
-  tank.sprite.x = x + dx;
-  tank.sprite.y = y + dy;
+  tankSprite.x = x + dx;
+  tankSprite.y = y + dy;
 }
 
 export function setDirection(tank, dx, dy) {
-  tank.dx = dx;
-  tank.dy = dy;
+  tank.dSprite.dx = dx;
+  tank.dSprite.dy = dy;
 }

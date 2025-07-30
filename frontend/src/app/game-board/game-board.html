@@ -1,78 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap">
+</head>
 @if (!started()) {
-<p>loading gameboard</p>
+  <p>loading gameboard</p>
 } @else {
-<div class="voice-chat-controls">
-  <button
-    (click)="toggleVoiceTransmission()"
-    [ngClass]="{'speaking-active': isVoiceTransmitting}"
-    [disabled]="clientIdx === undefined || micAccessDenied || micAccessError"
-  >
-    @if (micAccessDenied) { 🎙️ Mic Denied } @else if (micAccessError) { 🎙️ Mic
-    Error } @else if (isVoiceTransmitting) { 🎙️ Speaking... } @else { 🎙️ Push to
-    Talk }
-  </button>
-</div>
-<div class="background" (click)="onClick($event)"></div>
 
-@for (tank of tanks(); track $index; let idx = $index){
-<img
-  class="tank"
-  style.left="{{ tank.sprite.x }}px"
-  style.top="{{ tank.sprite.y }}px"
-  style.transform="rotate({{ tank.rotation }}rad)"
-  style.z-index="{{ idx === clientIdx ? 3 : 2}}"
-  src="{{ idx === clientIdx ? 'blueTank.png' : 'redTank.png' }}"
-  (click)="onClick($event)"
-/>
+  <div class="background" (click)="onClick($event)"></div>
 
-@if (idx !== clientIdx) { @if (speakingPlayers.has(idx)) {
-<span
-  class="speaking-indicator"
-  [style.left.px]="tank.sprite.x + tank.sprite.width + 5"
-  [style.top.px]="tank.sprite.y"
->
-  🗣️
-</span>
+  @for (tank of tanks(); track $index; let idx = $index) {
+    <img
+      class="tank"
+      style.left="{{ tank.dSprite.sprite.x }}px"
+      style.top="{{ tank.dSprite.sprite.y }}px"
+      style.transform="rotate({{ tank.dSprite.rotation }}rad)"
+      style.z-index="{{ idx === clientIdx ? 3 : 2 }}"
+      src="{{ idx === clientIdx ? 'blueTank.png' : 'redTank.png' }}"
+      (click)="onClick($event)"
+    />
+
+  }
+
+  @for (bullet of bullets(); track $index) {
+    <img
+      class="bullet"
+      style.left="{{ bullet.dSprite.sprite.x }}px"
+      style.top="{{ bullet.dSprite.sprite.y }}px"
+      style.transform="rotate({{ bullet.dSprite.rotation }}rad)"
+      src="{{ bullet.ownerIdx === clientIdx ? 'blueBullet.png' : 'redBullet.png' }}"
+      (click)="onClick($event)"
+    />
+  }
+
+  @for (wall of walls; track wall.x) {
+    <div
+      class="wall"
+      style.left="{{ wall.x }}px"
+      style.top="{{ wall.y }}px"
+      [style.background-image]="'url(wall.png)'"
+      style.width="{{ wall.width }}px"
+      style.height="{{ wall.height }}px"
+      (click)="onClick($event)"
+    ></div>
+  }
+
+  <div class="left-panel">
+    <div class="leaderboard">
+      <div class="score-heading">
+        <div class="coffin"></div>
+        <div class="score-heading-title">KILL COUNT</div>
+        <div class="coffin"></div>
+      </div>
+
+      @for (player of scores(); track $index) {
+        <div class="player-container">
+          <div
+            class="player-voice-control"
+            [style.opacity]="player.clientIdx === clientIdx ? 0 : 1"
+          >
+            <button (click)="togglePlayerMute(player.clientIdx)">
+              {{ isPlayerMuted(player.clientIdx) ? '🔇 Unmute' : '🔊 Mute' }}
+            </button>
+          </div>
+          <div class="player-name">{{ player.name }}</div>
+          <div class="player-score">{{ player.score }}</div>
+        </div>
+      }
+      </div>
+
+    <div class="bottom-bar">
+      <div class="time-left">TIME LEFT: {{ timeLeft() }}</div>
+      <div class="voice-chat-controls">
+        <button
+          (click)="toggleVoiceTransmission()"
+          [ngClass]="{'speaking-active': isVoiceTransmitting}"
+          [disabled]="clientIdx === undefined || micAccessDenied || micAccessError"
+        >
+          @if (micAccessDenied) { 🎙️ Mic Denied }
+          @else if (micAccessError) { 🎙️ Mic Error }
+          @else if (isVoiceTransmitting) { 🎙️ Speaking... }
+          @else { 🎙️ Push to Talk }
+        </button>
+      </div>
+    </div>
+  </div>
 }
-
-<div
-  class="player-voice-control"
-  [style.left.px]="tank.sprite.x + tank.sprite.width + 20"
-  [style.top.px]="tank.sprite.y + 10"
->
-  <button (click)="togglePlayerMute(idx)">
-    {{ isPlayerMuted(idx) ? '🔇 Unmute' : '🔊 Mute' }} Player {{ idx }}
-  </button>
-  <input
-    type="range"
-    min="0"
-    max="1"
-    step="0.1"
-    [value]="getPlayerCustomVolume(idx)"
-    (input)="setPlayerCustomVolume(idx, $event)"
-    [disabled]="isPlayerMuted(idx)"
-  />
-  <span>Vol: {{ (getPlayerCustomVolume(idx) * 100).toFixed(0) }}%</span>
-</div>
-} } @for (bullet of bullets(); track $index) {
-<img
-  class="bullet"
-  style.left="{{ bullet.dSprite.sprite.x }}px"
-  style.top="{{ bullet.dSprite.sprite.y }}px"
-  style.transform="rotate({{ bullet.dSprite.rotation }}rad)"
-  src="bullet.png"
-  width="11px"
-  height="21px"
-  (click)="onClick($event)"
-/>
-} @for (wall of walls.slice(4); track wall.x) {
-<div
-  class="wall"
-  style.left="{{ wall.x }}px"
-  style.top="{{ wall.y }}px"
-  [style.background-image]="'url(wall.png)'"
-  style.width="{{ wall.width }}px"
-  style.height="{{ wall.height }}px"
-  (click)="onClick($event)"
-></div>
-} }

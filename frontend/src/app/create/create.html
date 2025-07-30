@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap">
+</head>
+  <body>
+    <button (click)="goBack()" class="back-button">&lt; Go Back</button>
+    <p class="error-message">{{ message() }}</p>
+
+    <form (ngSubmit)="createGame()" [formGroup]="createForm" class="create-form">
+      <h1 class="main-title">Create A Private Room</h1>
+      <input
+        type="text"
+        name="playerLimit"
+        formControlName="playerLimit"
+        placeholder="Enter a player limit"
+        required
+      />
+      <input
+        type="password"
+        name="password"
+        class="form-element"
+        formControlName="password"
+        placeholder="Enter a password"
+        required
+      />
+
+      <div>
+        <button type="submit" name="action">Create Room</button>
+      </div>
+    </form>
+  </body>
+</html>

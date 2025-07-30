@@ -3,7 +3,7 @@ import { OAuthModule } from 'angular-oauth2-oidc';
 
 @NgModule({
   imports: [
-    OAuthModule.forRoot()
+    OAuthModule.forRoot(),
   ]
 })
 export class AppAuthModule {}

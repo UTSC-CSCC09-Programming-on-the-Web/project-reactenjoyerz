@@ -2,22 +2,27 @@ import { Injectable } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environments';
+import { leave } from '../../../../gamelogic/netcode/client';
+import { WebSocketService } from './web-socket.service';
+import { GoogleApiService } from './google-api';
 
 interface User {
   id: number;
   email: string;
-  hasSubscription: boolean;
+  has_subscription: boolean;
+  token: string;
+  isGoogle: boolean;
 }
+
+let _user: User | null = null
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  // apiUrl = ;
   endpoint = environment.apiUrl;
-  private _user: User | null = null;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private wss: WebSocketService, private google: GoogleApiService) {}
   /**
    * HttpClient has methods for all the CRUD actions: get, post, put, patch, delete, and head.
    * First parameter is the URL, and the second parameter is the body.
@@ -27,54 +32,83 @@ export class AuthService {
    */
   login(email: string, password: string): Observable<any> {
     return this.http
-      .post<User>(`${this.endpoint}/users/login`, { email, password }, { withCredentials: true })
+      .post<User>(
+        `${this.endpoint}/users/login`,
+        { email, password },
+        { withCredentials: true }
+      )
       .pipe(
         tap((user) => {
-          this._user = user;
+          _user = user;
+          this.wss.setToken(user.token);
         })
       );
   }
 
   googleLogin(idToken: string): Observable<any> {
-  return this.http
-    .post<User>(`${this.endpoint}/users/google-login`, { idToken }, { withCredentials: true })
-    .pipe(
-      tap((user) => {
-        this._user = user;
-      })
-    );
+    return this.http
+      .post<User>(
+        `${this.endpoint}/users/google-login`,
+        { idToken },
+        { withCredentials: true }
+      )
+      .pipe(
+        tap((user) => {
+          _user = user;
+          this.wss.setToken(user.token);
+        })
+      );
   }
 
   register(username: string, email: string, password: string): Observable<any> {
-    return this.http.post(`${this.endpoint}/users/register`, { username, email, password }, { withCredentials: true });
-  }
-
-  logout(): Observable<any> {
-    this._user = null;
-    return this.http.get(`${this.endpoint}/users/logout`, { withCredentials: true });
-  }
-
-  me(): Observable<User> {
-    return this.http.get<User>(`${this.endpoint}/users/me`, { withCredentials: true }).pipe(
-      tap((user) => {
-        this._user = user;
-      })
+    return this.http.post(
+      `${this.endpoint}/users/register`,
+      { username, email, password },
+      { withCredentials: true }
     );
   }
 
+  logout(): Observable<any> {
+    if (_user === null) return new Observable((obs) => obs.error("Already subscribed."));
+
+    const token = this.wss.getToken();
+    const isGoogle = _user.isGoogle;
+  
+    _user = null;
+    this.wss.setToken("");
+
+    leave();
+    if (isGoogle) {
+      this.google.logout();
+      return new Observable();
+    }
+
+    return this.http.post(`${this.endpoint}/users/logout`, 
+      { token },
+      { withCredentials: true });
+  }
+
   isLoggedIn(): boolean {
-    return this._user !== null;
+    return _user !== null;
+  }
+
+  isGoogleUser(): boolean {
+    return _user?.isGoogle ?? false;
+  }
+  
+  getToken(): string {
+    return _user?.token ?? "";
   }
 
   hasSubscription(): boolean {
-    return this._user?.hasSubscription ?? false;
+    return _user?.has_subscription ?? false;
   }
 
   getUserId(): number | null {
-    return this._user?.id ?? null;
+    return _user?.id ?? null;
   }
 
   getEmail(): string | null {
-    return this._user?.email ?? null;
+    return _user?.email ?? null;
   }
 }

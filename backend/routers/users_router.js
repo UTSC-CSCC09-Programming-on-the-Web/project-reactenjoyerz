@@ -4,6 +4,11 @@ import bcrypt from "bcryptjs";
 import stripe from "../stripe/index.js";
 
 import { OAuth2Client } from "google-auth-library";
+import assert from "node:assert";
+
+import { bindToken, findToken, deleteToken } from "../token.js";
+import { validateString } from "../utils/validateInput.js";
+
 const googleClient = new OAuth2Client(
   "796814869937-0qjv66bls0u5nkgstqdjhvl4tojf42hg.apps.googleusercontent.com"
 );
@@ -12,6 +17,10 @@ export const usersRouter = Router();
 
 usersRouter.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
+  if (!validateString(username)) return res.status(422).json({ error: "Invalid or missing username" });
+  if (!validateString(email)) return res.status(422).json({ error: "Invalid or missing email" });
+  if (!validateString(password)) return res.status(422).json({ error: "Invalid or missing password" });
+
   try {
     const emailExists = await pool.query(
       "SELECT * FROM users WHERE email = $1",
@@ -46,11 +55,16 @@ usersRouter.post("/register", async (req, res) => {
       [email, username, hashedPassword, customer.id]
     );
 
-    req.session.userId = user.rows[0].id;
+    const userId =  user.rows[0].id;
+
+    assert(findToken(userId) === undefined);
+    const token = bindToken(user.rows[0].id, username);
+
     return res.status(200).json({
       id: user.rows[0].id,
       email: user.rows[0].email,
       username: user.rows[0].username,
+      token,
     });
   } catch (error) {
     console.error(error);
@@ -60,18 +74,21 @@ usersRouter.post("/register", async (req, res) => {
 
 usersRouter.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  if (!validateString(password)) return res.status(401).json({ error: "Invalid or missing email or password" });
+  if (!validateString(email)) return res.status(401).json({ error: "Invalid or missing email or password" });
+
   try {
     const user = await pool.query("SELECT * FROM users WHERE email = $1", [
       email,
     ]);
     if (user.rows.length === 0) {
-      return res.status(400).json({ error: "No such email" });
+      return res.status(401).json({ error: "Invalid or missing email or password" });
     }
 
     const hashedPassword = user.rows[0].password;
     const isSame = await bcrypt.compare(password, hashedPassword);
     if (!isSame) {
-      return res.status(400).json({ error: "wrong password" });
+      return res.status(401).json({ error: "Invalid or missing email or password" });
     }
 
     // Check for active subscription
@@ -85,18 +102,18 @@ usersRouter.post("/login", async (req, res) => {
     );
 
     if (!subQ.rows.length) {
-      console.log("error");
-      return res.status(402).json({
-        error: "Subscription required. Please subscribe to continue.",
-      });
+      console.warn("no subscription");
     }
 
-    console.log("good");
-    req.session.userId = user.rows[0].id;
+    const userId =  user.rows[0].id;
+    const token = bindToken(userId, user.rows[0].username);
+    console.log(user.rows[0].username);
+
     return res.status(200).json({
       id: user.rows[0].id,
       email: user.rows[0].email,
-      has_subscription: true,
+      has_subscription: subQ.rows.length !== 0,
+      token,
     });
   } catch (error) {
     console.error(error);
@@ -106,6 +123,7 @@ usersRouter.post("/login", async (req, res) => {
 
 usersRouter.post("/google-login", async (req, res) => {
   const { idToken } = req.body;
+  if (!validateString(idToken)) return res.status(422).json({ error:  "Invalid or missing idToken" });
 
   try {
     const ticket = await googleClient.verifyIdToken({
@@ -123,20 +141,34 @@ usersRouter.post("/google-login", async (req, res) => {
     ]);
 
     let user;
+    let username = name;
     if (userExists.rows.length === 0) {
+      let usernameExists = true;
+      while (usernameExists) {
+        const usernameCheck = await pool.query("SELECT 1 FROM users WHERE username = $1", [username]);
+        if (usernameCheck.rows.length === 0) {
+          usernameExists = false; 
+        }
+        else {
+          const num = Math.floor(Math.random() * 1000);
+          const numStr = num.toString();
+          username = name + numStr;
+        }
+      }
+
       const customer = await stripe.customers.create({
         email,
         name,
         metadata: {
           email,
-          username: name,
+          username: username,
         },
       });
       const insertUser = await pool.query(
         `INSERT INTO users (email, username, stripe_customer_id, password)
          VALUES ($1, $2, $3, $4)
          RETURNING *`,
-        [email, name, customer.id, "to satisfy not null"]
+        [email, username, customer.id, "to satisfy not null"]
       );
 
       user = insertUser.rows[0];
@@ -154,18 +186,15 @@ usersRouter.post("/google-login", async (req, res) => {
       [user.id]
     );
 
-    if (!subQ.rows.length) {
-      return res.status(402).json({
-        error: "Subscription required. Please subscribe to continue.",
-      });
-    }
-
-    req.session.userId = user.id;
+    const userId = user.id;
+    const token = bindToken(userId, name);
 
     return res.status(200).json({
       id: user.id,
       email: user.email,
-      has_subscription: true,
+      hasSubscription: subQ.rows.length !== 0,
+      token,
+      isGoogle: true,
     });
   } catch (error) {
     console.error(error);
@@ -173,37 +202,10 @@ usersRouter.post("/google-login", async (req, res) => {
   }
 });
 
-usersRouter.get("/logout", (req, res) => {
-  req.session.destroy();
+usersRouter.post("/logout", (req, res) => {
+  console.log("signing out ", req.body.token);
+  if (validateString(req.body.token))
+    deleteToken(req.body.token);
+
   return res.json({ message: "Signed out." });
-});
-
-usersRouter.get("/me", async (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ errors: "Not authenticated" });
-  }
-  const userId = req.session.userId;
-
-  const userQ = await pool.query("SELECT id, email FROM users WHERE id = $1", [
-    userId,
-  ]);
-
-  if (!userQ.rows.length) {
-    return res.status(404).json({ error: "User not found" });
-  }
-
-  const subQ = await pool.query(
-    `SELECT 1
-     FROM subscriptions
-     WHERE user_id = $1
-       AND status = 'active'
-       AND current_period_end > now()`,
-    [userId]
-  );
-
-  return res.json({
-    id: userQ.rows[0].id,
-    email: userQ.rows[0].email,
-    has_subscription: subQ.rows.length > 0,
-  });
 });

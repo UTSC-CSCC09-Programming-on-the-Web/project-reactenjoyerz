@@ -1,127 +1,122 @@
-import { initialize, step, shoot, move, setWalls, removeTank, moveVec, stopTank } from "../gamelogic/game-state";
-import { maxStepSize, serverStepSize, isDef } from "./common";
+import { getScores } from "../gamelogic/game-state";
+import { getWalls, removeTank, updateTimestamp } from "../gamelogic/game-state";
+import { isDef } from "./common";
 
 let wss;
 
 let clientInfo;
 let currentState;
-let serverStates;
+let serverState;
 let started = false;
+let gameEnds;
+let players;
+let prevScores = [];
 
 export function initClient(socketService) {
   console.log("Initializing client.js with shared WebSocketService.");
   wss = socketService;
 }
 
-export function moveTo(x, y) {
-  console.assert(started, "moveTo: not started");
-  wss.emit("game.move", {
-    x,
-    y,
-    gameId: clientInfo.gameId,
-    clientIdx: clientInfo.clientIdx,
-  });
-  move(currentState, clientInfo.clientIdx, x, y);
+export function createRoom(onWait, onJoin, onFail, onGameEnd, room) {
+  if (!isDef(room.playerLimit) || !isDef(room.password)) return onFail(ErrorCode.UnauthorizedJoin);
+  startGame(onJoin, onFail, onGameEnd);
+  
+  wss.emit("match.createRoom", room, (c) => {
+    clientInfo = c;
+    onWait();
+  })
 }
 
-export function shootBullet(x, y) {
-  console.assert(started, "shootBullet: not started");
-  wss.emit("game.shoot", {
-    x,
-    y,
-    gameId: clientInfo.gameId,
-    clientIdx: clientInfo.clientIdx,
+export function join(onWait, onJoin, onFail, onGameEnd, room) {
+  const body = { };
+  if (room.gameId !== undefined) {
+    body.gameId= room.gameId;
+    body.password = room.password;
+  }
+
+  startGame(onJoin, onFail, onGameEnd);
+
+  wss.emit("match.joinRequest", body, (c) => {
+    clientInfo = c;
+    onWait();
   });
-  shoot(currentState, clientInfo.clientIdx, x, y);
 }
 
-export function join(cb) {
-  console.assert(!started, "join: already started");
+function startGame(onJoin, onFail, onGameEnd) {
   started = false;
+  prevScores = undefined;
 
   wss.bindHandler("match.join", (match) => {
-    cb({
-      initialState: match.initialState,
-      walls: match.walls,
-      clientInfo: clientInfo, // Pass the clientInfo received earlier
-    });
-
     started = true;
+    gameEnds = match.ends;
     wss.unbindHandlers("match.join");
     currentState = match.initialState;
-    serverStates = [];
-
-    setWalls(match.walls);
+    serverState = undefined;
+    players = match.players;
 
     wss.bindHandler("match.stateUpdate", (res) => {
-      serverStates = res.newStates;
-      if (isDef(res.updatedIndices)) {
-        console.log(res);
-        console.log(`old idx: ${clientInfo.clientIdx}`);
-        clientInfo.clientIdx = res.updatedIndices[clientInfo.clientIdx];
-        console.log(`new idx: ${clientInfo.clientIdx}`);
-        fetchFrame();
-      }
+      currentState = res.newState;
     });
 
     wss.bindHandler("match.playerChange", ({ clientIdx }) => {
       if (clientIdx < clientInfo.clientIdx) clientInfo.clientIdx -= 1;
       if (started) removeTank(currentState, clientIdx);
+      players.splice(clientIdx, 1);
     });
+
+    onJoin();
   });
 
-  wss.emit("match.joinRequest", {}, (c) => {
-    clientInfo = c;
+  wss.bindHandler("server.error", ({ err }) => {
+    if (onFail(err)) leave();
   });
+
+  wss.bindHandler("match.end", ({ finalState }) => {
+
+    prevScores = getScores(finalState, players);
+    destroyGame();
+    onGameEnd();
+  })
+}
+
+function destroyGame() {
+  if (currentState === undefined)
+    prevScores = undefined;
+  else
+    prevScores = getScores(currentState, players);
+  clientInfo = undefined;
+  currentState = undefined;
+  serverState = undefined;
+  gameEnds = undefined;
+  players = undefined;
+  started = false;
+
+  wss.unbindHandlers("match.stateUpdate");
+  wss.unbindHandlers("Unauthorized");
+  wss.unbindHandlers("game.end");
+  wss.unbindHandlers("match.end");
+  wss.unbindHandlers("server.error");
 }
 
 export function fetchFrame() {
-  console.assert(started, "fetchFrame: not started");
-
-  if (!currentState) {
-    return { tanks: [], bullets: [] };
-  }
 
   const targetTime = Date.now();
-
-  let idx;
-  for (idx = serverStates.length - 1; idx >= 0; idx--) {
-    if (serverStates[idx].timestamp <= targetTime) {
-      currentState = serverStates[idx];
-      break;
-    }
-  }
-
-  let headTime = currentState.timestamp;
-  if (idx !== -1) serverStates = serverStates.slice(idx + 1);
-  else serverStates = [];
-
-  while (targetTime !== headTime) {
-    serverStates.filter((s) => s.timestamp > headTime);
-    let delta = 0;
-
-    delta = Math.min(maxStepSize, targetTime - headTime);
-    console.assert(delta > 0, "negative delta");
-
-    step(currentState, delta);
-    headTime += delta;
-  }
-
-  return structuredClone(currentState);
+  if (updateTimestamp(currentState, targetTime, true))
+    wss.emit("game.syncReq", {});
+  return currentState;
 }
 
 export function getDistance(idx) {
-  console.assert(started, "getDistance: not started");
 
   // 1. Add a check to ensure clientInfo and currentState are initialized
   if (!clientInfo || !currentState) {
     return;
   }
 
-  const t1 = currentState.tanks[idx];
+  const t1 = currentState.tanks[idx].dSprite;
 
   // 2. Correctly access the client's tank from the tanks array
-  const t2 = currentState.tanks[clientInfo.clientIdx];
+  const t2 = currentState.tanks[clientInfo.clientIdx].dSprite;
 
   // 3. Add a check to ensure both tank objects exist before using them
   if (!t1 || !t2) {
@@ -134,7 +129,6 @@ export function getDistance(idx) {
 }
 
 export function getClientIdx() {
-  console.assert(started, "getClientIdx: not started");
   return clientInfo.clientIdx;
 }
 
@@ -143,53 +137,57 @@ export function hasStarted() {
 }
 
 export function leave() {
-  wss.emit("match.leave", clientInfo);
-  console.log(started, "client.leave match not started");
-  clientInfo = undefined;
-  currentState = undefined;
-  serverStates = [];
-  started = false;
-
-  wss.unbindHandlers("match.stateUpdate");
-  wss.unbindHandlers("match.playerChange");
-}
-
-export function setDirection(dx, dy) {
-  console.assert(started, "client.setDirection match not started");
-  console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.setDirection direction vector not normalized");
-  console.assert(isDef(clientInfo), "client.setDirection clientInfo not defined");
-
-  const tankSprite = currentState.tanks[clientInfo.clientIdx].sprite;
-
-  moveVec(currentState, clientInfo.clientIdx, dx, dy);
-  wss.emit("game.moveVec", {
-    dx,
-    dy,
-    gameId: clientInfo.gameId,
-    clientIdx: clientInfo.clientIdx,
-  });
-}
-
-export function shootBulletVec(dx, dy) {
-  console.assert(started, "client.shootBulletVec match not started");
-  console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.shootBulletVec vector not normalized");
-  console.assert(isDef(clientInfo), "client.shootBulletVec clientInfo not defined");
-
-  const tankSprite = currentState.tanks[clientInfo.clientIdx].sprite;
-  shootBullet(tankSprite.x + dx, tankSprite.y + dy);
-}
-
-export function stop() {
-  console.assert(started, "client.stop match not started");
-  console.assert(isDef(clientInfo), "client.stop clientInfo not defined");
-
-  stopTank(currentState, clientInfo.clientIdx);
-  wss.emit("game.stop", {
-    gameId: clientInfo.gameId,
-    clientIdx: clientInfo.clientIdx,
-  })
+  if (!isDef(clientInfo)) return;
+  wss.emit("match.leave", { });
+  destroyGame();
 }
 
 export function getClientInfo() {
   return clientInfo;
+}
+
+
+export function shootBullet(x, y) {
+  wss.emit("game.shoot", {
+    x,
+    y,
+  });
+}
+
+export function setDirection(dx, dy) {
+  const tank = currentState.tanks[clientInfo.clientIdx].dSprite;
+  if (tank.dx === dx && tank.dy === dy) return;
+  wss.emit("game.moveVec", {
+    dx,
+    dy,
+  });
+}
+
+export function shootBulletVec(dx, dy) {
+  const tankSprite = currentState.tanks[clientInfo.clientIdx].dSprite.sprite;
+  shootBullet(tankSprite.x + dx, tankSprite.y + dy);
+}
+
+export function stop() {
+
+  const tank = currentState.tanks[clientInfo.clientIdx].dSprite;
+  if (tank.dx === 0 && tank.dy === 0) return;
+
+  wss.emit("game.stop", { })
+}
+
+export function getTimeLeft() {
+  return Math.max(Math.ceil((gameEnds - Date.now()) / 1000), 0)
+}
+
+export function fetchScores() {
+  return getScores(currentState, players);
+}
+
+export function fetchOldScores() {
+  return prevScores;
+}
+
+export function isWaiting() {
+  return isDef(clientInfo);
 }

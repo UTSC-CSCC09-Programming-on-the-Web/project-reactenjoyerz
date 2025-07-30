@@ -1,160 +1,391 @@
-import { isDef, serverStepSize, maxStepSize, inputCooldown, matchSize, MAX_PROXIMITY_DISTANCE } from "./common.js";
-import { initialize, step, shoot, move, getWalls, logState, removeTank, stopTank, moveVec } from "../gamelogic/game-state.js";
+"use strict";
 
-import assert from "node:assert";
+import {
+  isDef,
+  serverStepSize,
+  maxStepSize,
+  inputCooldown,
+  matchSize,
+  MAX_PROXIMITY_DISTANCE,
+  ErrorCode,
+} from "./common.js";
+import {
+  initialize,
+  shoot,
+  removeTank,
+  stopTank,
+  moveVec,
+  updateTimestamp
+} from "../gamelogic/game-state.js";
+import {
+  findToken,
+  updateClientInfo,
+  findPlayerInfo,
+} from "../../backend/token.js";
+import {
+  validateString,
+  validateNumber
+} from "../../backend/utils/validateInput.js";
+
+import bcrypt from "bcrypt";
+import { matchLength } from "./common.js";
+
 const speakingStatus = new Map();
 
-let nextGameId = 0;
+let nextPublicGameId = 1;
+let nextPrivateGameId = 0;
 const games = new Map([]);
+
+const SALT_ROUNDS = 10;
+
+function sendError(socket, reason, err) {
+  console.error(`Error: ${reason}`);
+  socket.emit("server.error", { err });
+}
+
+function createRoom(gameId, password, playerLimit) {
+  console.log(`createRoom: ${gameId}`);
+
+  let game = games.get(gameId);
+  if (isDef(game)) return ErrorCode.RoomExists;
+  game = {
+    inputs: [],
+    players: [],
+    name: `game-${gameId}`,
+    started: false,
+    playerLimit
+  };
+
+  if (isDef(password)) {
+    const salt = bcrypt.genSaltSync(SALT_ROUNDS);
+    game.password = bcrypt.hashSync(password, salt);
+  }
+
+  games.set(gameId, game);
+  return ErrorCode.Success;
+}
+
+function playerJoin(socket, io, token, userId, name, gameId, password, callback) {
+  let game = games.get(gameId);
+  console.log(`joinRoom: ${gameId}`);
+
+  if (!isDef(game)) return ErrorCode.InvalidRoom; 
+  if (game.started) return ErrorCode.GameStarted;
+  if (isDef(game.password) && !bcrypt.compareSync(password, game.password)) return ErrorCode.WrongPassword;
+
+  const clientIdx = game.players.length;
+  const res = updateClientInfo(token, {
+    gameId,
+    clientIdx,
+  });
+
+  if (res === undefined)
+    return ErrorCode.InvalidToken;
+
+  // send identification back to client
+  callback({
+    gameId,
+    clientIdx,
+  });
+
+  game.players.push({
+    socket,
+    name,
+    userId,
+  });
+
+  socket.join(`${game.name}`);
+  console.log(`${name} joined ${game.name}`);
+
+  if (game.players.length === game.playerLimit) {
+    console.log(`Starting ${game.name}`);
+    game.started = true;
+
+    game.currentState = initialize(game.playerLimit);
+    game.currentState.timestamp = Date.now();
+    game.ends = Date.now() + matchLength;
+
+    io.to(`${game.name}`).emit("match.join", {
+      initialState: structuredClone(game.currentState),
+      players: game.players.map((p) => p.name),
+      ends: game.ends,
+    });
+  }
+
+  return ErrorCode.Success;
+}
+
+function authenticateUser(socket, token, endpoint, next) {
+  if (!validateString(token)) return sendError(socket, "invalid token", ErrorCode.InvalidToken);
+
+  const playerInfo = findPlayerInfo(token);
+  if (!isDef(playerInfo)) return sendError(socket, "token not mapped to player", ErrorCode.InvalidToken);
+
+  const { clientIdx, gameId, userId, name } = playerInfo;
+  socket.clientIdx = clientIdx;
+  socket.gameId = gameId;
+  socket.token = token;
+  socket.userId = userId;
+  socket.name = name;
+
+  socket.game = games.get(socket.gameId);
+
+  // list of all endpoints where the user must be in a game to access them
+  const inGameWhitelist = [
+    "game.shoot",
+    "game.moveVec",
+    "game.stop",
+    "game.syncReq",
+    "voice.start",
+    "voice.stop",
+    "voice.audioChunk",
+  ];
+
+  // list of all endpoints where the user must not be in a game to access them
+  const notInGameWhitelist = [
+    "match.joinRequest",
+    "match.createRoom",
+  ];
+
+  // general white list
+  const whitelist = [
+    "disconnect",
+  ];
+
+  // should always be defined
+
+  let err = ErrorCode.Success;
+  if (!whitelist.includes(endpoint)) {
+    if (inGameWhitelist.includes(endpoint) && !(isDef(socket.game) && socket.game.started))
+      err = isDef(socket.game) ? ErrorCode.GameNotStarted : ErrorCode.NotInGame;
+    else if (endpoint === "match.leave" && !isDef(socket.game))
+      err = ErrorCode.NotInGame;
+    else if (notInGameWhitelist.includes(endpoint) && isDef(socket.game))
+      err = ErrorCode.SimJoin;
+  }
+
+  if ((err === ErrorCode.Success)) {
+    next();
+  } else sendError(socket, `unauthorized access from ${socket.name}`, err);
+}
 
 export function bindWSHandlers(io) {
   io.on("connection", (socket) => {
-    socket.on("disconnect", () => {});
-
-    socket.on("match.joinRequest", ({}, callback) => {
-      let game = games.get(nextGameId);
-
-      if (!game) {
-        game = {
-          inputs: [],
-          players: [],
-          name: `game-${nextGameId}`,
-          started: false,
-        };
-
-        games.set(nextGameId, game);
-      }
-
-      // send identification back to client
-      callback({
-        gameId: nextGameId,
-        clientIdx: game.players.length,
-      });
-
-      // D:
-      game.players.push(socket);
-      socket.join(`game-${nextGameId}`);
-      console.log(
-        `Player ${game.players.length} of ${matchSize} joined game-${nextGameId}`
-      );
-
-      if (game.players.length === matchSize) {
-        console.log(`Starting game-${nextGameId}`);
-        game.started = true;
-
-        game.currentState = initialize(matchSize);
-        game.currentState.timestamp = Date.now();
-
-        io.to(`game-${nextGameId}`).emit("match.join", {
-          initialState: game.currentState,
-          walls: getWalls(),
-        });
-
-        nextGameId++;
-      }
+    socket.use((req, next) => {
+      authenticateUser(socket, req[1].token, req[0], next);
     });
 
-    socket.on("match.leave", ({ clientIdx, gameId }) => {
-      console.log(`Player ${clientIdx} left game-${gameId}`);
-      socket.leave(`game-${gameId}`);
+    socket.on("disconnect", () =>
+      console.error("Warning: Unhandled player leave!")
+    );
 
-      const game = games.get(gameId);
+    socket.on("match.joinRequest", ({ gameId, password }, callback) => {
+      const joinPublic = !isDef(gameId);
+      
+      if (!joinPublic) {
+        if (!validateNumber(gameId)) return sendError(socket, "Invalid gameId", ErrorCode.InvalidArgs);
+        if (!validateString(password)) return sendError(socket, "Incorrect password", ErrorCode.InvalidArgs);
+
+      } else {
+        gameId = nextPublicGameId;
+      }
+
+      const { token, userId, name } = socket;
+
+      let game = games.get(gameId);
+
+      if (joinPublic && (!isDef(game) || game.started)) {
+        if (isDef(game)) {
+          gameId = nextPublicGameId;
+          nextPublicGameId += 2;
+        }
+
+        createRoom(gameId, undefined, matchSize, true);
+      }
+
+      const err = playerJoin(
+        socket,
+        io,
+        token,
+        userId,
+        name,
+        gameId,
+        password,
+        callback
+      );
+
+
+      if (err !== ErrorCode.Success)
+        sendError(socket, "unable to join room", err);
+    });
+
+    socket.on("match.createRoom", ({ password, playerLimit }, callback) => {
+      if (!validateNumber(playerLimit)) return sendError(socket, "Invalid player limit", ErrorCode.InvalidArgs);
+      if (!validateString(password)) return sendError(socket, "Incorrect password", ErrorCode.InvalidArgs);
+      console.log(validateNumber(playerLimit));
+      const { token, userId, name } = socket;
+
+      let err;
+      let gameId = nextPrivateGameId;
+      nextPrivateGameId += 2;
+
+      err = createRoom(
+        gameId,
+        password,
+        playerLimit > 0 && isDef(playerLimit) ? playerLimit : matchSize
+      );
+
+      if (err === ErrorCode.Success)
+        err = playerJoin(
+          socket,
+          io,
+          token,
+          userId,
+          name,
+          gameId,
+          password,
+          callback
+        );
+
+      if (err !== ErrorCode.Success)
+        sendError(socket, "unable to create room", err);
+
+      console.log(games.get(gameId));
+    });
+
+    socket.on("match.leave", () => {
+      const { clientIdx, gameId, token, name, game } = socket;
+      const ci = updateClientInfo(token, {});
+
+      console.log(`${name} left ${game.name}`);
+      socket.leave(game.name);
+
+      game.players.forEach((player, idx) => {
+        if (idx <= clientIdx) return;
+        const tokenInfo = findToken(player.userId);
+        const clientInfo = findPlayerInfo(tokenInfo.token);
+        clientInfo.clientIdx -= 1;
+        updateClientInfo(tokenInfo.token, clientInfo);
+      });
+
       if (!isDef(game)) return;
-      assert(isDef(game.players[clientIdx]));
 
       if (game.players.length === 1) {
         games.delete(gameId);
-        console.log(`Deleting game-${gameId}`);
+        console.log(`Deleting ${game.name}`);
         return;
+      } else {
+        game.players.splice(clientIdx, 1);
       }
 
       if (game.started) {
         removeTank(game.currentState, clientIdx);
-        game.inputs = game.inputs.filter((input) => {
-          clientIdx === input.clientIdx && gameId === input.gameId;
-        });
-
-        game.inputs.forEach((input) => {
-          input.clientIdx =
-            input.clientIdx < clientIdx ? clientIdx : clientIdx - 1;
-        });
-
         io.to(game.name).emit("match.playerChange", { clientIdx });
       }
-
-      game.players.splice(clientIdx, 1);
     });
 
-    socket.on("game.shoot", ({ x, y, gameId, clientIdx }) => {
-      const game = games.get(gameId);
-      if (!game || !game.started) return;
+    socket.on("game.shoot", ({ x, y }) => {
+      if (!validateNumber(x) || !validateNumber(y)) return sendError(socket, "game.shoot: invalid args", ErrorCode.InvalidArgs);;
+      const { clientIdx, gameId, game } = socket;
 
       // if clientIdx is out of bounds return
       if (0 > clientIdx || clientIdx >= game.players.length) return;
 
       const now = Date.now();
+      updateTimestamp(game.currentState, now, false);
+      shoot(game.currentState, clientIdx, x, y);
 
-      assert(isDef(clientIdx) && isDef(gameId));
-      game.inputs.push({
-        x,
-        y,
-        timestamp: Date.now(),
-        action: "shoot",
-        clientIdx: clientIdx,
-        gameId: gameId,
-      });
-
-      console.log(`Shoot req @ ${Date.now() - serverStepSize}`);
-    });
-
-    socket.on("game.move", ({ x, y, gameId, clientIdx }) => {
-      const game = games.get(gameId);
-      if (!game || !game.started) return;
-
-      // if clientIdx is out of bounds return
-      if (0 > clientIdx || clientIdx >= game.players.length) return;
-
-      const now = Date.now();
-
-      assert(isDef(clientIdx) && isDef(gameId));
-      game.inputs.push({
-        x,
-        y,
-        timestamp: Date.now(),
-        action: "move",
+      io.to(`${game.name}`).emit("match.stateUpdate", {
+        newState: structuredClone(game.currentState),
         clientIdx,
-        gameId,
       });
-
-      console.log(`Move req @ ${Date.now() - serverStepSize}`);
     });
 
-    socket.on("voice.start", ({ gameId, clientIdx }) => {
-      console.log(`Player ${clientIdx} in game ${gameId} started talking.`);
+    socket.on("game.moveVec", ({ dx, dy }) => {
+      if (!validateNumber(dx) || !validateNumber(dy)) return sendError(socket, "game.moveVec: invalid args", ErrorCode.InvalidArgs);;
+      const { clientIdx, gameId, game } = socket;
+
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
+      else if (
+        game.currentState.tanks[clientIdx].dSprite.dx === dx &&
+        game.currentState.tanks[clientIdx].dSprite.dy === dy
+      )
+        return;
+
+      const now = Date.now();
+
+      updateTimestamp(game.currentState, now, false);
+      moveVec(game.currentState, clientIdx, dx, dy);
+
+      io.to(`${game.name}`).emit("match.stateUpdate", {
+        newState: structuredClone(game.currentState),
+        clientIdx,
+      });
+
+      console.log("move req");
+    });
+
+    socket.on("game.stop", ({}) => {
+      const { clientIdx, gameId, game } = socket;
+
+      // if clientIdx is out of bounds return
+      if (0 > clientIdx || clientIdx >= game.players.length) return;
+      else if (
+        game.currentState.tanks[clientIdx].dSprite.dx === 0 &&
+        game.currentState.tanks[clientIdx].dSprite.dy === 0
+      )
+        return;
+
+      const now = Date.now();
+
+      updateTimestamp(game.currentState, now, false);
+      stopTank(game.currentState, clientIdx);
+
+      io.to(`${game.name}`).emit("match.stateUpdate", {
+        newState: structuredClone(game.currentState),
+        clientIdx,
+      });
+
+      console.log("stop req");
+    });
+
+    socket.on("game.syncReq", ({}) => {
+      updateTimestamp(socket.game.currentState, Date.now(), false);
+      socket.emit("match.stateUpdate", {
+        newState: socket.game.currentState,
+      });
+    });
+
+    socket.on("voice.start", ({}) => {
+      const { clientIdx, gameId, name, game } = socket;
+
+      console.log(`Player ${name} in game ${gameId} started talking.`);
       if (!speakingStatus.has(gameId)) {
         speakingStatus.set(gameId, new Map());
       }
       speakingStatus.get(gameId).set(clientIdx, true);
       // Notify other clients in the room that this player started talking (for UI)
-      io.to(`game-${gameId}`).emit("voice.playerStartedTalking", {
+      io.to(`${game.name}`).emit("voice.playerStartedTalking", {
         senderClientIdx: clientIdx,
       });
     });
 
-    socket.on("voice.stop", ({ gameId, clientIdx }) => {
-      console.log(`Player ${clientIdx} in game ${gameId} stopped talking.`);
+    socket.on("voice.stop", ({}) => {
+      const { clientIdx, gameId, name, game } = socket;
+
+      console.log(`Player ${name} in game ${gameId} stopped talking.`);
       if (speakingStatus.has(gameId)) {
         speakingStatus.get(gameId).set(clientIdx, false);
       }
       // Notify other clients in the room that this player stopped talking (for UI)
-      io.to(`game-${gameId}`).emit("voice.playerStoppedTalking", {
+      io.to(`${game.name}`).emit("voice.playerStoppedTalking", {
         senderClientIdx: clientIdx,
       });
     });
 
-    socket.on("voice.audioChunk", ({ gameId, clientIdx, chunk }) => {
-      const game = games.get(gameId);
-      if (!game || !game.started || !game.currentState) return;
+    socket.on("voice.audioChunk", ({ chunk }) => {
+      const { clientIdx, gameId, game } = socket;
 
       if (
         !speakingStatus.has(gameId) ||
@@ -164,7 +395,9 @@ export function bindWSHandlers(io) {
         return;
       }
 
-      const senderTank = game.currentState.tanks[clientIdx];
+      const senderTank = game.currentState.tanks[clientIdx]
+        ? game.currentState.tanks[clientIdx].dSprite
+        : undefined;
       if (!senderTank) {
         console.warn(
           `Sender tank ${clientIdx} not found for audio chunk in game ${gameId}.`
@@ -173,11 +406,11 @@ export function bindWSHandlers(io) {
       }
 
       // Iterate through all players in the game to determine proximity
-      game.players.forEach((receiverSocket, receiverIdx) => {
+      game.players.forEach((player, receiverIdx) => {
         // Don't send audio back to the person who is talking.
         if (receiverIdx === clientIdx) return;
 
-        const receiverTank = game.currentState.tanks[receiverIdx];
+        const receiverTank = game.currentState.tanks[receiverIdx].dSprite;
         if (!receiverTank) return;
 
         // Calculate the distance between the sender and the receiver.
@@ -187,133 +420,47 @@ export function bindWSHandlers(io) {
         );
 
         if (distance <= MAX_PROXIMITY_DISTANCE) {
-          console.log(
-            `[Game ${gameId}] Distance OK. Sending audio from ${clientIdx} to Receiver ${receiverIdx}.`
-          );
-          receiverSocket.emit("voice.playerAudio", {
+          player.socket.emit("voice.playerAudio", {
             senderClientIdx: clientIdx,
             chunk: chunk,
           });
         }
       });
     });
-
-    socket.on("game.moveVec", ({ dx, dy, gameId, clientIdx }) => {
-      const game = games.get(gameId);
-      if (!game || !game.started) return;
-
-      // if clientIdx is out of bounds return
-      if (0 > clientIdx || clientIdx >= game.players.length) return;
-
-      const now = Date.now();
-
-      assert(isDef(clientIdx) && isDef(gameId));
-      game.inputs.push({
-        dx,
-        dy,
-        timestamp: Date.now(),
-        action: "moveVec",
-        clientIdx,
-        gameId,
-      });
-
-      console.log(`Move vec req @ ${Date.now() - serverStepSize}`);
-    });
-
-    socket.on("game.stop", ({ gameId, clientIdx }) => {
-      const game = games.get(gameId);
-      if (!game || !game.started) return;
-
-      // if clientIdx is out of bounds return
-      if (0 > clientIdx || clientIdx >= game.players.length) return;
-
-      const now = Date.now();
-
-      assert(isDef(clientIdx) && isDef(gameId));
-      game.inputs.push({
-        timestamp: Date.now(),
-        action: "stop",
-        clientIdx,
-        gameId,
-      });
-
-      console.log(`Stop req @ ${Date.now() - serverStepSize}`);
-    });
   });
 
   setInterval(() => {
     games.forEach((game, gameId) => {
-      if (!game.started) return;
+      const now = Date.now();
 
-      assert(isDef(game.currentState));
+      // assert each is game is started or is not full
 
-      // don't ship currentState since that was part of the previous shipment
-      const newStates = [];
+      // assert each player is mapped to the correct clientIdx and are in the correct room
+      game.players.forEach((player, clientIdx) => {
+        const playerToken = findToken(player.userId);
+        const playerInfo = findPlayerInfo(playerToken.token);
 
-      // 1. process inputs relative to state (from -100ms ago) to compute new
-      // current state (0 ms) to account for input delay
+      })
 
-      // 2 .compute changes in state from -100ms to 0ms
+      // check if game has ended
+      if (isDef(game.ends) && game.ends < now) {
+        updateTimestamp(game.currentState, now, false);
+        game.started = false;
 
-      // 3 .set current state to 0ms state
+        io.to(game.name).emit("match.end", {
+          finalState: structuredClone(game.currentState),
+        });
 
-      let headTime = game.currentState.timestamp;
-      const targetTime = Date.now();
+        game.players.forEach((player) => {
+          player.socket.leave();
+          const tokenInfo = findToken(player.userId);
+          updateClientInfo(tokenInfo.token, {});
+          console.log(`${player.name} has left ${game.name}`);
+        })
 
-      while (targetTime !== headTime) {
-        let delta = 0;
-
-        const input = game.inputs[0];
-        let push = false;
-
-        // ensure that no elements are going unprocessed
-        assert(
-          !isDef(input) ||
-            (headTime <= input.timestamp && input.timestamp <= targetTime)
-        );
-        assert(headTime <= targetTime);
-
-        delta = Math.min(maxStepSize, targetTime - headTime);
-        if (isDef(input) && input.timestamp - headTime < delta) {
-          assert(input.gameId === gameId);
-
-          push = true;
-          delta = input.timestamp - headTime;
-          game.inputs.shift();
-
-          switch (input.action) {
-            case "shoot":
-              shoot(game.currentState, input.clientIdx, input.x, input.y);
-              break;
-            case "move":
-              move(game.currentState, input.clientIdx, input.x, input.y);
-              break;
-            case "stop":
-              stopTank(game.currentState, input.clientIdx);
-              break;
-            case "moveVec":
-              moveVec(game.currentState, input.clientIdx, input.dx, input.dy);
-              break;
-            default:
-              console.error(`Error: action ${input.action} not found.`);
-          }
-
-          newStates.push(structuredClone(game.currentState));
-        }
-
-        // only ship new state if step isn't a normal one
-        assert(0 <= delta);
-        assert(delta <= maxStepSize);
-
-        step(game.currentState, delta);
-        headTime += delta;
+        console.log(`${game.name} has ended`);
+        games.delete(gameId);
       }
-
-      // 4. ship it to clients
-      assert(game.currentState.timestamp === targetTime);
-
-      if (newStates.length !== 0)
-        io.to(game.name).emit("match.stateUpdate", { newStates });
     });
-  }, serverStepSize);
+  }, 1000);
 }

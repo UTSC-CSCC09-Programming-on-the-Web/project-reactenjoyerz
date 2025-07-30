@@ -1,7 +1,30 @@
-<p>loading {{ dots }}</p>
-<p></p>
-<p>
-  tip: open 2 tabs set on the loading screen and reload one of them twice to
-  simulate players joining
-</p>
-<button (click)="logout()">Logout</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap">
+</head>
+
+<div class="waiting-room-container">
+  <div class="header">
+    <button class="back-button" (click)="leaveRoom()">&lt; Go Back</button>
+  </div>
+
+  <p class="error-message">{{ message() }}</p>
+  <div class="content-body">
+    <h1 class="main-title">WTanks</h1>
+    <div class="game-code-container">
+      @if (isPrivate) {
+        <h2>Game Code: {{ gameCode() }}</h2>
+      } @else {
+        <h2 style="opacity: 0;">SUPER DUPER SECRET SECRET HUSH HUSH</h2>
+      }
+    </div>
+  </div>
+
+  <div class="footer">
+    <p class="waiting-text">Waiting for more players to join ...</p>
+  </div>
+</div>
