@@ -432,9 +432,6 @@ export function bindWSHandlers(io) {
         );
 
         if (distance <= MAX_PROXIMITY_DISTANCE) {
-          console.log(
-            `[Game ${gameId}] Distance OK. Sending audio from ${clientIdx} to Receiver ${receiverIdx}.`
-          );
           player.socket.emit("voice.playerAudio", {
             senderClientIdx: clientIdx,
             chunk: chunk,

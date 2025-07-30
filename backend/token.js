@@ -7,8 +7,7 @@ const tokenMap = new Map([]);
 const playerMap = new Map([]);
 
 const TOKEN_SIZE = 32;
-//const TOKEN_LIFETIME = 1000 * 60 * 60 * 24;
-const TOKEN_LIFETIME = 10000;
+const TOKEN_LIFETIME = 1000 * 60 * 60 * 24;
 
 export function bindToken(userId, name) {
   assert(userId);
