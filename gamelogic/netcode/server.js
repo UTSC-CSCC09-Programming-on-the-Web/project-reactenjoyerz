@@ -75,14 +75,17 @@ function playerJoin(socket, io, token, userId, name, gameId, password, callback)
   if (game.started) return ErrorCode.GameStarted;
   if (isDef(game.password) && !bcrypt.compareSync(password, game.password)) return ErrorCode.WrongPassword;
 
-  // send identification back to client
   const clientIdx = game.players.length;
-  callback({
+  const res = updateClientInfo(token, {
     gameId,
     clientIdx,
   });
 
-  updateClientInfo(token, {
+  if (res === undefined)
+    return ErrorCode.InvalidToken;
+
+  // send identification back to client
+  callback({
     gameId,
     clientIdx,
   });
@@ -182,7 +185,6 @@ export function bindWSHandlers(io) {
 
     socket.on("match.joinRequest", ({ gameId, password }, callback) => {
       const joinPublic = !isDef(gameId);
-      console.log("paswrd", {gameId, password, joinPublic});
       
       if (!joinPublic) {
         if (!validateNumber(gameId)) return sendError(socket, "Invalid gameId", ErrorCode.InvalidArgs);
@@ -218,7 +220,7 @@ export function bindWSHandlers(io) {
         password,
         callback
       );
-      assert(!joinPublic || err === ErrorCode.Success);
+      assert(!joinPublic || err === ErrorCode.Success || err === ErrorCode.InvalidToken);
 
       if (err !== ErrorCode.Success)
         sendError(socket, "unable to join room", err);
@@ -267,7 +269,7 @@ export function bindWSHandlers(io) {
       socket.leave(game.name);
 
       game.players.forEach((player, idx) => {
-        if (idx < clientIdx) return;
+        if (idx <= clientIdx) return;
         const tokenInfo = findToken(player.userId);
         const clientInfo = findPlayerInfo(tokenInfo.token);
         clientInfo.clientIdx -= 1;

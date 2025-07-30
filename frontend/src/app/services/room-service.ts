@@ -10,13 +10,15 @@ type errorListener = (err: string) => void;
   providedIn: 'root'
 })
 export class RoomService {
-  private onErrorListeners: errorListener[] = [];
+  private onErrorListeners: Map<string, errorListener>;
   private isPrivate = true;
 
-  constructor(private router: Router, private authService: AuthService) { }
+  constructor(private router: Router, private authService: AuthService) { 
+    this.onErrorListeners = new Map<string, errorListener>;
+  }
 
-  attachListener(listener: errorListener) {
-    this.onErrorListeners.push(listener);
+  attachListener(key: string, listener: errorListener) {
+    this.onErrorListeners.set(key, listener);
   }
 
   private notifyListeners(err: string) {
@@ -32,7 +34,7 @@ export class RoomService {
         message = 'Succesfully joined match';
         break;
       case ErrorCode.InvalidToken:
-        message = 'Invalid token';
+        message = 'Not signed in';
         fatal = true;
         break;
       case ErrorCode.GameStarted:

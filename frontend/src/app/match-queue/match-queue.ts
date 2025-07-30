@@ -16,12 +16,12 @@ import { RoomService } from "../services/room-service";
   providers: [],
 })
 export class MatchQueue {
-  message = '';
   private authService = inject(AuthService);
   private router = inject(Router);
 
   isPrivate = false;
   gameCode = signal<string>('');
+  message = signal('');
 
   joinForm: FormGroup;
   createForm: FormGroup;
@@ -41,7 +41,8 @@ export class MatchQueue {
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
         this.gameCode.set(getClientInfo()?.gameId.toString() ?? '');
-        this.isPrivate = rs.gameIsPrivate();
+        this.isPrivate = this.rs.gameIsPrivate();
+        this.rs.attachListener("match", (err) => this.message.set(err));
       });
   }
 
