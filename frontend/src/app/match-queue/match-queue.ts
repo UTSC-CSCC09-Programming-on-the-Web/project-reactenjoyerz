@@ -6,6 +6,7 @@ import { leave } from "../../../../gamelogic/netcode/client";
 import { ErrorCode } from "../../../../gamelogic/netcode/common";
 import { ReactiveFormsModule, FormGroup, FormBuilder, Validators } from "@angular/forms";
 import { filter } from "rxjs";
+import { RoomService } from "../services/room-service";
 
 @Component({
   selector: 'app-match-queue',
@@ -19,12 +20,13 @@ export class MatchQueue {
   private authService = inject(AuthService);
   private router = inject(Router);
 
+  isPrivate = false;
   gameCode = signal<string>('');
 
   joinForm: FormGroup;
   createForm: FormGroup;
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder, private rs: RoomService) {
     this.joinForm = this.fb.group({
       gameId: ['', []],
       password: ['', []],
@@ -39,11 +41,13 @@ export class MatchQueue {
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
         this.gameCode.set(getClientInfo()?.gameId.toString() ?? '');
+        this.isPrivate = rs.gameIsPrivate();
       });
   }
 
   leaveRoom() {
     leave();
+    this.router.navigate(['/game-select']);
   }
 
   logout() {
