@@ -79,8 +79,7 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              },
-              "silent-refresh.html"
+              }
             ],
             "styles": ["src/styles.css"]
           }
