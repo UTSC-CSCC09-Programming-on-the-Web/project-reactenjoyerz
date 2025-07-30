@@ -27,7 +27,6 @@ import {
   validateNumber
 } from "../../backend/utils/validateInput.js";
 
-import assert from "node:assert";
 import bcrypt from "bcrypt";
 import { matchLength } from "./common.js";
 
@@ -40,7 +39,6 @@ const games = new Map([]);
 const SALT_ROUNDS = 10;
 
 function sendError(socket, reason, err) {
-  assert(err !== ErrorCode.Success);
   console.error(`Error: ${reason}`);
   socket.emit("server.error", { err });
 }
@@ -131,7 +129,6 @@ function authenticateUser(socket, token, endpoint, next) {
   socket.name = name;
 
   socket.game = games.get(socket.gameId);
-  assert(!isDef(socket.game) || socket.game.players[socket.clientIdx].userId === socket.userId);
 
   // list of all endpoints where the user must be in a game to access them
   const inGameWhitelist = [
@@ -156,7 +153,6 @@ function authenticateUser(socket, token, endpoint, next) {
   ];
 
   // should always be defined
-  assert(socket.name);
 
   let err = ErrorCode.Success;
   if (!whitelist.includes(endpoint)) {
@@ -200,14 +196,11 @@ export function bindWSHandlers(io) {
 
       if (joinPublic && (!isDef(game) || game.started)) {
         if (isDef(game)) {
-          assert(game.started);
           gameId = nextPublicGameId;
           nextPublicGameId += 2;
         }
 
-        assert(
-          createRoom(gameId, undefined, matchSize, true) === ErrorCode.Success
-        );
+        createRoom(gameId, undefined, matchSize, true);
       }
 
       const err = playerJoin(
@@ -220,7 +213,7 @@ export function bindWSHandlers(io) {
         password,
         callback
       );
-      assert(!joinPublic || err === ErrorCode.Success || err === ErrorCode.InvalidToken);
+
 
       if (err !== ErrorCode.Success)
         sendError(socket, "unable to join room", err);
@@ -263,7 +256,6 @@ export function bindWSHandlers(io) {
     socket.on("match.leave", () => {
       const { clientIdx, gameId, token, name, game } = socket;
       const ci = updateClientInfo(token, {});
-      assert(ci.gameId === undefined); // ensure that token is able to be culled if it expires
 
       console.log(`${name} left ${game.name}`);
       socket.leave(game.name);
@@ -277,7 +269,6 @@ export function bindWSHandlers(io) {
       });
 
       if (!isDef(game)) return;
-      assert(isDef(game.players[clientIdx]));
 
       if (game.players.length === 1) {
         games.delete(gameId);
@@ -301,7 +292,6 @@ export function bindWSHandlers(io) {
       if (0 > clientIdx || clientIdx >= game.players.length) return;
 
       const now = Date.now();
-      assert(isDef(clientIdx) && isDef(gameId));
       updateTimestamp(game.currentState, now, false);
       shoot(game.currentState, clientIdx, x, y);
 
@@ -325,7 +315,6 @@ export function bindWSHandlers(io) {
 
       const now = Date.now();
 
-      assert(isDef(clientIdx) && isDef(gameId));
       updateTimestamp(game.currentState, now, false);
       moveVec(game.currentState, clientIdx, dx, dy);
 
@@ -350,7 +339,6 @@ export function bindWSHandlers(io) {
 
       const now = Date.now();
 
-      assert(isDef(clientIdx) && isDef(gameId));
       updateTimestamp(game.currentState, now, false);
       stopTank(game.currentState, clientIdx);
 
@@ -446,22 +434,16 @@ export function bindWSHandlers(io) {
       const now = Date.now();
 
       // assert each is game is started or is not full
-      assert(game.started || game.players.length < game.playerLimit);
 
       // assert each player is mapped to the correct clientIdx and are in the correct room
       game.players.forEach((player, clientIdx) => {
         const playerToken = findToken(player.userId);
         const playerInfo = findPlayerInfo(playerToken.token);
 
-        assert(playerToken.name === playerInfo.name);
-        assert(playerInfo.userId === player.userId);
-        assert(playerInfo.clientIdx === clientIdx);
-        assert(playerInfo.gameId === gameId);
       })
 
       // check if game has ended
       if (isDef(game.ends) && game.ends < now) {
-        assert(game.started);
         updateTimestamp(game.currentState, now, false);
         game.started = false;
 

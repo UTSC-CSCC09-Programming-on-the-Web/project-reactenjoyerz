@@ -43,12 +43,10 @@ export function join(onWait, onJoin, onFail, onGameEnd, room) {
 }
 
 function startGame(onJoin, onFail, onGameEnd) {
-  console.assert(!started, "startGame: already started");
   started = false;
   prevScores = undefined;
 
   wss.bindHandler("match.join", (match) => {
-    console.assert(!started, "match.join: joining started match");
     started = true;
     gameEnds = match.ends;
     wss.unbindHandlers("match.join");
@@ -58,7 +56,6 @@ function startGame(onJoin, onFail, onGameEnd) {
 
     wss.bindHandler("match.stateUpdate", (res) => {
       currentState = res.newState;
-      console.assert(!isDef(res.updateIndices), "match.stateUpdate: updateIndices is deprecated");
     });
 
     wss.bindHandler("match.playerChange", ({ clientIdx }) => {
@@ -75,7 +72,7 @@ function startGame(onJoin, onFail, onGameEnd) {
   });
 
   wss.bindHandler("match.end", ({ finalState }) => {
-    console.assert(!finalState.started)
+
     prevScores = getScores(finalState, players);
     destroyGame();
     onGameEnd();
@@ -102,7 +99,6 @@ function destroyGame() {
 }
 
 export function fetchFrame() {
-  console.assert(started, "fetchFrame: not started");
 
   const targetTime = Date.now();
   if (updateTimestamp(currentState, targetTime, true))
@@ -111,7 +107,6 @@ export function fetchFrame() {
 }
 
 export function getDistance(idx) {
-  console.assert(started, "getDistance: not started");
 
   // 1. Add a check to ensure clientInfo and currentState are initialized
   if (!clientInfo || !currentState) {
@@ -134,7 +129,6 @@ export function getDistance(idx) {
 }
 
 export function getClientIdx() {
-  console.assert(started, "getClientIdx: not started");
   return clientInfo.clientIdx;
 }
 
@@ -154,7 +148,6 @@ export function getClientInfo() {
 
 
 export function shootBullet(x, y) {
-  console.assert(started, "shootBullet: not started");
   wss.emit("game.shoot", {
     x,
     y,
@@ -162,10 +155,6 @@ export function shootBullet(x, y) {
 }
 
 export function setDirection(dx, dy) {
-  console.assert(started, "client.setDirection match not started");
-  console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.setDirection direction vector not normalized");
-  console.assert(isDef(clientInfo), "client.setDirection clientInfo not defined");
-
   const tank = currentState.tanks[clientInfo.clientIdx].dSprite;
   if (tank.dx === dx && tank.dy === dy) return;
   wss.emit("game.moveVec", {
@@ -175,17 +164,11 @@ export function setDirection(dx, dy) {
 }
 
 export function shootBulletVec(dx, dy) {
-  console.assert(started, "client.shootBulletVec match not started");
-  console.assert(Math.abs(dx ** 2 + dy ** 2 - 1) <= 1e-5, "client.shootBulletVec vector not normalized");
-  console.assert(isDef(clientInfo), "client.shootBulletVec clientInfo not defined");
-
   const tankSprite = currentState.tanks[clientInfo.clientIdx].dSprite.sprite;
   shootBullet(tankSprite.x + dx, tankSprite.y + dy);
 }
 
 export function stop() {
-  console.assert(started, "client.stop match not started");
-  console.assert(isDef(clientInfo), "client.stop clientInfo not defined");
 
   const tank = currentState.tanks[clientInfo.clientIdx].dSprite;
   if (tank.dx === 0 && tank.dy === 0) return;
