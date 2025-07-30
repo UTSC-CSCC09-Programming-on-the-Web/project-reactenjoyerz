@@ -39,3 +39,19 @@ Real time. The real time aspect is the game part of our project. This part will 
  
 ## Your final version milestones (July 30)
  * Final design touch ups
+
+# Demo Link
+https://youtu.be/q9TvAIEgpJ4
+
+# AI Prompts Used
+Generated using ChatGPT:
+To generate the green tank:
+Could you create a game sprite of green tank in a cartoony style in a top down perspective without any background?
+Could you make this from a top down perspective?
+
+To generate the red/blue tank:
+Could you create a red version of the previous asset?
+Could you create a blue version of this asset?
+
+To generate the red/blue bullets:
+Could you generate a red/blue bullet in a similar style to this asset?
