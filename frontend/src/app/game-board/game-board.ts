@@ -76,10 +76,6 @@ export class GameBoard implements OnDestroy {
       this.scores.set(fetchScores().sort((a, b) => b.score - a.score));
       this.walls = getWalls(res);
 
-      if (!this.started()) {
-        console.log("reset");
-      }
-
       this.started.set(true);
       this.clientIdx = getClientIdx();
       this.bullets.set(res.bullets);
@@ -87,7 +83,6 @@ export class GameBoard implements OnDestroy {
 
       const dx = keymap[3] - keymap[1];
       const dy = keymap[2] - keymap[0];
-      console.log(keymap);
 
       if (dx === 0 && dy === 0) {
         //console.log("stop", keymap);
