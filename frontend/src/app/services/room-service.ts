@@ -11,6 +11,7 @@ type errorListener = (err: string) => void;
 })
 export class RoomService {
   private onErrorListeners: errorListener[] = [];
+  private isPrivate = true;
 
   constructor(private router: Router, private authService: AuthService) { }
 
@@ -94,6 +95,7 @@ export class RoomService {
   }
 
   createGame(playerLimit: string, password: string) {
+    this.isPrivate = true;
     let _playerLimit: number;
     if (Number.isNaN(playerLimit)) {
       this.notifyListeners("Invalid player limit");
@@ -112,6 +114,7 @@ export class RoomService {
   }
 
   joinPrivateGame(gameId: string, password: string) {
+    this.isPrivate = true;
     let _gameId: number;
     if (Number.isNaN(gameId)) {
       this.notifyListeners("Invalid player limit");
@@ -129,6 +132,7 @@ export class RoomService {
   }
 
   joinPublicGame() {
+    this.isPrivate = false;
     join(
       this.onWait,
       this.onJoin,
@@ -136,5 +140,9 @@ export class RoomService {
       this.onEnd,
       { gameId: undefined, password: undefined }
     );
+  }
+
+  gameIsPrivate() {
+    return this.isPrivate;
   }
 }

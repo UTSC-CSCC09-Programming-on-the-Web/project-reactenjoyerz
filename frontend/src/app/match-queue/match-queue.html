@@ -9,13 +9,17 @@
 
 <div class="waiting-room-container">
   <div class="header">
-    <button class="back-button" (click)="leaveRoom()">&lt;Back</button>
+    <button class="back-button" (click)="leaveRoom()">&lt; Go Back</button>
   </div>
 
   <div class="content-body">
     <h1 class="main-title">WTanks</h1>
     <div class="game-code-container">
-      <h2>Game Code: {{ gameCode() }}</h2>
+      @if (isPrivate) {
+        <h2>Game Code: {{ gameCode() }}</h2>
+      } @else {
+        <h2 style="opacity: 0;">SUPER DUPER SECRET SECRET HUSH HUSH</h2>
+      }
     </div>
   </div>
 

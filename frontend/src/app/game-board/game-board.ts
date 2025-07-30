@@ -166,7 +166,6 @@ export class GameBoard implements OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
-    console.log('down');
     let dx = 0;
     let dy = 0;
 
@@ -181,13 +180,10 @@ export class GameBoard implements OnDestroy {
         this.startRecording();
         break;
     }
-
-    console.log(keymap);
   }
 
   @HostListener('window:keyup', ['$event'])
   handleKeyUp(event: KeyboardEvent) {
-    console.log('up');
     const key = event.key.toLowerCase();
     if (key === 'w') keymap[0] = 0;
     if (key === 'a') keymap[1] = 0;
